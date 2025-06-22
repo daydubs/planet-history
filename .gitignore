@@ -361,3 +361,20 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Assets/Generated/BiomeTextures
+/Assets/Materials
+/Assets/Mountain Terrain rocks and tree
+/Assets/Prefabs
+/Assets/Resources
+/Assets/Scenes
+/Assets/Shaders
+/Assets/Simple Water Shader HDRP/Textures
+/Assets/Stylize Water Texture
+/Assets/Tiers et Unity
+/Assets/VolcanicPresets
+/HeightMapExports
+/Library
+/ProjectSettings
+/Temp
+/UserSettings
+/Assets/Yoge/Textures/Stylized - Nature
