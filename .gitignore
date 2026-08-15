@@ -1,0 +1,84 @@
+# Unity specific
+[Dd]ata/
+[Ll]ibrary/
+[Ll]ocalCache/
+[Ll]ocalCache-*
+[Ll]ogs/
+[Mm]emoryCaptures/
+[Tt]emp/
+[Cc]lientBuild/
+[Cc]lientData/
+[Tt]estResults/
+[Tt]estData/
+[Cc]lientTemp/
+[Cc]lientLogs/
+[Cc]lientLibrary/
+[Cc]lientMemoryCaptures/
+[Cc]lientTestResults/
+[Cc]lientTestData/
+[Cc]lientTestLogs/
+[Cc]lientTestBuild/
+[Cc]lientTestLibrary/
+[Cc]lientTestTemp/
+[Cc]lientTestMemoryCaptures/
+[Cc]lientTestLogs/
+[Cc]lientTestResults/
+[Cc]lientTestData/
+[Cc]lientTestBuild/
+[Cc]lientTestLibrary/
+[Cc]lientTestTemp/
+[Cc]lientTestMemoryCaptures/
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+[Tt]est/
+[Tt]ests/
+[Tt]estResults/
+[Tt]estData/
+[Tt]estLogs/
+[Tt]estBuild/
+[Tt]estLibrary/
+[Tt]estTemp/
+[Tt]estMemoryCaptures/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+*.cache
+*.cache2
+*.userprefs
+*.pidb
+*.db
+
+# MonoDevelop
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+*.cs.user
+
+# Rider
+.idea/
+*.sln.iml
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+*.userprefs
+*.pidb
+
+# Build
+Build/
+Builds/
+!Assets/script/Test/
+!Assets/script/Test/**
+
+# Ignore large archives and executables
+*.zip
+*.exe
+
