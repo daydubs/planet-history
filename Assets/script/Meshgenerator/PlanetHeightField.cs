@@ -218,7 +218,9 @@ public class PlanetHeightField : IDisposable
     }
 
     /// <summary>
-    /// Applique un motif de continent avec bruit 3D pour des rivages organiques et des reliefs intérieurs réalistes.
+    /// Applique un motif de continent avec déformation de domaine 3D (domain warping)
+    /// et bruit multi-échelle pour éliminer les formes circulaires régulières et
+    /// générer des masses continentales naturelles (péninsules, golfes, baies).
     /// </summary>
     private void StampAngularContinent(float longitude, float latitude, float radius, float plateauHeight, float rate)
     {
@@ -228,16 +230,25 @@ public class PlanetHeightField : IDisposable
         float cosLat = Mathf.Cos(latitude);
         float sinLat = Mathf.Sin(latitude);
 
+        // Direction 3D du centre du continent
+        Vector3 centerDir = new Vector3(
+            cosLat * Mathf.Cos(longitude),
+            sinLat,
+            cosLat * Mathf.Sin(longitude)
+        );
+
         int centerX = Mathf.RoundToInt(longitude / (2f * Mathf.PI) * width);
         int centerY = Mathf.RoundToInt((latitude / Mathf.PI + 0.5f) * height);
 
-        int spanY = Mathf.CeilToInt((radius * 1.5f) / Mathf.PI * height) + 1;
+        // Augmentation de l'emprise pour englober la déformation de domaine (domain warp)
+        float spanFactor = 2.2f;
+        int spanY = Mathf.CeilToInt((radius * spanFactor) / Mathf.PI * height) + 1;
         int minY = Mathf.Clamp(centerY - spanY, 0, height - 1);
         int maxY = Mathf.Clamp(centerY + spanY, 0, height - 1);
 
         int spanX;
         float cosClamped = Mathf.Max(cosLat, 1e-3f);
-        float angularSpanX = (radius * 1.5f) / cosClamped;
+        float angularSpanX = (radius * spanFactor) / cosClamped;
         if (angularSpanX >= Mathf.PI)
         {
             spanX = width / 2;
@@ -249,6 +260,8 @@ public class PlanetHeightField : IDisposable
 
         int startX = WrapX(centerX - spanX);
         int columns = Mathf.Min(width, spanX * 2 + 1);
+
+        float warpStrength = radius * 0.45f;
 
         for (int y = minY; y <= maxY; y++)
         {
@@ -268,19 +281,31 @@ public class PlanetHeightField : IDisposable
                 float xDir = cosRowLat * Mathf.Cos(lon);
                 float zDir = cosRowLat * Mathf.Sin(lon);
 
-                float cosD = sinLat * sinRowLat + cosLat * cosRowLat * Mathf.Cos(lon - longitude);
+                Vector3 pos = new Vector3(xDir, yDir, zDir);
+
+                // 1. Déformation de domaine (3D Domain Warping) à basse fréquence
+                float wx = Fbm3D((pos.x + NoiseOffset.x + 13.5f) * 2.2f, (pos.y + NoiseOffset.y + 27.1f) * 2.2f, (pos.z + NoiseOffset.z + 41.8f) * 2.2f, 3);
+                float wy = Fbm3D((pos.x + NoiseOffset.x + 52.3f) * 2.2f, (pos.y + NoiseOffset.y + 68.9f) * 2.2f, (pos.z + NoiseOffset.z + 84.2f) * 2.2f, 3);
+                float wz = Fbm3D((pos.x + NoiseOffset.x + 91.7f) * 2.2f, (pos.y + NoiseOffset.y + 14.3f) * 2.2f, (pos.z + NoiseOffset.z + 36.6f) * 2.2f, 3);
+
+                Vector3 warpedPos = (pos + new Vector3(wx, wy, wz) * warpStrength).normalized;
+
+                // Distance en espace déformé par rapport au centre du continent
+                float cosD = Vector3.Dot(warpedPos, centerDir);
                 float d = Mathf.Acos(Mathf.Clamp(cosD, -1f, 1f));
 
-                float boundaryNoise = Fbm3D((xDir + NoiseOffset.x) * 4.0f, (yDir + NoiseOffset.y) * 4.0f, (zDir + NoiseOffset.z) * 4.0f, 4);
-                float perturbedRadius = radius * (1.0f + boundaryNoise * 0.25f);
+                // 2. Bruit de côtes fractales à haute fréquence
+                float coastlineNoise = Fbm3D((pos.x + NoiseOffset.x) * 8.0f, (pos.y + NoiseOffset.y) * 8.0f, (pos.z + NoiseOffset.z) * 8.0f, 4);
+                float perturbedRadius = radius * (1.0f + coastlineNoise * 0.35f);
 
                 if (d > perturbedRadius) continue;
 
                 float t = 1f - d / perturbedRadius;
                 float heightFactor = Mathf.SmoothStep(0f, 1f, t);
 
-                float internalNoise = Fbm3D((xDir + NoiseOffset.x) * 10.0f, (yDir + NoiseOffset.y) * 10.0f, (zDir + NoiseOffset.z) * 10.0f, 4);
-                float finalHeight = heightFactor * plateauHeight * (1.0f + internalNoise * 0.2f);
+                // Relief intérieur (plateaux, vallées et chaînes montagneuses)
+                float internalNoise = Fbm3D((pos.x + NoiseOffset.x) * 12.0f, (pos.y + NoiseOffset.y) * 12.0f, (pos.z + NoiseOffset.z) * 12.0f, 4);
+                float finalHeight = heightFactor * plateauHeight * (1.0f + internalNoise * 0.25f);
 
                 int i = x + y * width;
                 targetHeight[i] += finalHeight;
