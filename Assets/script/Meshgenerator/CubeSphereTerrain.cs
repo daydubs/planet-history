@@ -39,6 +39,9 @@ public class CubeSphereTerrain : MonoBehaviour
         public float maxPeakHeight;
         public float currentFade = 1f;
         public float fadeSpeed = 0.05f; // per simulation unit step
+
+        // Tectonic drift attachment
+        public ContinentalPiece parentPiece;
     }
 
     [System.Serializable]
@@ -53,6 +56,9 @@ public class CubeSphereTerrain : MonoBehaviour
         public float currentFade = 1f;
         public float targetFade = 0f;
         public float fadeSpeed = 0.05f; // per simulation unit step
+
+        // Tectonic drift attachment
+        public ContinentalPiece parentPiece;
     }
 
     private static readonly int HeightTexId = Shader.PropertyToID("_HeightTex");
@@ -223,6 +229,32 @@ public class CubeSphereTerrain : MonoBehaviour
         }
     }
 
+    /// <summary>Calcul de la distance angulaire en degrés entre deux coordonnées géographiques.</summary>
+    public static float AngularDistanceDegrees(float lon1Deg, float lat1Deg, float lon2Deg, float lat2Deg)
+    {
+        float lon1Rad = lon1Deg * Mathf.Deg2Rad;
+        float lat1Rad = lat1Deg * Mathf.Deg2Rad;
+        float lon2Rad = lon2Deg * Mathf.Deg2Rad;
+        float lat2Rad = lat2Deg * Mathf.Deg2Rad;
+
+        float cosD = Mathf.Sin(lat1Rad) * Mathf.Sin(lat2Rad) + Mathf.Cos(lat1Rad) * Mathf.Cos(lat2Rad) * Mathf.Cos(lon1Rad - lon2Rad);
+        return Mathf.Acos(Mathf.Clamp(cosD, -1f, 1f)) * Mathf.Rad2Deg;
+    }
+
+    /// <summary>Trouve le morceau continental parent chevauchant les coordonnées données.</summary>
+    public ContinentalPiece FindParentPiece(float longitudeDegrees, float latitudeDegrees)
+    {
+        if (continentalPieces == null) return null;
+        foreach (var piece in continentalPieces)
+        {
+            if (AngularDistanceDegrees(piece.currentLongitude, piece.currentLatitude, longitudeDegrees, latitudeDegrees) <= piece.radius)
+            {
+                return piece;
+            }
+        }
+        return null;
+    }
+
     /// <summary>Ajoute un volcan en coordonnées géographiques (degrés).</summary>
     public void AddVolcanoDegrees(float longitudeDegrees, float latitudeDegrees, float radiusDegrees, float peakHeight, float rate = 1f)
     {
@@ -232,7 +264,8 @@ public class CubeSphereTerrain : MonoBehaviour
             latitudeDegrees = latitudeDegrees,
             radiusDegrees = radiusDegrees,
             peakHeight = peakHeight,
-            rate = rate
+            rate = rate,
+            parentPiece = FindParentPiece(longitudeDegrees, latitudeDegrees)
         });
 
         field?.AddVolcano(
@@ -256,7 +289,8 @@ public class CubeSphereTerrain : MonoBehaviour
             isTemporary = true,
             maxPeakHeight = peakHeight,
             currentFade = 1f,
-            fadeSpeed = fadeSpeedVal
+            fadeSpeed = fadeSpeedVal,
+            parentPiece = FindParentPiece(longitudeDegrees, latitudeDegrees)
         });
 
         field?.AddVolcano(
@@ -280,7 +314,8 @@ public class CubeSphereTerrain : MonoBehaviour
             maxRimHeight = rimHeight,
             currentFade = 1f,
             targetFade = targetFadeVal,
-            fadeSpeed = fadeSpeedVal
+            fadeSpeed = fadeSpeedVal,
+            parentPiece = FindParentPiece(longitudeDegrees, latitudeDegrees)
         });
 
         field?.AddCrater(
@@ -297,7 +332,8 @@ public class CubeSphereTerrain : MonoBehaviour
         if (field == null) return 0f;
         float lonRad = Mathf.Repeat(longitudeDegrees, 360f) * Mathf.Deg2Rad;
         float latRad = Mathf.Clamp(latitudeDegrees, -90f, 90f) * Mathf.Deg2Rad;
-        int x = Mathf.RoundToInt(lonRad / (2f * Mathf.PI) * field.Width);
+        float u = Mathf.Repeat(lonRad / (2f * Mathf.PI) + 0.5f, 1f);
+        int x = Mathf.RoundToInt(u * field.Width);
         int y = Mathf.RoundToInt((latRad / Mathf.PI + 0.5f) * field.Height);
         return field.GetCurrent(x, y);
     }
@@ -616,12 +652,48 @@ public class CubeSphereTerrain : MonoBehaviour
             {
                 if (piece.driftSpeedLon != 0f || piece.driftSpeedLat != 0f)
                 {
-                    piece.currentLongitude += piece.driftSpeedLon * simDt;
-                    piece.currentLatitude += piece.driftSpeedLat * simDt;
+                    float deltaLon = piece.driftSpeedLon * simDt;
+                    float deltaLat = piece.driftSpeedLat * simDt;
 
-                    piece.currentLongitude = Mathf.Repeat(piece.currentLongitude, 360f);
-                    piece.currentLatitude = Mathf.Clamp(piece.currentLatitude, -85f, 85f);
+                    piece.currentLongitude = Mathf.Repeat(piece.currentLongitude + deltaLon, 360f);
+                    piece.currentLatitude = Mathf.Clamp(piece.currentLatitude + deltaLat, -85f, 85f);
                     needsRebuild = true;
+
+                    // Update attached craters and volcanoes
+                    foreach (var crater in activeCraters)
+                    {
+                        if (crater.parentPiece == piece)
+                        {
+                            crater.longitudeDegrees = Mathf.Repeat(crater.longitudeDegrees + deltaLon, 360f);
+                            crater.latitudeDegrees = Mathf.Clamp(crater.latitudeDegrees + deltaLat, -85f, 85f);
+                        }
+                    }
+
+                    foreach (var vol in activeVolcanoes)
+                    {
+                        if (vol.parentPiece == piece)
+                        {
+                            vol.longitudeDegrees = Mathf.Repeat(vol.longitudeDegrees + deltaLon, 360f);
+                            vol.latitudeDegrees = Mathf.Clamp(vol.latitudeDegrees + deltaLat, -85f, 85f);
+                        }
+                    }
+                }
+            }
+
+            // Check collision / overlap for unattached craters & volcanoes with drifting continental pieces
+            foreach (var crater in activeCraters)
+            {
+                if (crater.parentPiece == null)
+                {
+                    crater.parentPiece = FindParentPiece(crater.longitudeDegrees, crater.latitudeDegrees);
+                }
+            }
+
+            foreach (var vol in activeVolcanoes)
+            {
+                if (vol.parentPiece == null)
+                {
+                    vol.parentPiece = FindParentPiece(vol.longitudeDegrees, vol.latitudeDegrees);
                 }
             }
         }
