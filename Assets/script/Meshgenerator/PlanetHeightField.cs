@@ -162,11 +162,11 @@ public class PlanetHeightField : IDisposable
 
     private static float Hash3D(int x, int y, int z)
     {
-        long h = (x * 73856093L) ^ (y * 19349663L) ^ (z * 83492791L);
-        h = (h ^ (h >> 16)) * 0x85ebca6bL;
-        h = (h ^ (h >> 13)) * 0xc2b2ae35L;
-        float val = (h & 0xfffffff) / (float)0xfffffff;
-        return val * 2.0f - 1.0f;
+        uint h = (uint)(x * 73856093 ^ y * 19349663 ^ z * 83492791);
+        h = (h ^ (h >> 16)) * 0x45d9f3bu;
+        h = (h ^ (h >> 16)) * 0x45d9f3bu;
+        h ^= (h >> 16);
+        return (h & 0x00ffffff) * (2.0f / 16777215.0f) - 1.0f;
     }
 
     private static float Noise3D(float x, float y, float z)
@@ -263,6 +263,8 @@ public class PlanetHeightField : IDisposable
         int columns = Mathf.Min(width, spanX * 2 + 1);
 
         float warpStrength = radius * 0.45f;
+        float maxUnwarpedDist = radius * 1.65f;
+        float maxWarpedDist = radius * 1.35f;
 
         for (int y = minY; y <= maxY; y++)
         {
@@ -284,6 +286,11 @@ public class PlanetHeightField : IDisposable
 
                 Vector3 pos = new Vector3(xDir, yDir, zDir);
 
+                // Early-out 1: Check raw spherical distance before computing 3D domain warping noise
+                float rawCosD = Vector3.Dot(pos, centerDir);
+                float rawD = Mathf.Acos(Mathf.Clamp(rawCosD, -1f, 1f));
+                if (rawD > maxUnwarpedDist) continue;
+
                 // 1. Déformation de domaine (3D Domain Warping) à basse fréquence
                 float wx = Fbm3D((pos.x + NoiseOffset.x + 13.5f) * 2.2f, (pos.y + NoiseOffset.y + 27.1f) * 2.2f, (pos.z + NoiseOffset.z + 41.8f) * 2.2f, 3);
                 float wy = Fbm3D((pos.x + NoiseOffset.x + 52.3f) * 2.2f, (pos.y + NoiseOffset.y + 68.9f) * 2.2f, (pos.z + NoiseOffset.z + 84.2f) * 2.2f, 3);
@@ -295,10 +302,14 @@ public class PlanetHeightField : IDisposable
                 float cosD = Vector3.Dot(warpedPos, centerDir);
                 float d = Mathf.Acos(Mathf.Clamp(cosD, -1f, 1f));
 
+                // Early-out 2: Check warped distance before computing coastline noise
+                if (d > maxWarpedDist) continue;
+
                 // 2. Bruit de côtes fractales à haute fréquence
                 float coastlineNoise = Fbm3D((pos.x + NoiseOffset.x) * 8.0f, (pos.y + NoiseOffset.y) * 8.0f, (pos.z + NoiseOffset.z) * 8.0f, 4);
                 float perturbedRadius = radius * (1.0f + coastlineNoise * 0.35f);
 
+                // Early-out 3: Check perturbed radius before computing internal noise
                 if (d > perturbedRadius) continue;
 
                 float t = 1f - d / perturbedRadius;
@@ -457,11 +468,20 @@ public class PlanetHeightField : IDisposable
 
     public void Clear(float value = 0f)
     {
-        for (int i = 0; i < currentHeight.Length; i++)
+        if (value == 0f)
         {
-            currentHeight[i] = value;
-            targetHeight[i] = value;
-            growthRate[i] = 0f;
+            Array.Clear(currentHeight, 0, currentHeight.Length);
+            Array.Clear(targetHeight, 0, targetHeight.Length);
+            Array.Clear(growthRate, 0, growthRate.Length);
+        }
+        else
+        {
+            for (int i = 0; i < currentHeight.Length; i++)
+            {
+                currentHeight[i] = value;
+                targetHeight[i] = value;
+                growthRate[i] = 0f;
+            }
         }
 
         FlattenPoles();
