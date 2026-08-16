@@ -237,46 +237,50 @@ Shader "PlanetHistory/PlanetSurface"
                 // 3. Add flowing lava layer on top of land if the temperature is high enough
                 // Lava starts appearing above 500 K and is fully dominant at 1400 K+
                 float lavaMask = smoothstep(500.0, 1400.0, _SurfaceTemperature);
-                
-                // Add lower height bias so lava is more prominent in lower/depression regions (valley/oceans)
-                float heightLavaBias = smoothstep(0.5, 0.1, height);
-                lavaMask = saturate(lavaMask * (0.3 + 0.7 * heightLavaBias));
-
                 if (lavaMask > 0.001)
                 {
-                    // Scrolling UVs for the dual-texture/flow effect
-                    float2 uvFlow1 = uv * 8.0 + float2(_Time.y * 0.15, _Time.y * 0.08);
-                    float2 uvFlow2 = uv * 8.0 - float2(_Time.y * 0.1, _Time.y * 0.12);
-                    
-                    float n1 = fbm(uvFlow1);
-                    float n2 = fbm(uvFlow2);
-                    float flow = smoothstep(0.3, 0.7, (n1 + n2) * 0.5);
+                    // Add lower height bias so lava is more prominent in lower/depression regions (valley/oceans)
+                    float heightLavaBias = smoothstep(0.5, 0.1, height);
+                    lavaMask = saturate(lavaMask * (0.3 + 0.7 * heightLavaBias));
 
-                    // Liquid magma colors (bright red-orange to deep dark red)
-                    float3 lavaBaseColor = float3(0.75, 0.02, 0.0); // deep dark glowing red
-                    float3 lavaHotColor = float3(1.0, 0.28, 0.0);   // vibrant fiery red-orange
-                    float3 currentLavaColor = lerp(lavaBaseColor, lavaHotColor, flow);
+                    if (lavaMask > 0.001)
+                    {
+                        // Scrolling UVs for the dual-texture/flow effect
+                        float2 uvFlow1 = uv * 8.0 + float2(_Time.y * 0.15, _Time.y * 0.08);
+                        float2 uvFlow2 = uv * 8.0 - float2(_Time.y * 0.1, _Time.y * 0.12);
 
-                    color = lerp(color, currentLavaColor, lavaMask);
+                        float n1 = fbm(uvFlow1);
+                        float n2 = fbm(uvFlow2);
+                        float flow = smoothstep(0.3, 0.7, (n1 + n2) * 0.5);
+
+                        // Liquid magma colors (bright red-orange to deep dark red)
+                        float3 lavaBaseColor = float3(0.75, 0.02, 0.0); // deep dark glowing red
+                        float3 lavaHotColor = float3(1.0, 0.28, 0.0);   // vibrant fiery red-orange
+                        float3 currentLavaColor = lerp(lavaBaseColor, lavaHotColor, flow);
+
+                        color = lerp(color, currentLavaColor, lavaMask);
+                    }
                 }
 
                 // 4. Dynamic progressive water layer on top of terrain/lava (water floods and extinguishes lava)
                 if (_WaterRatio > 0.001)
                 {
-                    // Noise-based height perturbation to create organic shorelines on flat terrain (height=0)
-                    float floorNoise = fbm(uv * 20.0) * _OceanLevel;
-                    float perturbHeight = height + floorNoise;
-
-                    // Water level rises up to slightly above _OceanLevel
                     float maxWaterLevel = _OceanLevel * 1.5;
                     float waterLevel = maxWaterLevel * _WaterRatio;
 
-                    float depth = waterLevel - perturbHeight;
-                    if (depth > 0.0)
+                    if (height < waterLevel + _OceanLevel)
                     {
-                        // Smooth blend/fade of the water color based on depth
-                        float waterBlend = saturate(depth * 100.0);
-                        color = lerp(color, _OceanColor.rgb, waterBlend);
+                        // Noise-based height perturbation to create organic shorelines on flat terrain (height=0)
+                        float floorNoise = fbm(uv * 20.0) * _OceanLevel;
+                        float perturbHeight = height + floorNoise;
+
+                        float depth = waterLevel - perturbHeight;
+                        if (depth > 0.0)
+                        {
+                            // Smooth blend/fade of the water color based on depth
+                            float waterBlend = saturate(depth * 100.0);
+                            color = lerp(color, _OceanColor.rgb, waterBlend);
+                        }
                     }
                 }
 
@@ -319,36 +323,42 @@ Shader "PlanetHistory/PlanetSurface"
 
                 // Add Emission for glowing lava (extinguished under water)
                 float lavaMask = smoothstep(500.0, 1400.0, _SurfaceTemperature);
-                float heightLavaBias = smoothstep(0.5, 0.1, height);
-                lavaMask = saturate(lavaMask * (0.3 + 0.7 * heightLavaBias));
-
-                if (_WaterRatio > 0.001)
-                {
-                    float floorNoise = fbm(uv * 20.0) * _OceanLevel;
-                    float perturbHeight = height + floorNoise;
-                    float maxWaterLevel = _OceanLevel * 1.5;
-                    float waterLevel = maxWaterLevel * _WaterRatio;
-                    float depth = waterLevel - perturbHeight;
-                    if (depth > 0.0)
-                    {
-                        float waterBlend = saturate(depth * 100.0);
-                        lavaMask *= (1.0 - waterBlend);
-                    }
-                }
-
                 if (lavaMask > 0.001)
                 {
-                    float2 uvFlow1 = uv * 8.0 + float2(_Time.y * 0.15, _Time.y * 0.08);
-                    float2 uvFlow2 = uv * 8.0 - float2(_Time.y * 0.1, _Time.y * 0.12);
-                    float n1 = fbm(uvFlow1);
-                    float n2 = fbm(uvFlow2);
-                    float flow = smoothstep(0.3, 0.7, (n1 + n2) * 0.5);
+                    float heightLavaBias = smoothstep(0.5, 0.1, height);
+                    lavaMask = saturate(lavaMask * (0.3 + 0.7 * heightLavaBias));
 
-                    float3 lavaBaseColor = float3(0.75, 0.02, 0.0); // deep dark glowing red
-                    float3 lavaHotColor = float3(1.0, 0.28, 0.0);   // vibrant fiery red-orange
-                    float3 currentLavaColor = lerp(lavaBaseColor, lavaHotColor, flow);
+                    if (_WaterRatio > 0.001)
+                    {
+                        float maxWaterLevel = _OceanLevel * 1.5;
+                        float waterLevel = maxWaterLevel * _WaterRatio;
+                        if (height < waterLevel + _OceanLevel)
+                        {
+                            float floorNoise = fbm(uv * 20.0) * _OceanLevel;
+                            float perturbHeight = height + floorNoise;
+                            float depth = waterLevel - perturbHeight;
+                            if (depth > 0.0)
+                            {
+                                float waterBlend = saturate(depth * 100.0);
+                                lavaMask *= (1.0 - waterBlend);
+                            }
+                        }
+                    }
 
-                    color.rgb += currentLavaColor * lavaMask * _LavaEmissionStrength;
+                    if (lavaMask > 0.001)
+                    {
+                        float2 uvFlow1 = uv * 8.0 + float2(_Time.y * 0.15, _Time.y * 0.08);
+                        float2 uvFlow2 = uv * 8.0 - float2(_Time.y * 0.1, _Time.y * 0.12);
+                        float n1 = fbm(uvFlow1);
+                        float n2 = fbm(uvFlow2);
+                        float flow = smoothstep(0.3, 0.7, (n1 + n2) * 0.5);
+
+                        float3 lavaBaseColor = float3(0.75, 0.02, 0.0); // deep dark glowing red
+                        float3 lavaHotColor = float3(1.0, 0.28, 0.0);   // vibrant fiery red-orange
+                        float3 currentLavaColor = lerp(lavaBaseColor, lavaHotColor, flow);
+
+                        color.rgb += currentLavaColor * lavaMask * _LavaEmissionStrength;
+                    }
                 }
 
                 color.rgb = MixFog(color.rgb, input.fogCoord);

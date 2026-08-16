@@ -266,6 +266,9 @@ public class PlanetHeightField : IDisposable
         float maxUnwarpedDist = radius * 1.65f;
         float maxWarpedDist = radius * 1.35f;
 
+        float minRawCosD = Mathf.Cos(Mathf.Min(maxUnwarpedDist, Mathf.PI));
+        float minWarpedCosD = Mathf.Cos(Mathf.Min(maxWarpedDist, Mathf.PI));
+
         for (int y = minY; y <= maxY; y++)
         {
             if (IsPoleRow(y)) continue;
@@ -275,6 +278,7 @@ public class PlanetHeightField : IDisposable
             float sinRowLat = Mathf.Sin(lat);
 
             float yDir = sinRowLat;
+            float yDotCenter = yDir * centerDir.y;
 
             for (int c = 0; c < columns; c++)
             {
@@ -284,12 +288,11 @@ public class PlanetHeightField : IDisposable
                 float xDir = cosRowLat * Mathf.Cos(lon);
                 float zDir = cosRowLat * Mathf.Sin(lon);
 
-                Vector3 pos = new Vector3(xDir, yDir, zDir);
+                // Early-out 1: Check raw spherical distance before computing 3D domain warping noise using cos threshold
+                float rawCosD = xDir * centerDir.x + yDotCenter + zDir * centerDir.z;
+                if (rawCosD < minRawCosD) continue;
 
-                // Early-out 1: Check raw spherical distance before computing 3D domain warping noise
-                float rawCosD = Vector3.Dot(pos, centerDir);
-                float rawD = Mathf.Acos(Mathf.Clamp(rawCosD, -1f, 1f));
-                if (rawD > maxUnwarpedDist) continue;
+                Vector3 pos = new Vector3(xDir, yDir, zDir);
 
                 // 1. Déformation de domaine (3D Domain Warping) à basse fréquence
                 float wx = Fbm3D((pos.x + NoiseOffset.x + 13.5f) * 2.2f, (pos.y + NoiseOffset.y + 27.1f) * 2.2f, (pos.z + NoiseOffset.z + 41.8f) * 2.2f, 3);
@@ -300,10 +303,11 @@ public class PlanetHeightField : IDisposable
 
                 // Distance en espace déformé par rapport au centre du continent
                 float cosD = Vector3.Dot(warpedPos, centerDir);
-                float d = Mathf.Acos(Mathf.Clamp(cosD, -1f, 1f));
 
-                // Early-out 2: Check warped distance before computing coastline noise
-                if (d > maxWarpedDist) continue;
+                // Early-out 2: Check warped distance using cos threshold before computing Acos and coastline noise
+                if (cosD < minWarpedCosD) continue;
+
+                float d = Mathf.Acos(Mathf.Clamp(cosD, -1f, 1f));
 
                 // 2. Bruit de côtes fractales à haute fréquence
                 float coastlineNoise = Fbm3D((pos.x + NoiseOffset.x) * 8.0f, (pos.y + NoiseOffset.y) * 8.0f, (pos.z + NoiseOffset.z) * 8.0f, 4);
