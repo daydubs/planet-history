@@ -89,7 +89,7 @@ public class PlanetHeightField : IDisposable
     }
 
     /// <summary>Longitude (radians, 0..2π) du centre du texel x.</summary>
-    public float LongitudeOf(int x) => (x + 0.5f) / width * (2f * Mathf.PI);
+    public float LongitudeOf(int x) => ((x + 0.5f) / width - 0.5f) * (2f * Mathf.PI);
 
     /// <summary>Latitude (radians, -π/2..π/2) du centre du texel y.</summary>
     public float LatitudeOf(int y) => ((y + 0.5f) / height - 0.5f) * Mathf.PI;
@@ -237,7 +237,8 @@ public class PlanetHeightField : IDisposable
             cosLat * Mathf.Sin(longitude)
         );
 
-        int centerX = Mathf.RoundToInt(longitude / (2f * Mathf.PI) * width);
+        float u = Mathf.Repeat(longitude / (2f * Mathf.PI) + 0.5f, 1f);
+        int centerX = Mathf.RoundToInt(u * width);
         int centerY = Mathf.RoundToInt((latitude / Mathf.PI + 0.5f) * height);
 
         // Augmentation de l'emprise pour englober la déformation de domaine (domain warp)
@@ -329,7 +330,8 @@ public class PlanetHeightField : IDisposable
         float cosLat = Mathf.Cos(latitude);
         float sinLat = Mathf.Sin(latitude);
 
-        int centerX = Mathf.RoundToInt(longitude / (2f * Mathf.PI) * width);
+        float u = Mathf.Repeat(longitude / (2f * Mathf.PI) + 0.5f, 1f);
+        int centerX = Mathf.RoundToInt(u * width);
         int centerY = Mathf.RoundToInt((latitude / Mathf.PI + 0.5f) * height);
 
         int spanY = Mathf.CeilToInt(radius / Mathf.PI * height) + 1;
