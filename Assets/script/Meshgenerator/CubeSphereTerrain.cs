@@ -91,9 +91,14 @@ public class CubeSphereTerrain : MonoBehaviour
     [SerializeField] private bool randomizeOnStart = true;
     [SerializeField] private int seed = 0;
 
+    [Header("Performance Optimization")]
+    [SerializeField, Range(0.01f, 0.2f)] private float rebuildInterval = 0.05f;
+
     private System.Collections.Generic.List<VolcanoStamp> activeVolcanoes = new System.Collections.Generic.List<VolcanoStamp>();
     private System.Collections.Generic.List<CraterStamp> activeCraters = new System.Collections.Generic.List<CraterStamp>();
     private float lastSimTime;
+    private float lastRebuildTime;
+    private bool pendingRebuild;
     private Vector3 activeNoiseOffset = Vector3.zero;
     private bool hasRandomized = false;
 
@@ -483,6 +488,9 @@ public class CubeSphereTerrain : MonoBehaviour
     {
         if (field == null) return;
 
+        lastRebuildTime = Time.unscaledTime;
+        pendingRebuild = false;
+
         field.OnCleared -= HandleFieldCleared;
         field.Clear(0f);
         field.OnCleared += HandleFieldCleared;
@@ -700,7 +708,16 @@ public class CubeSphereTerrain : MonoBehaviour
 
         if (needsRebuild)
         {
-            RebuildHeightField();
+            pendingRebuild = true;
+        }
+
+        if (pendingRebuild)
+        {
+            float currentTime = Time.unscaledTime;
+            if (currentTime - lastRebuildTime >= rebuildInterval)
+            {
+                RebuildHeightField();
+            }
         }
     }
 
