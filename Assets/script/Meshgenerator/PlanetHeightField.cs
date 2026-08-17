@@ -230,7 +230,22 @@ public class PlanetHeightField : IDisposable
                 if (sampleHeight > 0.001f)
                 {
                     int idx = x + y * width;
-                    targetHeight[idx] += sampleHeight * heightMultiplier;
+                    float pieceVal = sampleHeight * heightMultiplier;
+                    float currentVal = targetHeight[idx];
+
+                    if (currentVal > 0.001f)
+                    {
+                        // Orogeny effect at continental contact zone: blend max height with an elevation boost
+                        float maxVal = Mathf.Max(currentVal, pieceVal);
+                        float overlapFactor = Mathf.Min(currentVal, pieceVal) / maxVal; // 0 to 1 ratio of overlap
+                        float orogenyBoost = maxVal * 0.25f * overlapFactor; // Up to 25% elevation boost at contact ridge
+                        targetHeight[idx] = maxVal + orogenyBoost;
+                    }
+                    else
+                    {
+                        targetHeight[idx] = pieceVal;
+                    }
+
                     growthRate[idx] = Mathf.Max(growthRate[idx], 1.0f);
                 }
             }

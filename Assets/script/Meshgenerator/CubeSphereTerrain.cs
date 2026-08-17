@@ -840,8 +840,8 @@ public class CubeSphereTerrain : MonoBehaviour
                         }
 
                         float dist = AngularDistanceDegrees(pieceA.currentLongitude, pieceA.currentLatitude, pieceB.currentLongitude, pieceB.currentLatitude);
-                        // Collision threshold: when distance between centers drops below ~60% of sum of radii
-                        float collisionDistance = (pieceA.radius + pieceB.radius) * 0.60f;
+                        // Collision threshold: when distance between centers drops below ~85% of sum of radii
+                        float collisionDistance = (pieceA.radius + pieceB.radius) * 0.85f;
 
                         if (dist < collisionDistance)
                         {
@@ -862,11 +862,43 @@ public class CubeSphereTerrain : MonoBehaviour
                             // If dotNext > dotCurr, angular distance is decreasing -> pieces are converging!
                             if (dotNext > dotCurr + 1e-9f)
                             {
-                                // Continents collide upon convergence! Stop drift for colliding pieces
-                                pieceA.driftSpeedLon = 0f;
-                                pieceA.driftSpeedLat = 0f;
-                                pieceB.driftSpeedLon = 0f;
-                                pieceB.driftSpeedLat = 0f;
+                                // Tangential deflection / sliding along contact boundary
+                                float latRadA = pieceA.currentLatitude * Mathf.Deg2Rad;
+                                float lonRadA = pieceA.currentLongitude * Mathf.Deg2Rad;
+                                float cosLatA = Mathf.Max(Mathf.Cos(latRadA), 0.1f);
+
+                                float latRadB = pieceB.currentLatitude * Mathf.Deg2Rad;
+                                float lonRadB = pieceB.currentLongitude * Mathf.Deg2Rad;
+                                float cosLatB = Mathf.Max(Mathf.Cos(latRadB), 0.1f);
+
+                                Vector3 dirAtoB = (posB - posA * Vector3.Dot(posA, posB)).normalized;
+                                Vector3 dirBtoA = (posA - posB * Vector3.Dot(posA, posB)).normalized;
+
+                                // Tangent basis vectors for A (east = dP/dLon, north = dP/dLat = east x pos)
+                                Vector3 eastA = new Vector3(-Mathf.Sin(lonRadA), 0f, Mathf.Cos(lonRadA));
+                                Vector3 northA = Vector3.Cross(eastA, posA).normalized;
+                                Vector3 velA = eastA * (pieceA.driftSpeedLon * Mathf.Deg2Rad * cosLatA) + northA * (pieceA.driftSpeedLat * Mathf.Deg2Rad);
+
+                                float vNormalA = Vector3.Dot(velA, dirAtoB);
+                                if (vNormalA > 0f)
+                                {
+                                    Vector3 velA_deflected = velA - vNormalA * dirAtoB;
+                                    pieceA.driftSpeedLon = Vector3.Dot(velA_deflected, eastA) / (Mathf.Deg2Rad * cosLatA);
+                                    pieceA.driftSpeedLat = Vector3.Dot(velA_deflected, northA) / Mathf.Deg2Rad;
+                                }
+
+                                // Tangent basis vectors for B (east = dP/dLon, north = dP/dLat = east x pos)
+                                Vector3 eastB = new Vector3(-Mathf.Sin(lonRadB), 0f, Mathf.Cos(lonRadB));
+                                Vector3 northB = Vector3.Cross(eastB, posB).normalized;
+                                Vector3 velB = eastB * (pieceB.driftSpeedLon * Mathf.Deg2Rad * cosLatB) + northB * (pieceB.driftSpeedLat * Mathf.Deg2Rad);
+
+                                float vNormalB = Vector3.Dot(velB, dirBtoA);
+                                if (vNormalB > 0f)
+                                {
+                                    Vector3 velB_deflected = velB - vNormalB * dirBtoA;
+                                    pieceB.driftSpeedLon = Vector3.Dot(velB_deflected, eastB) / (Mathf.Deg2Rad * cosLatB);
+                                    pieceB.driftSpeedLat = Vector3.Dot(velB_deflected, northB) / Mathf.Deg2Rad;
+                                }
                             }
                         }
                     }
