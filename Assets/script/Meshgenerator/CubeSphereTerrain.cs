@@ -253,6 +253,19 @@ public class CubeSphereTerrain : MonoBehaviour
         }
     }
 
+    /// <summary>Convertit des coordonnées de longitude et latitude (en degrés) en un vecteur directionnel 3D unitaire.</summary>
+    public static Vector3 LatLonToVector3(float lonDeg, float latDeg)
+    {
+        float lonRad = lonDeg * Mathf.Deg2Rad;
+        float latRad = latDeg * Mathf.Deg2Rad;
+        float cosLat = Mathf.Cos(latRad);
+        return new Vector3(
+            cosLat * Mathf.Cos(lonRad),
+            Mathf.Sin(latRad),
+            cosLat * Mathf.Sin(lonRad)
+        );
+    }
+
     /// <summary>Calcul de la distance angulaire en degrés entre deux coordonnées géographiques.</summary>
     public static float AngularDistanceDegrees(float lon1Deg, float lat1Deg, float lon2Deg, float lat2Deg)
     {
@@ -819,22 +832,41 @@ public class CubeSphereTerrain : MonoBehaviour
                     {
                         var pieceB = continentalPieces[j];
 
+                        // Skip check if both pieces are already completely stopped
+                        if (pieceA.driftSpeedLon == 0f && pieceA.driftSpeedLat == 0f &&
+                            pieceB.driftSpeedLon == 0f && pieceB.driftSpeedLat == 0f)
+                        {
+                            continue;
+                        }
+
                         float dist = AngularDistanceDegrees(pieceA.currentLongitude, pieceA.currentLatitude, pieceB.currentLongitude, pieceB.currentLatitude);
-                        // Collision threshold: when distance between centers drops below ~70% of sum of radii
-                        float collisionDistance = (pieceA.radius + pieceB.radius) * 0.70f;
+                        // Collision threshold: when distance between centers drops below ~60% of sum of radii
+                        float collisionDistance = (pieceA.radius + pieceB.radius) * 0.60f;
 
                         if (dist < collisionDistance)
                         {
-                            // Continents collide! Stop drift and apply a small recoil/rebound back
-                            if (pieceA.driftSpeedLon != 0f || pieceA.driftSpeedLat != 0f)
+                            // Check if pieces are moving TOWARDS each other (converging)
+                            Vector3 posA = LatLonToVector3(pieceA.currentLongitude, pieceA.currentLatitude);
+                            Vector3 posB = LatLonToVector3(pieceB.currentLongitude, pieceB.currentLatitude);
+
+                            Vector3 nextPosA = LatLonToVector3(
+                                pieceA.currentLongitude + pieceA.driftSpeedLon * simDt,
+                                pieceA.currentLatitude + pieceA.driftSpeedLat * simDt);
+                            Vector3 nextPosB = LatLonToVector3(
+                                pieceB.currentLongitude + pieceB.driftSpeedLon * simDt,
+                                pieceB.currentLatitude + pieceB.driftSpeedLat * simDt);
+
+                            float dotCurr = Vector3.Dot(posA, posB);
+                            float dotNext = Vector3.Dot(nextPosA, nextPosB);
+
+                            // If dotNext > dotCurr, angular distance is decreasing -> pieces are converging!
+                            if (dotNext > dotCurr + 1e-9f)
                             {
-                                pieceA.driftSpeedLon = -pieceA.driftSpeedLon * 0.15f;
-                                pieceA.driftSpeedLat = -pieceA.driftSpeedLat * 0.15f;
-                            }
-                            if (pieceB.driftSpeedLon != 0f || pieceB.driftSpeedLat != 0f)
-                            {
-                                pieceB.driftSpeedLon = -pieceB.driftSpeedLon * 0.15f;
-                                pieceB.driftSpeedLat = -pieceB.driftSpeedLat * 0.15f;
+                                // Continents collide upon convergence! Stop drift for colliding pieces
+                                pieceA.driftSpeedLon = 0f;
+                                pieceA.driftSpeedLat = 0f;
+                                pieceB.driftSpeedLon = 0f;
+                                pieceB.driftSpeedLat = 0f;
                             }
                         }
                     }
