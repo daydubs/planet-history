@@ -1742,7 +1742,7 @@ MonoBehaviour:
     baseLatitude: -10
     radius: 32
     height: 0.6
-    driftSpeedLon: 2.25
+    driftSpeedLon: 0.00003
     driftSpeedLat: -0.000015
     currentLongitude: 210
     currentLatitude: -10
