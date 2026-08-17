@@ -23,6 +23,16 @@ public class CubeSphereTerrain : MonoBehaviour
         [HideInInspector] public float currentLongitude;
         [HideInInspector] public float currentLatitude;
         [HideInInspector] public float currentHeight;
+
+        // Sector fracture parameters
+        [HideInInspector] public float sectorStartAngle; // Radians relative to supercontinent center
+        [HideInInspector] public float sectorEndAngle;   // Radians relative to supercontinent center
+        [HideInInspector] public float supercontinentCenterLon; // degrees
+        [HideInInspector] public float supercontinentCenterLat; // degrees
+
+        // Pre-baked local heightmap grid
+        [HideInInspector] public float[] localHeights;
+        [HideInInspector] public int localGridSize;
     }
 
     [System.Serializable]
@@ -385,43 +395,165 @@ public class CubeSphereTerrain : MonoBehaviour
             (float)(prng.NextDouble() * 2000.0 - 1000.0)
         );
 
-        // 2. Choose number of pieces between 1 and 5 to represent the fracturing supercontinent
-        int numPieces = prng.Next(1, 6);
-        continentalPieces = new ContinentalPiece[numPieces];
-
-        // 3. Select a single shared supercontinent center
+        // 2. Select a single shared supercontinent center
         float centerLon = (float)(prng.NextDouble() * 360.0);
         float centerLat = (float)((prng.NextDouble() * 80.0) - 40.0); // Safe latitude range to avoid polar start
+
+        // Supercontinent global radius
+        float supercontinentRadius = (float)(40.0 + prng.NextDouble() * 15.0); // 40° - 55°
+        float supercontinentHeight = (float)(0.6 + prng.NextDouble() * 0.15); // 0.6 - 0.75
+
+        // 3. Choose number of fractured pieces (3 to 5)
+        int numPieces = prng.Next(3, 6);
+        continentalPieces = new ContinentalPiece[numPieces];
+
+        // Sector angles partitioning 2*PI radians around center
+        float[] sectorAngles = new float[numPieces + 1];
+        sectorAngles[0] = 0f;
+        sectorAngles[numPieces] = Mathf.PI * 2f;
+
+        // Divide 2*PI into random sectors
+        float remainingAngle = Mathf.PI * 2f;
+        float currentAngle = 0f;
+        for (int i = 0; i < numPieces - 1; i++)
+        {
+            float minShare = (Mathf.PI * 2f / numPieces) * 0.5f;
+            float maxShare = (remainingAngle - (numPieces - 1 - i) * minShare);
+            float share = minShare + (float)(prng.NextDouble() * (maxShare - minShare));
+            currentAngle += share;
+            sectorAngles[i + 1] = currentAngle;
+            remainingAngle -= share;
+        }
 
         for (int i = 0; i < numPieces; i++)
         {
             var piece = new ContinentalPiece();
-            piece.name = $"Continent Segment {i + 1}";
+            piece.name = $"Fragment {i + 1}";
 
-            // Place them closely around the shared center so they overlap to form a single supercontinent
-            float offsetLon = (numPieces == 1) ? 0f : (float)((prng.NextDouble() * 30.0) - 15.0);
-            float offsetLat = (numPieces == 1) ? 0f : (float)((prng.NextDouble() * 20.0) - 10.0);
+            piece.supercontinentCenterLon = centerLon;
+            piece.supercontinentCenterLat = centerLat;
 
-            piece.baseLongitude = Mathf.Repeat(centerLon + offsetLon, 360f);
-            piece.baseLatitude = Mathf.Clamp(centerLat + offsetLat, -60f, 60f);
+            piece.sectorStartAngle = sectorAngles[i];
+            piece.sectorEndAngle = sectorAngles[i + 1];
 
-            // Radius: single continent is larger, multiple are medium-sized
-            float baseRadiusVal = (numPieces == 1) ? 40f : 25f;
-            float radiusScale = (float)(0.8 + prng.NextDouble() * 0.4); // 0.8 to 1.2
-            piece.radius = baseRadiusVal * radiusScale;
+            // Mid angle of sector determines center position and radial drift direction
+            float midAngle = (piece.sectorStartAngle + piece.sectorEndAngle) * 0.5f;
 
-            // Height
-            float heightScale = (float)(0.85 + prng.NextDouble() * 0.3); // 0.85 to 1.15
-            piece.height = Mathf.Clamp01(0.6f * heightScale);
+            // Offset piece base position slightly outwards along sector direction
+            float pieceDistOffset = supercontinentRadius * 0.25f;
+            float cosLat = Mathf.Max(Mathf.Cos(centerLat * Mathf.Deg2Rad), 0.2f);
 
-            // Separate drift speeds with larger East-West speed to simulate fracturing
-            float randomSignLon = prng.Next(0, 2) == 0 ? -1f : 1f;
-            float randomSignLat = prng.Next(0, 2) == 0 ? -1f : 1f;
+            float pieceLonDeg = centerLon + (Mathf.Cos(midAngle) * pieceDistOffset) / cosLat;
+            float pieceLatDeg = centerLat + (Mathf.Sin(midAngle) * pieceDistOffset);
 
-            piece.driftSpeedLon = randomSignLon * (float)(2.0e-5 + prng.NextDouble() * 3.0e-5);
-            piece.driftSpeedLat = randomSignLat * (float)(0.2e-5 + prng.NextDouble() * 1.3e-5);
+            piece.baseLongitude = Mathf.Repeat(pieceLonDeg, 360f);
+            piece.baseLatitude = Mathf.Clamp(pieceLatDeg, -75f, 75f);
+            piece.radius = supercontinentRadius * 0.7f;
+            piece.height = supercontinentHeight;
+
+            // Radial drift speed: drifting OUTWARD from supercontinent center along midAngle
+            float driftMagnitude = (float)(2.5e-5 + prng.NextDouble() * 2.5e-5); // ~ 2.5e-5 to 5.0e-5
+            piece.driftSpeedLon = Mathf.Cos(midAngle) * driftMagnitude / cosLat;
+            piece.driftSpeedLat = Mathf.Sin(midAngle) * driftMagnitude;
+
+            // Pre-bake heightmap for this sector piece
+            BakePieceHeightGrid(piece);
 
             continentalPieces[i] = piece;
+        }
+    }
+
+    private void BakePieceHeightGrid(ContinentalPiece piece)
+    {
+        int gridSize = 64;
+        piece.localGridSize = gridSize;
+        piece.localHeights = new float[gridSize * gridSize];
+
+        float centerLonRad = piece.supercontinentCenterLon * Mathf.Deg2Rad;
+        float centerLatRad = piece.supercontinentCenterLat * Mathf.Deg2Rad;
+        float cosLat = Mathf.Max(Mathf.Cos(centerLatRad), 0.2f);
+        float sinLat = Mathf.Sin(centerLatRad);
+
+        Vector3 supercenterDir = new Vector3(
+            cosLat * Mathf.Cos(centerLonRad),
+            sinLat,
+            cosLat * Mathf.Sin(centerLonRad)
+        );
+
+        float pieceRadiusRad = piece.radius * Mathf.Deg2Rad;
+        float warpStrength = pieceRadiusRad * 0.45f;
+
+        for (int y = 0; y < gridSize; y++)
+        {
+            float v = (float)y / (gridSize - 1);
+            float dLatDeg = (v - 0.5f) * 2f * piece.radius;
+            float latDeg = piece.baseLatitude + dLatDeg;
+            float latRad = latDeg * Mathf.Deg2Rad;
+
+            float cosRowLat = Mathf.Cos(latRad);
+            float sinRowLat = Mathf.Sin(latRad);
+
+            for (int x = 0; x < gridSize; x++)
+            {
+                float u = (float)x / (gridSize - 1);
+                float dLonDeg = (u - 0.5f) * 2f * piece.radius / cosLat;
+                float lonDeg = piece.baseLongitude + dLonDeg;
+                float lonRad = lonDeg * Mathf.Deg2Rad;
+
+                float xDir = cosRowLat * Mathf.Cos(lonRad);
+                float yDir = sinRowLat;
+                float zDir = cosRowLat * Mathf.Sin(lonRad);
+
+                Vector3 pos = new Vector3(xDir, yDir, zDir);
+
+                // Check distance from supercontinent center
+                float cosDCenter = Vector3.Dot(pos, supercenterDir);
+                float distFromCenter = Mathf.Acos(Mathf.Clamp(cosDCenter, -1f, 1f));
+
+                // Domain warping
+                float wx = PlanetHeightField.Fbm3D((pos.x + activeNoiseOffset.x + 13.5f) * 2.2f, (pos.y + activeNoiseOffset.y + 27.1f) * 2.2f, (pos.z + activeNoiseOffset.z + 41.8f) * 2.2f, 3);
+                float wy = PlanetHeightField.Fbm3D((pos.x + activeNoiseOffset.x + 52.3f) * 2.2f, (pos.y + activeNoiseOffset.y + 68.9f) * 2.2f, (pos.z + activeNoiseOffset.z + 84.2f) * 2.2f, 3);
+                float wz = PlanetHeightField.Fbm3D((pos.x + activeNoiseOffset.x + 91.7f) * 2.2f, (pos.y + activeNoiseOffset.y + 14.3f) * 2.2f, (pos.z + activeNoiseOffset.z + 36.6f) * 2.2f, 3);
+
+                Vector3 warpedPos = (pos + new Vector3(wx, wy, wz) * warpStrength).normalized;
+
+                // Sector angle check relative to supercontinent center tangent frame
+                // Calculate local angle around supercenterDir
+                Vector3 eastDir = new Vector3(-Mathf.Sin(centerLonRad), 0f, Mathf.Cos(centerLonRad));
+                Vector3 northDir = Vector3.Cross(supercenterDir, eastDir).normalized;
+
+                Vector3 deltaVec = pos - supercenterDir;
+                float projEast = Vector3.Dot(deltaVec, eastDir);
+                float projNorth = Vector3.Dot(deltaVec, northDir);
+
+                float pointAngle = Mathf.Atan2(projNorth, projEast);
+                if (pointAngle < 0f) pointAngle += Mathf.PI * 2f;
+
+                // Sector fracture boundary check with noise jitter
+                float fractureJitter = PlanetHeightField.Fbm3D(pos.x * 10f, pos.y * 10f, pos.z * 10f, 3) * 0.15f;
+                float adjustedAngle = Mathf.Repeat(pointAngle + fractureJitter, Mathf.PI * 2f);
+
+                bool inSector = (piece.sectorStartAngle <= piece.sectorEndAngle)
+                    ? (adjustedAngle >= piece.sectorStartAngle && adjustedAngle <= piece.sectorEndAngle)
+                    : (adjustedAngle >= piece.sectorStartAngle || adjustedAngle <= piece.sectorEndAngle);
+
+                if (!inSector) continue;
+
+                // Supercontinent shape masking
+                float superRadiusRad = (piece.radius / 0.7f) * Mathf.Deg2Rad;
+                float coastlineNoise = PlanetHeightField.Fbm3D((pos.x + activeNoiseOffset.x) * 8.0f, (pos.y + activeNoiseOffset.y) * 8.0f, (pos.z + activeNoiseOffset.z) * 8.0f, 4);
+                float perturbedRadius = superRadiusRad * (1.0f + coastlineNoise * 0.35f);
+
+                if (distFromCenter > perturbedRadius) continue;
+
+                float t = 1f - distFromCenter / perturbedRadius;
+                float heightFactor = Mathf.SmoothStep(0f, 1f, t);
+
+                float internalNoise = PlanetHeightField.Fbm3D((pos.x + activeNoiseOffset.x) * 12.0f, (pos.y + activeNoiseOffset.y) * 12.0f, (pos.z + activeNoiseOffset.z) * 12.0f, 4);
+                float finalHeight = heightFactor * (1.0f + internalNoise * 0.25f);
+
+                piece.localHeights[x + y * gridSize] = finalHeight;
+            }
         }
     }
 
@@ -433,7 +565,7 @@ public class CubeSphereTerrain : MonoBehaviour
             {
                 new ContinentalPiece
                 {
-                    name = "Laurasia West",
+                    name = "Fragment 1",
                     baseLongitude = 160f,
                     baseLatitude = 15f,
                     radius = 35f,
@@ -443,7 +575,7 @@ public class CubeSphereTerrain : MonoBehaviour
                 },
                 new ContinentalPiece
                 {
-                    name = "Laurasia East",
+                    name = "Fragment 2",
                     baseLongitude = 200f,
                     baseLatitude = 20f,
                     radius = 30f,
@@ -453,23 +585,13 @@ public class CubeSphereTerrain : MonoBehaviour
                 },
                 new ContinentalPiece
                 {
-                    name = "Gondwana West",
+                    name = "Fragment 3",
                     baseLongitude = 150f,
                     baseLatitude = -15f,
                     radius = 38f,
                     height = 0.7f,
                     driftSpeedLon = -0.000025f,
                     driftSpeedLat = -0.00002f
-                },
-                new ContinentalPiece
-                {
-                    name = "Gondwana East",
-                    baseLongitude = 210f,
-                    baseLatitude = -10f,
-                    radius = 32f,
-                    height = 0.6f,
-                    driftSpeedLon = 0.00004f,
-                    driftSpeedLat = -0.000015f
                 }
             };
         }
@@ -504,18 +626,33 @@ public class CubeSphereTerrain : MonoBehaviour
         field.Clear(0f);
         field.OnCleared += HandleFieldCleared;
 
-        // 1. Stamp continental pieces
+        // 1. Stamp continental pieces (using pre-baked fast grid if available)
         foreach (var piece in continentalPieces)
         {
             if (piece.currentHeight > 0f)
             {
-                field.AddContinent(
-                    piece.currentLongitude * Mathf.Deg2Rad,
-                    piece.currentLatitude * Mathf.Deg2Rad,
-                    piece.radius * Mathf.Deg2Rad,
-                    piece.currentHeight,
-                    1.0f
-                );
+                if (piece.localHeights != null && piece.localHeights.Length > 0)
+                {
+                    field.StampPrebakedPiece(
+                        piece.currentLongitude * Mathf.Deg2Rad,
+                        piece.currentLatitude * Mathf.Deg2Rad,
+                        piece.radius * Mathf.Deg2Rad,
+                        piece.localHeights,
+                        piece.localGridSize,
+                        piece.localGridSize,
+                        piece.currentHeight
+                    );
+                }
+                else
+                {
+                    field.AddContinent(
+                        piece.currentLongitude * Mathf.Deg2Rad,
+                        piece.currentLatitude * Mathf.Deg2Rad,
+                        piece.radius * Mathf.Deg2Rad,
+                        piece.currentHeight,
+                        1.0f
+                    );
+                }
             }
         }
 
