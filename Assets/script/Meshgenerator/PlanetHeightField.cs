@@ -151,6 +151,95 @@ public class PlanetHeightField : IDisposable
     }
 
     /// <summary>
+    /// Tamponne une grille de hauteur pré-calculée (morceau de continent) sur targetHeight.
+    /// </summary>
+    public void StampPrebakedPiece(float centerLonRad, float centerLatRad, float radiusRad, float[] localHeights, int localWidth, int localHeight, float heightMultiplier)
+    {
+        if (localHeights == null || localHeights.Length == 0 || heightMultiplier <= 0f) return;
+
+        centerLatRad = Mathf.Clamp(centerLatRad, -Mathf.PI * 0.5f, Mathf.PI * 0.5f);
+
+        float cosLat = Mathf.Max(Mathf.Cos(centerLatRad), 0.2f);
+
+        float u = Mathf.Repeat(centerLonRad / (2f * Mathf.PI) + 0.5f, 1f);
+        int centerX = Mathf.RoundToInt(u * width);
+        int centerY = Mathf.RoundToInt((centerLatRad / Mathf.PI + 0.5f) * height);
+
+        int spanY = Mathf.CeilToInt(radiusRad / Mathf.PI * height) + 1;
+        int minY = Mathf.Clamp(centerY - spanY, 0, height - 1);
+        int maxY = Mathf.Clamp(centerY + spanY, 0, height - 1);
+
+        int spanX;
+        float angularSpanX = radiusRad / cosLat;
+        if (angularSpanX >= Mathf.PI)
+        {
+            spanX = width / 2;
+        }
+        else
+        {
+            spanX = Mathf.CeilToInt(angularSpanX / (2f * Mathf.PI) * width) + 1;
+        }
+
+        int startX = WrapX(centerX - spanX);
+        int columns = Mathf.Min(width, spanX * 2 + 1);
+
+        for (int y = minY; y <= maxY; y++)
+        {
+            if (IsPoleRow(y)) continue;
+
+            float lat = LatitudeOf(y);
+            float dLatRad = lat - centerLatRad;
+
+            for (int c = 0; c < columns; c++)
+            {
+                int x = WrapX(startX + c);
+                float lon = LongitudeOf(x);
+
+                float dLonRad = lon - centerLonRad;
+                while (dLonRad > Mathf.PI) dLonRad -= 2f * Mathf.PI;
+                while (dLonRad < -Mathf.PI) dLonRad += 2f * Mathf.PI;
+
+                float dLatDeg = dLatRad * Mathf.Rad2Deg;
+                float dLonDeg = dLonRad * Mathf.Rad2Deg * cosLat;
+
+                float radiusDeg = radiusRad * Mathf.Rad2Deg;
+
+                float localU = (dLonDeg / (2f * radiusDeg)) + 0.5f;
+                float localV = (dLatDeg / (2f * radiusDeg)) + 0.5f;
+
+                if (localU < 0f || localU >= 1f || localV < 0f || localV >= 1f) continue;
+
+                float gx = localU * (localWidth - 1);
+                float gy = localV * (localHeight - 1);
+
+                int x0 = (int)gx;
+                int y0 = (int)gy;
+                int x1 = Mathf.Min(x0 + 1, localWidth - 1);
+                int y1 = Mathf.Min(y0 + 1, localHeight - 1);
+
+                float tx = gx - x0;
+                float ty = gy - y0;
+
+                float h00 = localHeights[x0 + y0 * localWidth];
+                float h10 = localHeights[x1 + y0 * localWidth];
+                float h01 = localHeights[x0 + y1 * localWidth];
+                float h11 = localHeights[x1 + y1 * localWidth];
+
+                float sampleHeight = (1f - tx) * (1f - ty) * h00 + tx * (1f - ty) * h10 + (1f - tx) * ty * h01 + tx * ty * h11;
+
+                if (sampleHeight > 0.001f)
+                {
+                    int idx = x + y * width;
+                    targetHeight[idx] += sampleHeight * heightMultiplier;
+                    growthRate[idx] = Mathf.Max(growthRate[idx], 1.0f);
+                }
+            }
+        }
+
+        MarkActive(startX, columns, minY, maxY);
+    }
+
+    /// <summary>
     /// Continent: relief large et doux avec bruit 3D, destiné à une croissance lente.
     /// </summary>
     public void AddContinent(float longitude, float latitude, float radius, float plateauHeight, float rate = 0.1f)
@@ -203,7 +292,7 @@ public class PlanetHeightField : IDisposable
         return Mathf.Lerp(n0, n1, uz);
     }
 
-    private static float Fbm3D(float x, float y, float z, int octaves = 4)
+    public static float Fbm3D(float x, float y, float z, int octaves = 4)
     {
         float value = 0f;
         float amplitude = 0.5f;
