@@ -409,9 +409,9 @@ public class CubeSphereTerrain : MonoBehaviour
             (float)(prng.NextDouble() * 2000.0 - 1000.0)
         );
 
-        // 2. Select a single shared supercontinent center
+        // 2. Select a single shared supercontinent center in safe equatorial/temperate zone
         float centerLon = (float)(prng.NextDouble() * 360.0);
-        float centerLat = (float)((prng.NextDouble() * 80.0) - 40.0); // Safe latitude range to avoid polar start
+        float centerLat = (float)((prng.NextDouble() * 60.0) - 30.0); // Safe latitude range (-30° to +30°) to avoid polar ice caps
 
         // Supercontinent global radius
         float supercontinentRadius = (float)(40.0 + prng.NextDouble() * 15.0); // 40° - 55°
@@ -461,14 +461,23 @@ public class CubeSphereTerrain : MonoBehaviour
             float pieceLatDeg = centerLat + (Mathf.Sin(midAngle) * pieceDistOffset);
 
             piece.baseLongitude = Mathf.Repeat(pieceLonDeg, 360f);
-            piece.baseLatitude = Mathf.Clamp(pieceLatDeg, -75f, 75f);
+            piece.baseLatitude = Mathf.Clamp(pieceLatDeg, -45f, 45f);
             piece.radius = supercontinentRadius * 0.9f;
             piece.height = supercontinentHeight;
 
-            // True radial drift speed: fragment drifts outward along sector midAngle away from supercontinent center
+            // Predominantly East-West spreading drift speed to prevent fragments from entering polar ice caps,
+            // with a weak North-South derivation.
             float driftMagnitude = (float)(2.5e-5 + prng.NextDouble() * 2.5e-5); // ~ 2.5e-5 to 5.0e-5
-            piece.driftSpeedLon = (Mathf.Cos(midAngle) * driftMagnitude) / cosLat;
-            piece.driftSpeedLat = Mathf.Sin(midAngle) * driftMagnitude;
+            float dirLon = Mathf.Cos(midAngle);
+            if (Mathf.Abs(dirLon) < 0.3f)
+            {
+                dirLon = (dirLon >= 0f ? 0.5f : -0.5f);
+                if (dirLon == 0f) dirLon = (i % 2 == 0) ? 0.5f : -0.5f;
+            }
+
+            float latScale = 0.18f; // Weak North-South derivation factor
+            piece.driftSpeedLon = (dirLon * driftMagnitude) / cosLat;
+            piece.driftSpeedLat = Mathf.Sin(midAngle) * driftMagnitude * latScale;
 
             // Pre-bake heightmap for this sector piece
             BakePieceHeightGrid(piece);
@@ -889,6 +898,9 @@ public class CubeSphereTerrain : MonoBehaviour
                                     Vector3 velA_deflected = velA - vNormalA * dirAtoB;
                                     pieceA.driftSpeedLon = Vector3.Dot(velA_deflected, eastA) / (Mathf.Deg2Rad * cosLatA);
                                     pieceA.driftSpeedLat = Vector3.Dot(velA_deflected, northA) / Mathf.Deg2Rad;
+                                    // Limit North-South speed post-deflection to maintain weak derivation
+                                    float maxLatSpeedA = Mathf.Abs(pieceA.driftSpeedLon) * 0.25f + 1e-6f;
+                                    pieceA.driftSpeedLat = Mathf.Clamp(pieceA.driftSpeedLat, -maxLatSpeedA, maxLatSpeedA);
                                 }
 
                                 // Tangent basis vectors for B (east = dP/dLon, north = dP/dLat = east x pos)
@@ -902,6 +914,9 @@ public class CubeSphereTerrain : MonoBehaviour
                                     Vector3 velB_deflected = velB - vNormalB * dirBtoA;
                                     pieceB.driftSpeedLon = Vector3.Dot(velB_deflected, eastB) / (Mathf.Deg2Rad * cosLatB);
                                     pieceB.driftSpeedLat = Vector3.Dot(velB_deflected, northB) / Mathf.Deg2Rad;
+                                    // Limit North-South speed post-deflection to maintain weak derivation
+                                    float maxLatSpeedB = Mathf.Abs(pieceB.driftSpeedLon) * 0.25f + 1e-6f;
+                                    pieceB.driftSpeedLat = Mathf.Clamp(pieceB.driftSpeedLat, -maxLatSpeedB, maxLatSpeedB);
                                 }
                             }
                         }
@@ -916,8 +931,13 @@ public class CubeSphereTerrain : MonoBehaviour
                     float deltaLon = piece.driftSpeedLon * simDt;
                     float deltaLat = piece.driftSpeedLat * simDt;
 
+                    // Smoothly damp North-South drift as piece latitude approaches +/- 50° to prevent entering polar ice caps
+                    float currentAbsLat = Mathf.Abs(piece.currentLatitude);
+                    float latDamping = Mathf.Clamp01((50f - currentAbsLat) / 15f);
+                    deltaLat *= latDamping;
+
                     piece.currentLongitude = Mathf.Repeat(piece.currentLongitude + deltaLon, 360f);
-                    piece.currentLatitude = Mathf.Clamp(piece.currentLatitude + deltaLat, -85f, 85f);
+                    piece.currentLatitude = Mathf.Clamp(piece.currentLatitude + deltaLat, -50f, 50f);
                     needsRebuild = true;
 
                     // Update attached craters and volcanoes
