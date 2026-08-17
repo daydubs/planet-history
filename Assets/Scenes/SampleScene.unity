@@ -1768,7 +1768,7 @@ MonoBehaviour:
     currentLatitude: 3.12
     currentHeight: 0.6
   randomizeOnStart: 1
-  seed: 89
+  seed: 0
 --- !u!114 &752786731
 MonoBehaviour:
   m_ObjectHideFlags: 0

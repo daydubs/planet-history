@@ -397,7 +397,8 @@ public class CubeSphereTerrain : MonoBehaviour
             return;
         }
 
-        int activeSeed = seed != 0 ? seed : Random.Range(1, 999999);
+        int activeSeed = seed != 0 ? seed : (System.Environment.TickCount ^ System.Guid.NewGuid().GetHashCode()) & 0x7FFFFFFF;
+        if (activeSeed == 0) activeSeed = 1;
         System.Random prng = new System.Random(activeSeed);
         Debug.Log($"[CubeSphereTerrain] Applied Randomization with seed: {activeSeed}");
 
@@ -461,17 +462,13 @@ public class CubeSphereTerrain : MonoBehaviour
 
             piece.baseLongitude = Mathf.Repeat(pieceLonDeg, 360f);
             piece.baseLatitude = Mathf.Clamp(pieceLatDeg, -75f, 75f);
-            piece.radius = supercontinentRadius * 0.7f;
+            piece.radius = supercontinentRadius * 0.9f;
             piece.height = supercontinentHeight;
 
-            // Radial drift speed: centered predominantly on East-West axis with minor North-South drift
+            // True radial drift speed: fragment drifts outward along sector midAngle away from supercontinent center
             float driftMagnitude = (float)(2.5e-5 + prng.NextDouble() * 2.5e-5); // ~ 2.5e-5 to 5.0e-5
-            float lonSign = Mathf.Sign(Mathf.Cos(midAngle));
-            if (lonSign == 0f) lonSign = (prng.NextDouble() > 0.5) ? 1f : -1f;
-
-            // Longitude drift is primary; latitude drift is scaled down (20% of magnitude) to keep continents near equatorial/mid-latitude zones
-            piece.driftSpeedLon = lonSign * driftMagnitude * (0.8f + (float)prng.NextDouble() * 0.4f) / cosLat;
-            piece.driftSpeedLat = Mathf.Sin(midAngle) * driftMagnitude * 0.20f;
+            piece.driftSpeedLon = (Mathf.Cos(midAngle) * driftMagnitude) / cosLat;
+            piece.driftSpeedLat = Mathf.Sin(midAngle) * driftMagnitude;
 
             // Pre-bake heightmap for this sector piece
             BakePieceHeightGrid(piece);
@@ -560,7 +557,7 @@ public class CubeSphereTerrain : MonoBehaviour
                 if (!inSector) continue;
 
                 // Supercontinent shape masking
-                float superRadiusRad = (piece.radius / 0.7f) * Mathf.Deg2Rad;
+                float superRadiusRad = (piece.radius / 0.9f) * Mathf.Deg2Rad;
                 float coastlineNoise = PlanetHeightField.Fbm3D((pos.x + activeNoiseOffset.x) * 8.0f, (pos.y + activeNoiseOffset.y) * 8.0f, (pos.z + activeNoiseOffset.z) * 8.0f, 4);
                 float perturbedRadius = superRadiusRad * (1.0f + coastlineNoise * 0.35f);
 
@@ -571,6 +568,13 @@ public class CubeSphereTerrain : MonoBehaviour
 
                 float internalNoise = PlanetHeightField.Fbm3D((pos.x + activeNoiseOffset.x) * 12.0f, (pos.y + activeNoiseOffset.y) * 12.0f, (pos.z + activeNoiseOffset.z) * 12.0f, 4);
                 float finalHeight = heightFactor * (1.0f + internalNoise * 0.25f);
+
+                // Smooth edge falloff to avoid rectangular grid edge cutoff
+                float uNorm = (u - 0.5f) * 2f;
+                float vNorm = (v - 0.5f) * 2f;
+                float gridDist = Mathf.Sqrt(uNorm * uNorm + vNorm * vNorm);
+                float gridFade = Mathf.SmoothStep(1.0f, 0.85f, gridDist);
+                finalHeight *= gridFade;
 
                 piece.localHeights[x + y * gridSize] = finalHeight;
             }
@@ -840,8 +844,8 @@ public class CubeSphereTerrain : MonoBehaviour
                         }
 
                         float dist = AngularDistanceDegrees(pieceA.currentLongitude, pieceA.currentLatitude, pieceB.currentLongitude, pieceB.currentLatitude);
-                        // Collision threshold: when distance between centers drops below ~85% of sum of radii
-                        float collisionDistance = (pieceA.radius + pieceB.radius) * 0.85f;
+                        // Collision threshold: when distance between centers drops below ~65% of sum of radii
+                        float collisionDistance = (pieceA.radius + pieceB.radius) * 0.65f;
 
                         if (dist < collisionDistance)
                         {
@@ -860,7 +864,7 @@ public class CubeSphereTerrain : MonoBehaviour
                             float dotNext = Vector3.Dot(nextPosA, nextPosB);
 
                             // If dotNext > dotCurr, angular distance is decreasing -> pieces are converging!
-                            if (dotNext > dotCurr + 1e-9f)
+                            if (dotNext > dotCurr - 1e-9f)
                             {
                                 // Tangential deflection / sliding along contact boundary
                                 float latRadA = pieceA.currentLatitude * Mathf.Deg2Rad;
