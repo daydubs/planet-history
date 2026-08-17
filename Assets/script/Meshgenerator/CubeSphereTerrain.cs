@@ -105,6 +105,7 @@ public class CubeSphereTerrain : MonoBehaviour
     private Mesh mesh;
     private PlanetHeightField field;
     private MeshRenderer meshRenderer;
+    private Material instantiatedMaterial;
 
     private Vector3[] baseDirs; // direction sphérique de chaque vertex
     private Vector3[] vertices;
@@ -143,16 +144,20 @@ public class CubeSphereTerrain : MonoBehaviour
     {
         if (Application.isPlaying && GameManager.Instance != null && meshRenderer != null)
         {
-            Material material = meshRenderer.material;
-            if (material != null)
+            if (instantiatedMaterial == null)
             {
-                if (material.HasProperty(SurfaceTemperatureId))
+                instantiatedMaterial = meshRenderer.material;
+            }
+
+            if (instantiatedMaterial != null)
+            {
+                if (instantiatedMaterial.HasProperty(SurfaceTemperatureId))
                 {
-                    material.SetFloat(SurfaceTemperatureId, GameManager.Instance.SurfaceTemperature);
+                    instantiatedMaterial.SetFloat(SurfaceTemperatureId, GameManager.Instance.SurfaceTemperature);
                 }
-                if (material.HasProperty(WaterRatioId))
+                if (instantiatedMaterial.HasProperty(WaterRatioId))
                 {
-                    material.SetFloat(WaterRatioId, GameManager.Instance.WaterRatio);
+                    instantiatedMaterial.SetFloat(WaterRatioId, GameManager.Instance.WaterRatio);
                 }
             }
         }
@@ -223,7 +228,11 @@ public class CubeSphereTerrain : MonoBehaviour
 
         if (meshRenderer == null) return;
 
-        Material material = Application.isPlaying ? meshRenderer.material : meshRenderer.sharedMaterial;
+        if (Application.isPlaying && instantiatedMaterial == null)
+        {
+            instantiatedMaterial = meshRenderer.material;
+        }
+        Material material = Application.isPlaying ? instantiatedMaterial : meshRenderer.sharedMaterial;
         if (material == null) return;
 
         material.SetTexture(HeightTexId, field.HeightTex);
