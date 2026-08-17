@@ -2,6 +2,27 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
+public enum MeteorSizeTier
+{
+    Small,
+    Medium,
+    Large,
+    Massive
+}
+
+[System.Serializable]
+public struct MeteorSizeData
+{
+    public MeteorSizeTier tier;
+    public string displayName;
+    public float scaleFactor;
+    public float radiusDegrees;
+    public float depth;
+    public float rimHeight;
+    public float gasRelease;
+    public float tsunamiRise;
+}
+
 public class MeteorEventController : MonoBehaviour
 {
     [Header("Meteor Settings")]
@@ -112,7 +133,72 @@ public class MeteorEventController : MonoBehaviour
         LayoutRebuilder.ForceRebuildLayoutImmediate(hudRoot);
     }
 
+    public static MeteorSizeData GetMeteorSizeData(MeteorSizeTier tier)
+    {
+        MeteorSizeData data = new MeteorSizeData();
+        data.tier = tier;
+
+        switch (tier)
+        {
+            case MeteorSizeTier.Small:
+                data.displayName = "Petit Météore";
+                data.scaleFactor = Random.Range(0.5f, 0.7f);
+                data.radiusDegrees = Random.Range(5.0f, 8.5f);
+                data.depth = Random.Range(0.08f, 0.15f);
+                data.rimHeight = Random.Range(0.04f, 0.08f);
+                data.gasRelease = Random.Range(2.5f, 5.5f);
+                data.tsunamiRise = Random.Range(0.04f, 0.09f);
+                break;
+
+            case MeteorSizeTier.Medium:
+                data.displayName = "Météore Standard";
+                data.scaleFactor = Random.Range(0.9f, 1.15f);
+                data.radiusDegrees = Random.Range(11.0f, 16.0f);
+                data.depth = Random.Range(0.20f, 0.35f);
+                data.rimHeight = Random.Range(0.12f, 0.22f);
+                data.gasRelease = Random.Range(8.0f, 15.0f);
+                data.tsunamiRise = Random.Range(0.12f, 0.22f);
+                break;
+
+            case MeteorSizeTier.Large:
+                data.displayName = "Grand Météore";
+                data.scaleFactor = Random.Range(1.6f, 2.1f);
+                data.radiusDegrees = Random.Range(20.0f, 27.0f);
+                data.depth = Random.Range(0.42f, 0.60f);
+                data.rimHeight = Random.Range(0.25f, 0.38f);
+                data.gasRelease = Random.Range(20.0f, 32.0f);
+                data.tsunamiRise = Random.Range(0.25f, 0.38f);
+                break;
+
+            case MeteorSizeTier.Massive:
+                data.displayName = "Météore Cataclysmique";
+                data.scaleFactor = Random.Range(2.7f, 3.4f);
+                data.radiusDegrees = Random.Range(32.0f, 42.0f);
+                data.depth = Random.Range(0.70f, 0.95f);
+                data.rimHeight = Random.Range(0.45f, 0.65f);
+                data.gasRelease = Random.Range(45.0f, 75.0f);
+                data.tsunamiRise = Random.Range(0.40f, 0.50f);
+                break;
+        }
+
+        return data;
+    }
+
+    public static MeteorSizeTier GetRandomMeteorSizeTier()
+    {
+        float roll = Random.value;
+        if (roll < 0.35f) return MeteorSizeTier.Small;      // 35% chance
+        if (roll < 0.70f) return MeteorSizeTier.Medium;     // 35% chance
+        if (roll < 0.92f) return MeteorSizeTier.Large;      // 22% chance
+        return MeteorSizeTier.Massive;                     // 8% chance
+    }
+
     public void TriggerMeteor()
+    {
+        TriggerMeteor(GetRandomMeteorSizeTier());
+    }
+
+    public void TriggerMeteor(MeteorSizeTier sizeTier)
     {
         if (terrain == null)
         {
@@ -131,20 +217,21 @@ public class MeteorEventController : MonoBehaviour
             return;
         }
 
+        MeteorSizeData sizeData = GetMeteorSizeData(sizeTier);
+
         // 1. Pick a random impact position on the planet sphere (latitude restricted to avoid polar crunch)
         float lon = Random.Range(0f, 360f);
         float lat = Random.Range(-60f, 60f);
-        float radius = Random.Range(10f, 16f); // crater radius in degrees
 
         PlanetEpoch epoch = GameManager.Instance.CurrentEpoch;
-        GameManager.Instance.LogEvent("Meteor Strike Triggered", $"Coordinates: ({lon:F1} deg E, {lat:F1} deg N), Epoch: {epoch}");
+        GameManager.Instance.LogEvent("Meteor Strike Triggered", $"Type: {sizeData.displayName} (Scale: {sizeData.scaleFactor:F2}x), Coordinates: ({lon:F1} deg E, {lat:F1} deg N), Radius: {sizeData.radiusDegrees:F1} deg, Epoch: {epoch}");
 
         float currentHeight = terrain.GetHeightAtDegrees(lon, lat);
         float waterLevel = 0.03f * GameManager.Instance.RawWaterRatio; // Compare with actual water level, not temporary rise
 
         bool isOceanic = (currentHeight < waterLevel) && (epoch >= PlanetEpoch.ProtoOcean);
 
-        Debug.Log($"[MeteorEventController] Target impact: {lon:F2} lon, {lat:F2} lat. Height: {currentHeight:F4}. Oceanic: {isOceanic}");
+        Debug.Log($"[MeteorEventController] Target impact: {sizeData.displayName} (Scale: {sizeData.scaleFactor:F2}x) at {lon:F2} lon, {lat:F2} lat. Height: {currentHeight:F4}. Oceanic: {isOceanic}");
 
         // 2. Compute 3D target coordinates on the surface
         Vector3 localImpactPos = GetLocalSurfacePosition(terrain, lon, lat);
@@ -153,14 +240,14 @@ public class MeteorEventController : MonoBehaviour
         // 3. Compute Slingshot trajectory (p0 = deep space, p1 = control point arc)
         CalculateSlingshotTrajectory(localImpactDir, terrain.transform.position, out Vector3 p0, out Vector3 p1);
 
-        // 4. Instantiate Meteor Object
-        GameObject meteorObj = SpawnMeteorObject(p0);
+        // 4. Instantiate Meteor Object with visual scale factor
+        GameObject meteorObj = SpawnMeteorObject(p0, sizeData.scaleFactor);
 
         // 5. Start animation coroutine (deferred impact execution)
-        StartCoroutine(AnimateMeteorFlight(meteorObj, p0, p1, localImpactPos, lon, lat, radius, epoch, isOceanic));
+        StartCoroutine(AnimateMeteorFlight(meteorObj, p0, p1, localImpactPos, lon, lat, sizeData, epoch, isOceanic));
     }
 
-    private GameObject SpawnMeteorObject(Vector3 startPosition)
+    private GameObject SpawnMeteorObject(Vector3 startPosition, float scaleFactor)
     {
         GameObject meteorObj = null;
 
@@ -172,13 +259,14 @@ public class MeteorEventController : MonoBehaviour
         if (meteorPrefab != null)
         {
             meteorObj = Instantiate(meteorPrefab, startPosition, Quaternion.identity);
+            meteorObj.transform.localScale = meteorObj.transform.localScale * scaleFactor;
         }
         else
         {
             meteorObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             meteorObj.name = "MeteorFallback";
             meteorObj.transform.position = startPosition;
-            meteorObj.transform.localScale = Vector3.one * 2.5f;
+            meteorObj.transform.localScale = Vector3.one * 2.5f * scaleFactor;
 
             Collider col = meteorObj.GetComponent<Collider>();
             if (col != null) Destroy(col);
@@ -190,12 +278,12 @@ public class MeteorEventController : MonoBehaviour
             }
         }
 
-        AttachFlightTrail(meteorObj);
+        AttachFlightTrail(meteorObj, scaleFactor);
 
         return meteorObj;
     }
 
-    private void AttachFlightTrail(GameObject meteorObj)
+    private void AttachFlightTrail(GameObject meteorObj, float scaleFactor)
     {
         if (meteorObj == null) return;
 
@@ -208,17 +296,17 @@ public class MeteorEventController : MonoBehaviour
         var main = ps.main;
         main.duration = 5f;
         main.loop = true;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f, 0.7f);
-        main.startSpeed = new ParticleSystem.MinMaxCurve(0.5f, 2f);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.8f, 2.0f);
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f * scaleFactor, 0.7f * scaleFactor);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(0.5f * scaleFactor, 2.0f * scaleFactor);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.8f * scaleFactor, 2.0f * scaleFactor);
         main.simulationSpace = ParticleSystemSimulationSpace.World;
 
         var emission = ps.emission;
-        emission.rateOverTime = 80f;
+        emission.rateOverTime = 80f * scaleFactor;
 
         var shape = ps.shape;
         shape.shapeType = ParticleSystemShapeType.Sphere;
-        shape.radius = 0.5f;
+        shape.radius = 0.5f * scaleFactor;
 
         var colorOverLifetime = ps.colorOverLifetime;
         colorOverLifetime.enabled = true;
@@ -229,14 +317,12 @@ public class MeteorEventController : MonoBehaviour
         );
         colorOverLifetime.color = grad;
 
-
         var texture = Resources.Load<Texture2D>("Textures/particle_spark_old");
         var renderer = ps.GetComponent<ParticleSystemRenderer>();
         renderer.material = new Material(Shader.Find("Particles/Standard Unlit"));
         renderer.material.mainTexture = texture;
 
         ps.Play();
-
     }
 
     private System.Collections.IEnumerator AnimateMeteorFlight(
@@ -246,7 +332,7 @@ public class MeteorEventController : MonoBehaviour
         Vector3 localImpactPos,
         float lon,
         float lat,
-        float radius,
+        MeteorSizeData sizeData,
         PlanetEpoch epoch,
         bool isOceanic)
     {
@@ -284,11 +370,11 @@ public class MeteorEventController : MonoBehaviour
         Vector3 finalImpactPos = terrain.transform.TransformPoint(localImpactPos);
         Vector3 worldNormal = terrain.transform.TransformDirection(localImpactDir).normalized;
 
-        // 1. Spawn Impact Particle System
-        SpawnImpactParticleSystem(finalImpactPos, worldNormal);
+        // 1. Spawn Impact Particle System with scale factor
+        SpawnImpactParticleSystem(finalImpactPos, worldNormal, sizeData.scaleFactor);
 
         // 2. Apply Deferred Epoch Terrain Deformations & Game Events
-        ApplyImpactEffects(lon, lat, radius, epoch, isOceanic);
+        ApplyImpactEffects(lon, lat, sizeData, epoch, isOceanic);
 
         // 3. Destroy meteor object
         if (meteorObj != null)
@@ -297,21 +383,26 @@ public class MeteorEventController : MonoBehaviour
         }
     }
 
-    private void ApplyImpactEffects(float lon, float lat, float radius, PlanetEpoch epoch, bool isOceanic)
+    private void ApplyImpactEffects(float lon, float lat, MeteorSizeData sizeData, PlanetEpoch epoch, bool isOceanic)
     {
+        // 1. Always release atmospheric volatile gases proportional to meteor size
+        if (sizeData.gasRelease > 0f)
+        {
+            GameManager.Instance?.AddMeteorGases(sizeData.gasRelease);
+        }
+
+        // 2. Epoch-tailored terrain deformation and aquatic effects
+        float radius = sizeData.radiusDegrees;
+        float depth = sizeData.depth;
+        float rim = sizeData.rimHeight;
+
         if (epoch == PlanetEpoch.Hadean)
         {
-            float depth = Random.Range(0.2f, 0.35f);
-            float rim = Random.Range(0.12f, 0.22f);
+            // Transient craters on magma surface
             terrain.AddCraterDegrees(lon, lat, radius, depth, rim, targetFadeVal: 0f, fadeSpeedVal: 0.015f);
-
-            float gasAmount = Random.Range(8f, 14f);
-            GameManager.Instance?.AddMeteorGases(gasAmount);
         }
         else if (epoch == PlanetEpoch.CrustFormation)
         {
-            float depth = Random.Range(0.22f, 0.38f);
-            float rim = Random.Range(0.14f, 0.24f);
             float attenuation = Random.Range(0.25f, 0.45f);
             float targetFade = 1.0f - attenuation;
 
@@ -319,22 +410,29 @@ public class MeteorEventController : MonoBehaviour
         }
         else if (epoch == PlanetEpoch.VolcanicAge)
         {
-            float depth = Random.Range(0.2f, 0.35f);
-            float rim = Random.Range(0.12f, 0.22f);
             float attenuation = Random.Range(0.25f, 0.45f);
             float targetFade = 1.0f - attenuation;
 
             terrain.AddCraterDegrees(lon, lat, radius, depth, rim, targetFadeVal: targetFade, fadeSpeedVal: 0.012f);
 
-            int numVolcanoes = Random.Range(1, 3);
+            // Number and size of induced volcanic fractures scales with meteor size
+            int numVolcanoes = sizeData.tier switch
+            {
+                MeteorSizeTier.Small => 1,
+                MeteorSizeTier.Medium => Random.Range(1, 3),
+                MeteorSizeTier.Large => Random.Range(2, 4),
+                MeteorSizeTier.Massive => Random.Range(3, 6),
+                _ => 1
+            };
+
             for (int i = 0; i < numVolcanoes; i++)
             {
                 float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-                float dist = Random.Range(2f, 5f);
+                float dist = Random.Range(2f, 5f) * sizeData.scaleFactor;
                 float volLon = Mathf.Repeat(lon + dist * Mathf.Cos(angle), 360f);
                 float volLat = Mathf.Clamp(lat + dist * Mathf.Sin(angle), -85f, 85f);
-                float volRad = Random.Range(6f, 12f);
-                float volHeight = Random.Range(0.4f, 0.65f);
+                float volRad = Random.Range(6f, 12f) * sizeData.scaleFactor;
+                float volHeight = Random.Range(0.35f, 0.65f) * sizeData.scaleFactor;
 
                 terrain.AddTemporaryVolcanoDegrees(volLon, volLat, volRad, volHeight, fadeSpeedVal: 0.008f);
             }
@@ -343,17 +441,12 @@ public class MeteorEventController : MonoBehaviour
         {
             if (isOceanic)
             {
-                float tsunamiRiseAmount = Random.Range(0.12f, 0.25f);
-                GameManager.Instance?.TriggerTsunami(tsunamiRiseAmount);
+                GameManager.Instance?.TriggerTsunami(sizeData.tsunamiRise);
 
-                float depth = Random.Range(0.15f, 0.25f);
-                float rim = Random.Range(0.08f, 0.15f);
-                terrain.AddCraterDegrees(lon, lat, radius, depth, rim, targetFadeVal: 0.5f, fadeSpeedVal: 0.02f);
+                terrain.AddCraterDegrees(lon, lat, radius, depth * 0.7f, rim * 0.6f, targetFadeVal: 0.5f, fadeSpeedVal: 0.02f);
             }
             else
             {
-                float depth = Random.Range(0.22f, 0.38f);
-                float rim = Random.Range(0.14f, 0.24f);
                 float attenuation = Random.Range(0.25f, 0.45f);
                 float targetFade = 1.0f - attenuation;
 
@@ -364,7 +457,7 @@ public class MeteorEventController : MonoBehaviour
         terrain.RebuildHeightField();
     }
 
-    private void SpawnImpactParticleSystem(Vector3 position, Vector3 normal)
+    private void SpawnImpactParticleSystem(Vector3 position, Vector3 normal, float scaleFactor)
     {
         GameObject impactGo = new GameObject("MeteorImpactParticles");
         impactGo.transform.position = position;
@@ -375,22 +468,23 @@ public class MeteorEventController : MonoBehaviour
         ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
 
         var main = ps.main;
-        main.duration = 1.0f;
+        main.duration = 1.0f * Mathf.Clamp(scaleFactor, 0.8f, 2.5f);
         main.loop = false;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(0.5f, 1.3f);
-        main.startSpeed = new ParticleSystem.MinMaxCurve(12f, 28f);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.5f, 1.8f);
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.5f * scaleFactor, 1.3f * scaleFactor);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(12f * scaleFactor, 28f * scaleFactor);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.5f * scaleFactor, 1.8f * scaleFactor);
         main.gravityModifier = 0.35f;
         main.simulationSpace = ParticleSystemSimulationSpace.World;
 
         var emission = ps.emission;
         emission.rateOverTime = 0f;
-        emission.SetBursts(new ParticleSystem.Burst[] { new ParticleSystem.Burst(0f, 180) });
+        short burstCount = (short)Mathf.Clamp(Mathf.RoundToInt(180 * scaleFactor), 50, 1000);
+        emission.SetBursts(new ParticleSystem.Burst[] { new ParticleSystem.Burst(0f, burstCount) });
 
         var shape = ps.shape;
         shape.shapeType = ParticleSystemShapeType.Cone;
         shape.angle = 55f;
-        shape.radius = 0.8f;
+        shape.radius = 0.8f * scaleFactor;
 
         var colorOverLifetime = ps.colorOverLifetime;
         colorOverLifetime.enabled = true;
@@ -429,34 +523,31 @@ public class MeteorEventController : MonoBehaviour
         ringPs.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
 
         var rMain = ringPs.main;
-        rMain.duration = 0.8f;
+        rMain.duration = 0.8f * Mathf.Clamp(scaleFactor, 0.8f, 2.5f);
         rMain.loop = false;
-        rMain.startLifetime = new ParticleSystem.MinMaxCurve(0.4f, 0.8f);
-        rMain.startSpeed = new ParticleSystem.MinMaxCurve(15f, 35f);
-        rMain.startSize = new ParticleSystem.MinMaxCurve(0.6f, 1.5f);
+        rMain.startLifetime = new ParticleSystem.MinMaxCurve(0.4f * scaleFactor, 0.8f * scaleFactor);
+        rMain.startSpeed = new ParticleSystem.MinMaxCurve(15f * scaleFactor, 35f * scaleFactor);
+        rMain.startSize = new ParticleSystem.MinMaxCurve(0.6f * scaleFactor, 1.5f * scaleFactor);
         rMain.simulationSpace = ParticleSystemSimulationSpace.World;
 
         var rEmission = ringPs.emission;
         rEmission.rateOverTime = 0f;
-        rEmission.SetBursts(new ParticleSystem.Burst[] { new ParticleSystem.Burst(0f, 120) });
+        short ringBurstCount = (short)Mathf.Clamp(Mathf.RoundToInt(120 * scaleFactor), 30, 800);
+        rEmission.SetBursts(new ParticleSystem.Burst[] { new ParticleSystem.Burst(0f, ringBurstCount) });
 
         var rShape = ringPs.shape;
         rShape.shapeType = ParticleSystemShapeType.Donut;
-        rShape.radius = 1.0f;
-        rShape.donutRadius = 0.2f;
+        rShape.radius = 1.0f * scaleFactor;
+        rShape.donutRadius = 0.2f * scaleFactor;
 
         var rColorOverLifetime = ringPs.colorOverLifetime;
         rColorOverLifetime.enabled = true;
         rColorOverLifetime.color = grad;
 
-
-
-
         ps.Play();
         ringPs.Play();
 
-
-        Destroy(impactGo, 3.5f);
+        Destroy(impactGo, 4.5f);
     }
 
     /// <summary>
