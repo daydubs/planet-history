@@ -451,10 +451,14 @@ public class CubeSphereTerrain : MonoBehaviour
             piece.radius = supercontinentRadius * 0.7f;
             piece.height = supercontinentHeight;
 
-            // Radial drift speed: drifting OUTWARD from supercontinent center along midAngle
+            // Radial drift speed: centered predominantly on East-West axis with minor North-South drift
             float driftMagnitude = (float)(2.5e-5 + prng.NextDouble() * 2.5e-5); // ~ 2.5e-5 to 5.0e-5
-            piece.driftSpeedLon = Mathf.Cos(midAngle) * driftMagnitude / cosLat;
-            piece.driftSpeedLat = Mathf.Sin(midAngle) * driftMagnitude;
+            float lonSign = Mathf.Sign(Mathf.Cos(midAngle));
+            if (lonSign == 0f) lonSign = (prng.NextDouble() > 0.5) ? 1f : -1f;
+
+            // Longitude drift is primary; latitude drift is scaled down (20% of magnitude) to keep continents near equatorial/mid-latitude zones
+            piece.driftSpeedLon = lonSign * driftMagnitude * (0.8f + (float)prng.NextDouble() * 0.4f) / cosLat;
+            piece.driftSpeedLat = Mathf.Sin(midAngle) * driftMagnitude * 0.20f;
 
             // Pre-bake heightmap for this sector piece
             BakePieceHeightGrid(piece);
@@ -529,8 +533,11 @@ public class CubeSphereTerrain : MonoBehaviour
                 float pointAngle = Mathf.Atan2(projNorth, projEast);
                 if (pointAngle < 0f) pointAngle += Mathf.PI * 2f;
 
-                // Sector fracture boundary check with noise jitter
-                float fractureJitter = PlanetHeightField.Fbm3D(pos.x * 10f, pos.y * 10f, pos.z * 10f, 3) * 0.15f;
+                // Sector fracture boundary check with multi-frequency noise jitter for organic fracture lines
+                float fractureJitter = PlanetHeightField.Fbm3D(
+                    (pos.x + activeNoiseOffset.x + 12.3f) * 4.5f,
+                    (pos.y + activeNoiseOffset.y + 45.6f) * 4.5f,
+                    (pos.z + activeNoiseOffset.z + 78.9f) * 4.5f, 4) * 0.35f;
                 float adjustedAngle = Mathf.Repeat(pointAngle + fractureJitter, Mathf.PI * 2f);
 
                 bool inSector = (piece.sectorStartAngle <= piece.sectorEndAngle)
@@ -571,7 +578,7 @@ public class CubeSphereTerrain : MonoBehaviour
                     radius = 35f,
                     height = 0.65f,
                     driftSpeedLon = -0.00003f,
-                    driftSpeedLat = 0.000015f
+                    driftSpeedLat = 0.000005f
                 },
                 new ContinentalPiece
                 {
@@ -581,7 +588,7 @@ public class CubeSphereTerrain : MonoBehaviour
                     radius = 30f,
                     height = 0.55f,
                     driftSpeedLon = 0.000035f,
-                    driftSpeedLat = 0.00001f
+                    driftSpeedLat = 0.000004f
                 },
                 new ContinentalPiece
                 {
@@ -591,7 +598,7 @@ public class CubeSphereTerrain : MonoBehaviour
                     radius = 38f,
                     height = 0.7f,
                     driftSpeedLon = -0.000025f,
-                    driftSpeedLat = -0.00002f
+                    driftSpeedLat = -0.000005f
                 }
             };
         }
@@ -802,6 +809,38 @@ public class CubeSphereTerrain : MonoBehaviour
         // 2. Handle drift during TectonicDrift
         if (epoch == PlanetEpoch.TectonicDrift && simDt > 0f)
         {
+            // First perform continental piece collision detection
+            if (continentalPieces != null && continentalPieces.Length > 1)
+            {
+                for (int i = 0; i < continentalPieces.Length; i++)
+                {
+                    var pieceA = continentalPieces[i];
+                    for (int j = i + 1; j < continentalPieces.Length; j++)
+                    {
+                        var pieceB = continentalPieces[j];
+
+                        float dist = AngularDistanceDegrees(pieceA.currentLongitude, pieceA.currentLatitude, pieceB.currentLongitude, pieceB.currentLatitude);
+                        // Collision threshold: when distance between centers drops below ~70% of sum of radii
+                        float collisionDistance = (pieceA.radius + pieceB.radius) * 0.70f;
+
+                        if (dist < collisionDistance)
+                        {
+                            // Continents collide! Stop drift and apply a small recoil/rebound back
+                            if (pieceA.driftSpeedLon != 0f || pieceA.driftSpeedLat != 0f)
+                            {
+                                pieceA.driftSpeedLon = -pieceA.driftSpeedLon * 0.15f;
+                                pieceA.driftSpeedLat = -pieceA.driftSpeedLat * 0.15f;
+                            }
+                            if (pieceB.driftSpeedLon != 0f || pieceB.driftSpeedLat != 0f)
+                            {
+                                pieceB.driftSpeedLon = -pieceB.driftSpeedLon * 0.15f;
+                                pieceB.driftSpeedLat = -pieceB.driftSpeedLat * 0.15f;
+                            }
+                        }
+                    }
+                }
+            }
+
             foreach (var piece in continentalPieces)
             {
                 if (piece.driftSpeedLon != 0f || piece.driftSpeedLat != 0f)
