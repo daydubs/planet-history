@@ -205,7 +205,7 @@ public class VolcanoManager : MonoBehaviour
             otherGasesEmissionRate = UnityEngine.Random.Range(0.0001f, 0.0003f) * (targetRadius / 2f),
 
             parentPiece = parentPiece,
-            offsetLonFromParent = parentPiece != null ? lonDeg - parentPiece.currentLongitude : 0f,
+            offsetLonFromParent = parentPiece != null ? CubeSphereTerrain.DeltaLongitudeDegrees(lonDeg, parentPiece.currentLongitude) : 0f,
             offsetLatFromParent = parentPiece != null ? latDeg - parentPiece.currentLatitude : 0f
         };
 
@@ -248,7 +248,7 @@ public class VolcanoManager : MonoBehaviour
                 vol.parentPiece = terrain.FindParentPiece(vol.longitudeDegrees, vol.latitudeDegrees);
                 if (vol.parentPiece != null)
                 {
-                    vol.offsetLonFromParent = vol.longitudeDegrees - vol.parentPiece.currentLongitude;
+                    vol.offsetLonFromParent = CubeSphereTerrain.DeltaLongitudeDegrees(vol.longitudeDegrees, vol.parentPiece.currentLongitude);
                     vol.offsetLatFromParent = vol.latitudeDegrees - vol.parentPiece.currentLatitude;
                 }
             }
