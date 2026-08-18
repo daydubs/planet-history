@@ -50,6 +50,109 @@ public class GameHudController : MonoBehaviour
         {
             gameObject.AddComponent<MeteorEventController>();
         }
+
+        // Dynamically attach VolcanoManager to scene if missing
+        if (FindAnyObjectByType<VolcanoManager>() == null)
+        {
+            GameObject volcanoManagerObj = new GameObject("VolcanoManager");
+            volcanoManagerObj.AddComponent<VolcanoManager>();
+        }
+
+        CreateVolcanoUI();
+    }
+
+    private void CreateVolcanoUI()
+    {
+        RectTransform hudRoot = transform as RectTransform;
+        if (hudRoot == null) return;
+
+        // Create a new Row GameObject for Volcano Trigger
+        GameObject rowGo = new GameObject("VolcanoRow", typeof(RectTransform));
+        rowGo.transform.SetParent(hudRoot, false);
+
+        RectTransform rowRect = rowGo.GetComponent<RectTransform>();
+        rowRect.localScale = Vector3.one;
+
+        LayoutElement rowLayout = rowGo.AddComponent<LayoutElement>();
+        rowLayout.minHeight = 44f;
+        rowLayout.preferredHeight = 44f;
+        rowLayout.flexibleHeight = 0f;
+        rowLayout.flexibleWidth = 1f;
+
+        HorizontalLayoutGroup horizontal = rowGo.AddComponent<HorizontalLayoutGroup>();
+        horizontal.childAlignment = TextAnchor.MiddleLeft;
+        horizontal.childControlWidth = true;
+        horizontal.childControlHeight = true;
+        horizontal.childForceExpandWidth = false;
+        horizontal.childForceExpandHeight = true;
+        horizontal.spacing = 10f;
+
+        // Label
+        GameObject labelGo = new GameObject("VolcanoLabel", typeof(RectTransform));
+        labelGo.transform.SetParent(rowRect, false);
+        TextMeshProUGUI labelText = labelGo.AddComponent<TextMeshProUGUI>();
+        labelText.text = "Volcano Event :";
+        labelText.fontSize = 22;
+        labelText.fontStyle = FontStyles.Normal;
+        labelText.color = new Color(0.83f, 0.86f, 0.90f, 1f);
+        labelText.alignment = TextAlignmentOptions.Left;
+
+        LayoutElement labelLayout = labelGo.AddComponent<LayoutElement>();
+        labelLayout.minWidth = 120f;
+        labelLayout.flexibleWidth = 1f;
+
+        // Button
+        GameObject buttonGo = new GameObject("VolcanoButton", typeof(RectTransform));
+        buttonGo.transform.SetParent(rowRect, false);
+
+        Image buttonImage = buttonGo.AddComponent<Image>();
+        buttonImage.color = new Color(0.92f, 0.45f, 0.15f, 1f); // Vibrant orange button
+
+        Button button = buttonGo.AddComponent<Button>();
+        button.targetGraphic = buttonImage;
+
+        ColorBlock cb = button.colors;
+        cb.normalColor = new Color(0.92f, 0.45f, 0.15f, 1f);
+        cb.highlightedColor = new Color(1.0f, 0.55f, 0.25f, 1f);
+        cb.pressedColor = new Color(0.72f, 0.35f, 0.05f, 1f);
+        button.colors = cb;
+
+        GameObject buttonTextGo = new GameObject("Text", typeof(RectTransform));
+        buttonTextGo.transform.SetParent(buttonGo.transform, false);
+        TextMeshProUGUI buttonText = buttonTextGo.AddComponent<TextMeshProUGUI>();
+        buttonText.text = "CREER VOLCAN";
+        buttonText.fontSize = 18;
+        buttonText.fontStyle = FontStyles.Bold;
+        buttonText.color = Color.white;
+        buttonText.alignment = TextAlignmentOptions.Center;
+
+        RectTransform textRect = buttonTextGo.GetComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.sizeDelta = Vector2.zero;
+
+        LayoutElement buttonLayout = buttonGo.AddComponent<LayoutElement>();
+        buttonLayout.minWidth = 140f;
+        buttonLayout.preferredWidth = 160f;
+        buttonLayout.flexibleWidth = 0f;
+        buttonLayout.minHeight = 32f;
+        buttonLayout.preferredHeight = 32f;
+
+        button.onClick.AddListener(() =>
+        {
+            if (VolcanoManager.Instance != null)
+            {
+                VolcanoManager.Instance.SpawnRandomVolcano();
+            }
+            else
+            {
+                var mgr = FindAnyObjectByType<VolcanoManager>();
+                if (mgr != null) mgr.SpawnRandomVolcano();
+            }
+        });
+
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(hudRoot);
     }
 
     private void OnEnable()
