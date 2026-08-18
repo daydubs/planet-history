@@ -217,11 +217,11 @@ public class GameHudController : MonoBehaviour
             float n2Pct = total > 0 ? (gameManager.NitrogenPressure / total) * 100f : 0f;
             float otherPct = total > 0 ? (gameManager.OtherGasesPressure / total) * 100f : 0f;
 
-            atmosphereCompositionText.text = $"Atmosphere:\n" +
-                $"- H2O (Vapeur): {gameManager.WaterVaporPressure:0.0} atm ({h2oPct:0.0}%)\n" +
+            atmosphereCompositionText.text = $"Atmosphere (Pre-biotique):\n" +
+                $"- H2O (Vapeur d'eau): {gameManager.WaterVaporPressure:0.0} atm ({h2oPct:0.0}%)\n" +
                 $"- CO2 (Dioxyde de carbone): {gameManager.Co2Pressure:0.0} atm ({co2Pct:0.0}%)\n" +
                 $"- N2 (Azote): {gameManager.NitrogenPressure:0.0} atm ({n2Pct:0.0}%)\n" +
-                $"- Autres gaz: {gameManager.OtherGasesPressure:0.0} atm ({otherPct:0.0}%)";
+                $"- Gaz reduits pre-biotiques (CH4, NH3, SO2): {gameManager.OtherGasesPressure:0.0} atm ({otherPct:0.0}%)";
         }
 
         if (sessionSlider != null) sessionSlider.value = gameManager.SessionProgress;
