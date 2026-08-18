@@ -1,0 +1,440 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+public enum VolcanoState
+{
+    Growth,
+    Eruptive,
+    Dormant
+}
+
+public class VolcanoInstance
+{
+    public string id;
+    public float longitudeDegrees;
+    public float latitudeDegrees;
+
+    // Radius and Peak Height targets
+    public float targetRadiusDegrees;
+    public float currentRadiusDegrees;
+    public float targetPeakHeight;
+    public float currentPeakHeight;
+
+    // Growth rates
+    public float growthSpeed = 0.05f; // progress per simulation unit
+
+    // Lifecycle state
+    public VolcanoState state = VolcanoState.Growth;
+    public float stateTimer = 0f;
+    public float currentPhaseDuration = 5f;
+
+    // Dormancy properties
+    public bool isPermanentlyDormant = false;
+
+    // Gas emission rates per simulation step when erupting
+    public float co2EmissionRate;
+    public float waterVaporEmissionRate;
+    public float otherGasesEmissionRate;
+
+    // Attached continental piece for tectonic drift
+    public CubeSphereTerrain.ContinentalPiece parentPiece;
+    public float offsetLonFromParent;
+    public float offsetLatFromParent;
+
+    // Associated Visual Particle System
+    public GameObject particleSystemObject;
+    public ParticleSystem particleSystemRef;
+}
+
+public class VolcanoManager : MonoBehaviour
+{
+    public static VolcanoManager Instance { get; private set; }
+
+    [Header("References")]
+    [SerializeField] private CubeSphereTerrain terrain;
+
+    [Header("Volcanic Epoch Settings")]
+    [SerializeField] private int minEpochVolcanoes = 6;
+    [SerializeField] private int maxEpochVolcanoes = 12;
+
+    [Header("Supercontinent Benchmark Reference")]
+    // Average radius of supercontinent in degrees (~45 degrees => ~90 degrees diameter)
+    [SerializeField] private float supercontinentRadiusDegrees = 45f;
+
+    private List<VolcanoInstance> volcanoes = new List<VolcanoInstance>();
+    private bool volcanicEpochTriggered = false;
+
+    public IReadOnlyList<VolcanoInstance> Volcanoes => volcanoes;
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        Instance = this;
+    }
+
+    private void Start()
+    {
+        if (terrain == null)
+        {
+            terrain = FindAnyObjectByType<CubeSphereTerrain>();
+        }
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnEpochChanged += HandleEpochChanged;
+            GameManager.Instance.OnSimulationStep += HandleSimulationStep;
+
+            // Check if starting directly in VolcanicAge
+            if (GameManager.Instance.CurrentEpoch == PlanetEpoch.VolcanicAge)
+            {
+                TriggerVolcanicEpoch();
+            }
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.OnEpochChanged -= HandleEpochChanged;
+            GameManager.Instance.OnSimulationStep -= HandleSimulationStep;
+        }
+    }
+
+    private void HandleEpochChanged(PlanetEpoch newEpoch)
+    {
+        if (newEpoch == PlanetEpoch.VolcanicAge && !volcanicEpochTriggered)
+        {
+            TriggerVolcanicEpoch();
+        }
+    }
+
+    public void TriggerVolcanicEpoch()
+    {
+        if (volcanicEpochTriggered) return;
+        volcanicEpochTriggered = true;
+
+        int count = UnityEngine.Random.Range(minEpochVolcanoes, maxEpochVolcanoes + 1);
+        Debug.Log($"[VolcanoManager] Volcanic Age epoch started! Spawning {count} volcanoes across the planet.");
+
+        for (int i = 0; i < count; i++)
+        {
+            SpawnRandomVolcano();
+        }
+    }
+
+    /// <summary>
+    /// Calculates target radius based on supercontinent size (1/100 to 1/10 ratio).
+    /// Smallest and largest combined make up 10% of volcanoes (5% smallest, 5% largest, 90% medium).
+    /// </summary>
+    public float GenerateVolcanoRadius()
+    {
+        // 1/100 of supercontinent radius to 1/10 of supercontinent radius
+        float minRadius = supercontinentRadiusDegrees * 0.01f; // ~0.45 deg radius
+        float maxRadius = supercontinentRadiusDegrees * 0.10f; // ~4.5 deg radius
+
+        float roll = UnityEngine.Random.value;
+        float radius;
+
+        if (roll < 0.05f)
+        {
+            // 5% Smallest volcanoes (1/100 to 1/60 of supercontinent)
+            radius = UnityEngine.Random.Range(minRadius, minRadius * 1.6f);
+        }
+        else if (roll > 0.95f)
+        {
+            // 5% Largest volcanoes (1/12 to 1/10 of supercontinent)
+            radius = UnityEngine.Random.Range(maxRadius * 0.8f, maxRadius);
+        }
+        else
+        {
+            // 90% Standard medium volcanoes (1/50 to 1/15 of supercontinent)
+            radius = UnityEngine.Random.Range(minRadius * 2.0f, maxRadius * 0.7f);
+        }
+
+        return radius;
+    }
+
+    /// <summary>
+    /// Spawns a new volcano at random spherical coordinates or custom coordinates.
+    /// </summary>
+    public VolcanoInstance SpawnRandomVolcano()
+    {
+        float lon = UnityEngine.Random.Range(0f, 360f);
+        float lat = UnityEngine.Random.Range(-65f, 65f);
+        return SpawnVolcano(lon, lat);
+    }
+
+    public VolcanoInstance SpawnVolcano(float lonDeg, float latDeg)
+    {
+        if (terrain == null)
+        {
+            terrain = FindAnyObjectByType<CubeSphereTerrain>();
+        }
+
+        float targetRadius = GenerateVolcanoRadius();
+        // Peak height scales with volcano radius
+        float targetHeight = UnityEngine.Random.Range(0.3f, 0.8f) * (targetRadius / (supercontinentRadiusDegrees * 0.1f));
+        targetHeight = Mathf.Clamp(targetHeight, 0.15f, 0.9f);
+
+        var parentPiece = terrain != null ? terrain.FindParentPiece(lonDeg, latDeg) : null;
+
+        VolcanoInstance volcano = new VolcanoInstance
+        {
+            id = Guid.NewGuid().ToString().Substring(0, 8),
+            longitudeDegrees = lonDeg,
+            latitudeDegrees = latDeg,
+            targetRadiusDegrees = targetRadius,
+            currentRadiusDegrees = targetRadius * 0.1f, // starts small
+            targetPeakHeight = targetHeight,
+            currentPeakHeight = targetHeight * 0.1f,
+            growthSpeed = UnityEngine.Random.Range(0.01f, 0.03f),
+            state = VolcanoState.Growth,
+            stateTimer = 0f,
+            currentPhaseDuration = UnityEngine.Random.Range(100f, 300f), // simulation units
+
+            // Atmospheric emission rates scale with volcano size
+            co2EmissionRate = UnityEngine.Random.Range(0.0001f, 0.0005f) * (targetRadius / 2f),
+            waterVaporEmissionRate = UnityEngine.Random.Range(0.0002f, 0.0008f) * (targetRadius / 2f),
+            otherGasesEmissionRate = UnityEngine.Random.Range(0.0001f, 0.0003f) * (targetRadius / 2f),
+
+            parentPiece = parentPiece,
+            offsetLonFromParent = parentPiece != null ? lonDeg - parentPiece.currentLongitude : 0f,
+            offsetLatFromParent = parentPiece != null ? latDeg - parentPiece.currentLatitude : 0f
+        };
+
+        volcanoes.Add(volcano);
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.LogEvent("Volcano Created", $"Volcano [{volcano.id}] at ({lonDeg:F1} deg E, {latDeg:F1} deg N) with radius {targetRadius:F2} deg.");
+        }
+
+        RebuildTerrainVolcanoes();
+        return volcano;
+    }
+
+    private void HandleSimulationStep()
+    {
+        if (GameManager.Instance == null) return;
+        float simDt = Time.deltaTime * 10f; // estimated simulation step delta
+
+        UpdateVolcanoesSimulation(simDt);
+    }
+
+    public void UpdateVolcanoesSimulation(float simDt)
+    {
+        bool terrainNeedsRebuild = false;
+
+        for (int i = volcanoes.Count - 1; i >= 0; i--)
+        {
+            VolcanoInstance vol = volcanoes[i];
+            vol.stateTimer += simDt;
+
+            // 1. Tectonic Drift Update
+            if (vol.parentPiece != null)
+            {
+                vol.longitudeDegrees = Mathf.Repeat(vol.parentPiece.currentLongitude + vol.offsetLonFromParent, 360f);
+                vol.latitudeDegrees = Mathf.Clamp(vol.parentPiece.currentLatitude + vol.offsetLatFromParent, -85f, 85f);
+            }
+            else if (terrain != null)
+            {
+                vol.parentPiece = terrain.FindParentPiece(vol.longitudeDegrees, vol.latitudeDegrees);
+                if (vol.parentPiece != null)
+                {
+                    vol.offsetLonFromParent = vol.longitudeDegrees - vol.parentPiece.currentLongitude;
+                    vol.offsetLatFromParent = vol.latitudeDegrees - vol.parentPiece.currentLatitude;
+                }
+            }
+
+            // 2. State Machine Logic
+            switch (vol.state)
+            {
+                case VolcanoState.Growth:
+                    // Grow radius and peak height
+                    vol.currentRadiusDegrees = Mathf.MoveTowards(vol.currentRadiusDegrees, vol.targetRadiusDegrees, vol.growthSpeed * simDt);
+                    vol.currentPeakHeight = Mathf.MoveTowards(vol.currentPeakHeight, vol.targetPeakHeight, vol.growthSpeed * 0.5f * simDt);
+                    terrainNeedsRebuild = true;
+
+                    // Transition to Eruptive once grown or after timer
+                    if (Mathf.Approximately(vol.currentRadiusDegrees, vol.targetRadiusDegrees) || vol.stateTimer >= vol.currentPhaseDuration)
+                    {
+                        TransitionToState(vol, VolcanoState.Eruptive);
+                    }
+                    break;
+
+                case VolcanoState.Eruptive:
+                    // Emit gases into atmosphere
+                    if (GameManager.Instance != null)
+                    {
+                        GameManager.Instance.AddVolcanicGases(
+                            vol.co2EmissionRate * simDt,
+                            vol.waterVaporEmissionRate * simDt,
+                            vol.otherGasesEmissionRate * simDt
+                        );
+                    }
+
+                    // Transition to Dormant after eruption phase
+                    if (vol.stateTimer >= vol.currentPhaseDuration)
+                    {
+                        TransitionToState(vol, VolcanoState.Dormant);
+                    }
+                    break;
+
+                case VolcanoState.Dormant:
+                    // Check if temporary or permanent dormancy
+                    if (!vol.isPermanentlyDormant && vol.stateTimer >= vol.currentPhaseDuration)
+                    {
+                        // 60% chance to re-erupt, 40% chance to become permanently dormant
+                        if (UnityEngine.Random.value < 0.6f)
+                        {
+                            TransitionToState(vol, VolcanoState.Eruptive);
+                        }
+                        else
+                        {
+                            vol.isPermanentlyDormant = true;
+                            Debug.Log($"[VolcanoManager] Volcano [{vol.id}] is now permanently dormant.");
+                        }
+                    }
+                    break;
+            }
+
+            // Update particle system position & status
+            UpdateVolcanoVisuals(vol);
+        }
+
+        if (terrainNeedsRebuild && terrain != null)
+        {
+            RebuildTerrainVolcanoes();
+        }
+    }
+
+    private void TransitionToState(VolcanoInstance vol, VolcanoState newState)
+    {
+        vol.state = newState;
+        vol.stateTimer = 0f;
+
+        switch (newState)
+        {
+            case VolcanoState.Eruptive:
+                vol.currentPhaseDuration = UnityEngine.Random.Range(150f, 400f);
+                if (vol.particleSystemRef != null)
+                {
+                    vol.particleSystemRef.Play();
+                }
+                Debug.Log($"[VolcanoManager] Volcano [{vol.id}] entering ERUPTIVE phase!");
+                break;
+
+            case VolcanoState.Dormant:
+                vol.currentPhaseDuration = UnityEngine.Random.Range(200f, 600f);
+                if (vol.particleSystemRef != null)
+                {
+                    vol.particleSystemRef.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                }
+                Debug.Log($"[VolcanoManager] Volcano [{vol.id}] entering DORMANT phase.");
+                break;
+        }
+    }
+
+    private void UpdateVolcanoVisuals(VolcanoInstance vol)
+    {
+        if (terrain == null) return;
+
+        if (vol.particleSystemObject == null && vol.state == VolcanoState.Eruptive)
+        {
+            CreateVolcanoParticleSystem(vol);
+        }
+
+        if (vol.particleSystemObject != null)
+        {
+            // Position on surface
+            Vector3 localDir = MeteorEventController.DegreesToLocalDirection(vol.longitudeDegrees, vol.latitudeDegrees);
+            float h = terrain.GetHeightAtDegrees(vol.longitudeDegrees, vol.latitudeDegrees);
+            Vector3 localPos = localDir * (terrain.BaseRadius + h * terrain.HeightScale);
+            Vector3 worldPos = terrain.transform.TransformPoint(localPos);
+            Vector3 worldNormal = terrain.transform.TransformDirection(localDir).normalized;
+
+            vol.particleSystemObject.transform.position = worldPos;
+            vol.particleSystemObject.transform.rotation = Quaternion.LookRotation(worldNormal);
+        }
+    }
+
+    private void CreateVolcanoParticleSystem(VolcanoInstance vol)
+    {
+        GameObject pObj = new GameObject($"VolcanoEruption_{vol.id}");
+        ParticleSystem ps = pObj.AddComponent<ParticleSystem>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+        float scale = vol.currentRadiusDegrees / (supercontinentRadiusDegrees * 0.05f); // normalized scale factor
+
+        var main = ps.main;
+        main.duration = 5f;
+        main.loop = true;
+        main.startLifetime = new ParticleSystem.MinMaxCurve(1.5f * scale, 3.5f * scale);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(3f * scale, 8f * scale);
+        main.startSize = new ParticleSystem.MinMaxCurve(1f * scale, 2.5f * scale);
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+
+        var emission = ps.emission;
+        emission.rateOverTime = 40f * scale;
+
+        var shape = ps.shape;
+        shape.shapeType = ParticleSystemShapeType.Cone;
+        shape.angle = 25f;
+        shape.radius = 0.5f * scale;
+
+        var colorOverLifetime = ps.colorOverLifetime;
+        colorOverLifetime.enabled = true;
+        Gradient grad = new Gradient();
+        grad.SetKeys(
+            new GradientColorKey[] {
+                new GradientColorKey(new Color(1f, 0.4f, 0.05f), 0f),   // Bright lava fire
+                new GradientColorKey(new Color(0.2f, 0.2f, 0.2f), 0.4f), // Dark ash smoke
+                new GradientColorKey(new Color(0.1f, 0.1f, 0.1f), 1f)
+            },
+            new GradientAlphaKey[] {
+                new GradientAlphaKey(0.9f, 0f),
+                new GradientAlphaKey(0.6f, 0.5f),
+                new GradientAlphaKey(0f, 1f)
+            }
+        );
+        colorOverLifetime.color = grad;
+
+        var texture = Resources.Load<Texture2D>("Textures/particle_spark");
+        if (texture == null)
+        {
+            texture = Resources.Load<Texture2D>("Textures/particle_spark_old");
+        }
+        var renderer = ps.GetComponent<ParticleSystemRenderer>();
+        Shader particleShader = Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Mobile/Particles/Additive") ?? Shader.Find("Sprites/Default");
+        renderer.material = new Material(particleShader);
+        if (texture != null)
+        {
+            renderer.material.mainTexture = texture;
+        }
+
+        vol.particleSystemObject = pObj;
+        vol.particleSystemRef = ps;
+
+        if (vol.state == VolcanoState.Eruptive)
+        {
+            ps.Play();
+        }
+    }
+
+    public void RebuildTerrainVolcanoes()
+    {
+        if (terrain == null) return;
+
+        // Sync with CubeSphereTerrain
+        foreach (var vol in volcanoes)
+        {
+            terrain.AddVolcanoDegrees(vol.longitudeDegrees, vol.latitudeDegrees, vol.currentRadiusDegrees, vol.currentPeakHeight);
+        }
+    }
+}
