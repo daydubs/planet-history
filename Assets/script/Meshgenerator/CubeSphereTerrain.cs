@@ -314,7 +314,7 @@ public class CubeSphereTerrain : MonoBehaviour
     }
 
     /// <summary>Synchronise la liste complète des volcans actifs sans ajouter de doublons.</summary>
-    public void SyncVolcanoes(System.Collections.Generic.IEnumerable<VolcanoManager.VolcanoInstance> volcanoes)
+    public void SyncVolcanoes(System.Collections.Generic.IEnumerable<VolcanoInstance> volcanoes)
     {
         // Conserve uniquement les volcans temporaires (provenant des météores)
         activeVolcanoes.RemoveAll(v => !v.isTemporary);
