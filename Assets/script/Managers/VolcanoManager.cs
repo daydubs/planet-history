@@ -64,6 +64,7 @@ public class VolcanoManager : MonoBehaviour
 
     private List<VolcanoInstance> volcanoes = new List<VolcanoInstance>();
     private bool volcanicEpochTriggered = false;
+    private Material sharedVolcanoParticleMaterial;
 
     public IReadOnlyList<VolcanoInstance> Volcanoes => volcanoes;
 
@@ -375,18 +376,18 @@ public class VolcanoManager : MonoBehaviour
         var main = ps.main;
         main.duration = 5f;
         main.loop = true;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(1.5f * scale, 3.5f * scale);
-        main.startSpeed = new ParticleSystem.MinMaxCurve(3f * scale, 8f * scale);
-        main.startSize = new ParticleSystem.MinMaxCurve(1f * scale, 2.5f * scale);
+        main.startLifetime = new ParticleSystem.MinMaxCurve(0.8f * scale, 2.0f * scale);
+        main.startSpeed = new ParticleSystem.MinMaxCurve(1.2f * scale, 3.5f * scale);
+        main.startSize = new ParticleSystem.MinMaxCurve(0.18f * scale, 0.45f * scale);
         main.simulationSpace = ParticleSystemSimulationSpace.World;
 
         var emission = ps.emission;
-        emission.rateOverTime = 40f * scale;
+        emission.rateOverTime = 25f * scale;
 
         var shape = ps.shape;
         shape.shapeType = ParticleSystemShapeType.Cone;
-        shape.angle = 25f;
-        shape.radius = 0.5f * scale;
+        shape.angle = 18f;
+        shape.radius = 0.15f * scale;
 
         var colorOverLifetime = ps.colorOverLifetime;
         colorOverLifetime.enabled = true;
@@ -405,17 +406,25 @@ public class VolcanoManager : MonoBehaviour
         );
         colorOverLifetime.color = grad;
 
-        var texture = Resources.Load<Texture2D>("Textures/particle_spark");
-        if (texture == null)
+        if (sharedVolcanoParticleMaterial == null)
         {
-            texture = Resources.Load<Texture2D>("Textures/particle_spark_old");
+            var texture = Resources.Load<Texture2D>("Textures/particle_spark");
+            if (texture == null)
+            {
+                texture = Resources.Load<Texture2D>("Textures/particle_spark_old");
+            }
+            Shader particleShader = Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Mobile/Particles/Additive") ?? Shader.Find("Sprites/Default");
+            sharedVolcanoParticleMaterial = new Material(particleShader);
+            if (texture != null)
+            {
+                sharedVolcanoParticleMaterial.mainTexture = texture;
+            }
         }
+
         var renderer = ps.GetComponent<ParticleSystemRenderer>();
-        Shader particleShader = Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Mobile/Particles/Additive") ?? Shader.Find("Sprites/Default");
-        renderer.material = new Material(particleShader);
-        if (texture != null)
+        if (sharedVolcanoParticleMaterial != null)
         {
-            renderer.material.mainTexture = texture;
+            renderer.sharedMaterial = sharedVolcanoParticleMaterial;
         }
 
         vol.particleSystemObject = pObj;
@@ -432,9 +441,6 @@ public class VolcanoManager : MonoBehaviour
         if (terrain == null) return;
 
         // Sync with CubeSphereTerrain
-        foreach (var vol in volcanoes)
-        {
-            terrain.AddVolcanoDegrees(vol.longitudeDegrees, vol.latitudeDegrees, vol.currentRadiusDegrees, vol.currentPeakHeight);
-        }
+        terrain.SyncVolcanoes(volcanoes);
     }
 }

@@ -451,7 +451,6 @@ public class GameManager : MonoBehaviour
         co2Pressure += co2Amount;
         waterVaporPressure += waterVaporAmount;
         otherGasesPressure += otherGasesAmount;
-        LogEvent("Volcanic Eruption Emission", $"Added CO2: +{co2Amount:F3} atm, H2O: +{waterVaporAmount:F3} atm, Other: +{otherGasesAmount:F3} atm.");
     }
 
     public void TriggerTsunami(float amount)
