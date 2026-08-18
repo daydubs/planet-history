@@ -313,6 +313,37 @@ public class CubeSphereTerrain : MonoBehaviour
             rate);
     }
 
+    /// <summary>Synchronise la liste complète des volcans actifs sans ajouter de doublons.</summary>
+    public void SyncVolcanoes(System.Collections.Generic.IEnumerable<VolcanoManager.VolcanoInstance> volcanoes)
+    {
+        // Conserve uniquement les volcans temporaires (provenant des météores)
+        activeVolcanoes.RemoveAll(v => !v.isTemporary);
+
+        if (volcanoes != null)
+        {
+            foreach (var vol in volcanoes)
+            {
+                activeVolcanoes.Add(new VolcanoStamp
+                {
+                    longitudeDegrees = vol.longitudeDegrees,
+                    latitudeDegrees = vol.latitudeDegrees,
+                    radiusDegrees = vol.currentRadiusDegrees,
+                    peakHeight = vol.currentPeakHeight,
+                    rate = 1f,
+                    parentPiece = vol.parentPiece
+                });
+            }
+        }
+
+        RequestRebuild();
+    }
+
+    /// <summary>Signale qu'une reconstruction du heightmap est nécessaire (soumise au rebuildInterval).</summary>
+    public void RequestRebuild()
+    {
+        pendingRebuild = true;
+    }
+
     /// <summary>Ajoute un volcan temporaire en coordonnées géographiques (degrés).</summary>
     public void AddTemporaryVolcanoDegrees(float longitudeDegrees, float latitudeDegrees, float radiusDegrees, float peakHeight, float fadeSpeedVal = 0.015f)
     {
