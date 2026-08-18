@@ -52,6 +52,8 @@ public class CubeSphereTerrain : MonoBehaviour
 
         // Tectonic drift attachment
         public ContinentalPiece parentPiece;
+        public float offsetLonFromParent;
+        public float offsetLatFromParent;
     }
 
     [System.Serializable]
@@ -69,6 +71,8 @@ public class CubeSphereTerrain : MonoBehaviour
 
         // Tectonic drift attachment
         public ContinentalPiece parentPiece;
+        public float offsetLonFromParent;
+        public float offsetLatFromParent;
     }
 
     private static readonly int HeightTexId = Shader.PropertyToID("_HeightTex");
@@ -282,19 +286,56 @@ public class CubeSphereTerrain : MonoBehaviour
     public ContinentalPiece FindParentPiece(float longitudeDegrees, float latitudeDegrees)
     {
         if (continentalPieces == null) return null;
+
+        ContinentalPiece closestPiece = null;
+        float minDistance = float.MaxValue;
+
         foreach (var piece in continentalPieces)
         {
-            if (AngularDistanceDegrees(piece.currentLongitude, piece.currentLatitude, longitudeDegrees, latitudeDegrees) <= piece.radius)
+            float dist = AngularDistanceDegrees(piece.currentLongitude, piece.currentLatitude, longitudeDegrees, latitudeDegrees);
+            if (dist <= piece.radius * 1.15f)
             {
-                return piece;
+                if (dist < minDistance)
+                {
+                    minDistance = dist;
+                    closestPiece = piece;
+                }
             }
         }
-        return null;
+
+        if (closestPiece != null) return closestPiece;
+
+        // Fallback: check if height at degrees indicates continental crust (> 0.05f)
+        float h = GetHeightAtDegrees(longitudeDegrees, latitudeDegrees);
+        if (h > 0.05f)
+        {
+            foreach (var piece in continentalPieces)
+            {
+                float dist = AngularDistanceDegrees(piece.currentLongitude, piece.currentLatitude, longitudeDegrees, latitudeDegrees);
+                if (dist < minDistance)
+                {
+                    minDistance = dist;
+                    closestPiece = piece;
+                }
+            }
+        }
+
+        return closestPiece;
+    }
+
+    /// <summary>Calcule l'écart en longitude empaqueté dans [-180, 180] degrés.</summary>
+    public static float DeltaLongitudeDegrees(float lonA, float lonB)
+    {
+        float dLon = lonA - lonB;
+        while (dLon > 180f) dLon -= 360f;
+        while (dLon < -180f) dLon += 360f;
+        return dLon;
     }
 
     /// <summary>Ajoute un volcan en coordonnées géographiques (degrés).</summary>
     public void AddVolcanoDegrees(float longitudeDegrees, float latitudeDegrees, float radiusDegrees, float peakHeight, float rate = 1f)
     {
+        var parent = FindParentPiece(longitudeDegrees, latitudeDegrees);
         activeVolcanoes.Add(new VolcanoStamp
         {
             longitudeDegrees = longitudeDegrees,
@@ -302,7 +343,9 @@ public class CubeSphereTerrain : MonoBehaviour
             radiusDegrees = radiusDegrees,
             peakHeight = peakHeight,
             rate = rate,
-            parentPiece = FindParentPiece(longitudeDegrees, latitudeDegrees)
+            parentPiece = parent,
+            offsetLonFromParent = parent != null ? DeltaLongitudeDegrees(longitudeDegrees, parent.currentLongitude) : 0f,
+            offsetLatFromParent = parent != null ? latitudeDegrees - parent.currentLatitude : 0f
         });
 
         field?.AddVolcano(
@@ -330,7 +373,9 @@ public class CubeSphereTerrain : MonoBehaviour
                     radiusDegrees = vol.currentRadiusDegrees,
                     peakHeight = vol.currentPeakHeight,
                     rate = 1f,
-                    parentPiece = vol.parentPiece
+                    parentPiece = vol.parentPiece,
+                    offsetLonFromParent = vol.offsetLonFromParent,
+                    offsetLatFromParent = vol.offsetLatFromParent
                 });
             }
         }
@@ -347,6 +392,7 @@ public class CubeSphereTerrain : MonoBehaviour
     /// <summary>Ajoute un volcan temporaire en coordonnées géographiques (degrés).</summary>
     public void AddTemporaryVolcanoDegrees(float longitudeDegrees, float latitudeDegrees, float radiusDegrees, float peakHeight, float fadeSpeedVal = 0.015f)
     {
+        var parent = FindParentPiece(longitudeDegrees, latitudeDegrees);
         activeVolcanoes.Add(new VolcanoStamp
         {
             longitudeDegrees = longitudeDegrees,
@@ -358,7 +404,9 @@ public class CubeSphereTerrain : MonoBehaviour
             maxPeakHeight = peakHeight,
             currentFade = 1f,
             fadeSpeed = fadeSpeedVal,
-            parentPiece = FindParentPiece(longitudeDegrees, latitudeDegrees)
+            parentPiece = parent,
+            offsetLonFromParent = parent != null ? DeltaLongitudeDegrees(longitudeDegrees, parent.currentLongitude) : 0f,
+            offsetLatFromParent = parent != null ? latitudeDegrees - parent.currentLatitude : 0f
         });
 
         field?.AddVolcano(
@@ -372,6 +420,7 @@ public class CubeSphereTerrain : MonoBehaviour
     /// <summary>Ajoute un cratère d'impact en coordonnées géographiques (degrés).</summary>
     public void AddCraterDegrees(float longitudeDegrees, float latitudeDegrees, float radiusDegrees, float depth, float rimHeight, float targetFadeVal = 0f, float fadeSpeedVal = 0.02f)
     {
+        var parent = FindParentPiece(longitudeDegrees, latitudeDegrees);
         activeCraters.Add(new CraterStamp
         {
             name = $"Crater at ({longitudeDegrees:F1}, {latitudeDegrees:F1})",
@@ -383,7 +432,9 @@ public class CubeSphereTerrain : MonoBehaviour
             currentFade = 1f,
             targetFade = targetFadeVal,
             fadeSpeed = fadeSpeedVal,
-            parentPiece = FindParentPiece(longitudeDegrees, latitudeDegrees)
+            parentPiece = parent,
+            offsetLonFromParent = parent != null ? DeltaLongitudeDegrees(longitudeDegrees, parent.currentLongitude) : 0f,
+            offsetLatFromParent = parent != null ? latitudeDegrees - parent.currentLatitude : 0f
         });
 
         field?.AddCrater(
@@ -997,7 +1048,27 @@ public class CubeSphereTerrain : MonoBehaviour
             {
                 if (crater.parentPiece == null)
                 {
-                    crater.parentPiece = FindParentPiece(crater.longitudeDegrees, crater.latitudeDegrees);
+                    var hitPiece = FindParentPiece(crater.longitudeDegrees, crater.latitudeDegrees);
+                    if (hitPiece != null)
+                    {
+                        // Amalgamation: Attach crater to colliding continent and deformation
+                        crater.parentPiece = hitPiece;
+                        crater.offsetLonFromParent = DeltaLongitudeDegrees(crater.longitudeDegrees, hitPiece.currentLongitude);
+                        crater.offsetLatFromParent = crater.latitudeDegrees - hitPiece.currentLatitude;
+
+                        // Earthquake & deformation: create local uplift ridge at contact point
+                        field?.AddContinent(
+                            crater.longitudeDegrees * Mathf.Deg2Rad,
+                            crater.latitudeDegrees * Mathf.Deg2Rad,
+                            Mathf.Max(3f, crater.radiusDegrees * 0.8f) * Mathf.Deg2Rad,
+                            0.15f,
+                            1.0f);
+
+                        if (GameManager.Instance != null)
+                        {
+                            GameManager.Instance.LogEvent("Tectonic Collision", $"Crater amalgamated with continental piece [{hitPiece.name}]. Earthquake deformation generated.");
+                        }
+                    }
                 }
             }
 
@@ -1005,7 +1076,27 @@ public class CubeSphereTerrain : MonoBehaviour
             {
                 if (vol.parentPiece == null)
                 {
-                    vol.parentPiece = FindParentPiece(vol.longitudeDegrees, vol.latitudeDegrees);
+                    var hitPiece = FindParentPiece(vol.longitudeDegrees, vol.latitudeDegrees);
+                    if (hitPiece != null)
+                    {
+                        // Amalgamation: Attach volcano to colliding continent and deformation
+                        vol.parentPiece = hitPiece;
+                        vol.offsetLonFromParent = DeltaLongitudeDegrees(vol.longitudeDegrees, hitPiece.currentLongitude);
+                        vol.offsetLatFromParent = vol.latitudeDegrees - hitPiece.currentLatitude;
+
+                        // Earthquake & deformation: create local uplift ridge at contact point
+                        field?.AddContinent(
+                            vol.longitudeDegrees * Mathf.Deg2Rad,
+                            vol.latitudeDegrees * Mathf.Deg2Rad,
+                            Mathf.Max(4f, vol.radiusDegrees * 0.9f) * Mathf.Deg2Rad,
+                            0.20f,
+                            1.0f);
+
+                        if (GameManager.Instance != null)
+                        {
+                            GameManager.Instance.LogEvent("Tectonic Collision", $"Volcano amalgamated with continental piece [{hitPiece.name}]. Earthquake deformation generated.");
+                        }
+                    }
                 }
             }
         }
