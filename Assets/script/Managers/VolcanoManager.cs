@@ -163,12 +163,24 @@ public class VolcanoManager : MonoBehaviour
 
     /// <summary>
     /// Spawns a new volcano at random spherical coordinates or custom coordinates.
+    /// Spawns directly on solid continental crust so volcanoes are clipped to tectonic plates.
     /// </summary>
     public VolcanoInstance SpawnRandomVolcano()
     {
-        float lon = UnityEngine.Random.Range(0f, 360f);
-        float lat = UnityEngine.Random.Range(-65f, 65f);
-        return SpawnVolcano(lon, lat);
+        if (terrain != null && terrain.ContinentalPieces != null && terrain.ContinentalPieces.Length > 0)
+        {
+            var piece = terrain.ContinentalPieces[UnityEngine.Random.Range(0, terrain.ContinentalPieces.Length)];
+            float angle = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
+            float r = UnityEngine.Random.Range(0f, piece.radius * 0.75f);
+            float cosLat = Mathf.Max(Mathf.Cos(piece.currentLatitude * Mathf.Deg2Rad), 0.2f);
+            float lon = Mathf.Repeat(piece.currentLongitude + (r * Mathf.Cos(angle)) / cosLat, 360f);
+            float lat = Mathf.Clamp(piece.currentLatitude + r * Mathf.Sin(angle), -65f, 65f);
+            return SpawnVolcano(lon, lat);
+        }
+
+        float fallbackLon = UnityEngine.Random.Range(0f, 360f);
+        float fallbackLat = UnityEngine.Random.Range(-65f, 65f);
+        return SpawnVolcano(fallbackLon, fallbackLat);
     }
 
     public VolcanoInstance SpawnVolcano(float lonDeg, float latDeg)
