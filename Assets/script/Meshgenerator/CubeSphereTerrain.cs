@@ -935,71 +935,74 @@ public class CubeSphereTerrain : MonoBehaviour
                         }
 
                         float dist = AngularDistanceDegrees(pieceA.currentLongitude, pieceA.currentLatitude, pieceB.currentLongitude, pieceB.currentLatitude);
-                        // Collision threshold: when distance between centers drops below ~65% of sum of radii
-                        float collisionDistance = (pieceA.radius + pieceB.radius) * 0.65f;
+                        // Collision threshold at boundary contact (85% of radius sum to account for pie sector shapes)
+                        float collisionDistance = (pieceA.radius + pieceB.radius) * 0.85f;
 
                         if (dist < collisionDistance)
                         {
-                            // Check if pieces are moving TOWARDS each other (converging)
                             Vector3 posA = LatLonToVector3(pieceA.currentLongitude, pieceA.currentLatitude);
                             Vector3 posB = LatLonToVector3(pieceB.currentLongitude, pieceB.currentLatitude);
 
-                            Vector3 nextPosA = LatLonToVector3(
-                                pieceA.currentLongitude + pieceA.driftSpeedLon * simDt,
-                                pieceA.currentLatitude + pieceA.driftSpeedLat * simDt);
-                            Vector3 nextPosB = LatLonToVector3(
-                                pieceB.currentLongitude + pieceB.driftSpeedLon * simDt,
-                                pieceB.currentLatitude + pieceB.driftSpeedLat * simDt);
+                            Vector3 dirAtoB = (posB - posA * Vector3.Dot(posA, posB)).normalized;
+                            Vector3 dirBtoA = (posA - posB * Vector3.Dot(posA, posB)).normalized;
 
-                            float dotCurr = Vector3.Dot(posA, posB);
-                            float dotNext = Vector3.Dot(nextPosA, nextPosB);
+                            float latRadA = pieceA.currentLatitude * Mathf.Deg2Rad;
+                            float lonRadA = pieceA.currentLongitude * Mathf.Deg2Rad;
+                            float cosLatA = Mathf.Max(Mathf.Cos(latRadA), 0.1f);
 
-                            // If dotNext > dotCurr, angular distance is decreasing -> pieces are converging!
-                            if (dotNext > dotCurr - 1e-9f)
+                            float latRadB = pieceB.currentLatitude * Mathf.Deg2Rad;
+                            float lonRadB = pieceB.currentLongitude * Mathf.Deg2Rad;
+                            float cosLatB = Mathf.Max(Mathf.Cos(latRadB), 0.1f);
+
+                            Vector3 eastA = new Vector3(-Mathf.Sin(lonRadA), 0f, Mathf.Cos(lonRadA));
+                            Vector3 northA = Vector3.Cross(eastA, posA).normalized;
+                            Vector3 velA = eastA * (pieceA.driftSpeedLon * Mathf.Deg2Rad * cosLatA) + northA * (pieceA.driftSpeedLat * Mathf.Deg2Rad);
+
+                            Vector3 eastB = new Vector3(-Mathf.Sin(lonRadB), 0f, Mathf.Cos(lonRadB));
+                            Vector3 northB = Vector3.Cross(eastB, posB).normalized;
+                            Vector3 velB = eastB * (pieceB.driftSpeedLon * Mathf.Deg2Rad * cosLatB) + northB * (pieceB.driftSpeedLat * Mathf.Deg2Rad);
+
+                            float vNormalA = Vector3.Dot(velA, dirAtoB);
+                            float vNormalB = Vector3.Dot(velB, dirBtoA);
+
+                            // Eliminate normal convergence velocity so plates touch without interpenetration/overlap
+                            if (vNormalA > 0f)
                             {
-                                // Tangential deflection / sliding along contact boundary
-                                float latRadA = pieceA.currentLatitude * Mathf.Deg2Rad;
-                                float lonRadA = pieceA.currentLongitude * Mathf.Deg2Rad;
-                                float cosLatA = Mathf.Max(Mathf.Cos(latRadA), 0.1f);
+                                Vector3 velA_deflected = velA - vNormalA * dirAtoB;
+                                pieceA.driftSpeedLon = Vector3.Dot(velA_deflected, eastA) / (Mathf.Deg2Rad * cosLatA);
+                                pieceA.driftSpeedLat = Vector3.Dot(velA_deflected, northA) / Mathf.Deg2Rad;
+                                float maxLatSpeedA = Mathf.Abs(pieceA.driftSpeedLon) * 0.25f + 1e-6f;
+                                pieceA.driftSpeedLat = Mathf.Clamp(pieceA.driftSpeedLat, -maxLatSpeedA, maxLatSpeedA);
+                            }
 
-                                float latRadB = pieceB.currentLatitude * Mathf.Deg2Rad;
-                                float lonRadB = pieceB.currentLongitude * Mathf.Deg2Rad;
-                                float cosLatB = Mathf.Max(Mathf.Cos(latRadB), 0.1f);
+                            if (vNormalB > 0f)
+                            {
+                                Vector3 velB_deflected = velB - vNormalB * dirBtoA;
+                                pieceB.driftSpeedLon = Vector3.Dot(velB_deflected, eastB) / (Mathf.Deg2Rad * cosLatB);
+                                pieceB.driftSpeedLat = Vector3.Dot(velB_deflected, northB) / Mathf.Deg2Rad;
+                                float maxLatSpeedB = Mathf.Abs(pieceB.driftSpeedLon) * 0.25f + 1e-6f;
+                                pieceB.driftSpeedLat = Mathf.Clamp(pieceB.driftSpeedLat, -maxLatSpeedB, maxLatSpeedB);
+                            }
 
-                                Vector3 dirAtoB = (posB - posA * Vector3.Dot(posA, posB)).normalized;
-                                Vector3 dirBtoA = (posA - posB * Vector3.Dot(posA, posB)).normalized;
+                            // Positional correction if plates are penetrating too close
+                            float minAllowedDist = collisionDistance * 0.95f;
+                            if (dist < minAllowedDist && dist > 0.01f)
+                            {
+                                float overlap = minAllowedDist - dist;
+                                // Push pieceA away along dirBtoA and pieceB along dirAtoB
+                                Vector3 sepA = dirBtoA * (overlap * 0.5f);
+                                Vector3 newPosA = (posA + sepA).normalized;
+                                float newLatA = Mathf.Asin(Mathf.Clamp(newPosA.y, -1f, 1f)) * Mathf.Rad2Deg;
+                                float newLonA = Mathf.Atan2(newPosA.z, newPosA.x) * Mathf.Rad2Deg;
+                                pieceA.currentLongitude = Mathf.Repeat(newLonA, 360f);
+                                pieceA.currentLatitude = Mathf.Clamp(newLatA, -50f, 50f);
 
-                                // Tangent basis vectors for A (east = dP/dLon, north = dP/dLat = east x pos)
-                                Vector3 eastA = new Vector3(-Mathf.Sin(lonRadA), 0f, Mathf.Cos(lonRadA));
-                                Vector3 northA = Vector3.Cross(eastA, posA).normalized;
-                                Vector3 velA = eastA * (pieceA.driftSpeedLon * Mathf.Deg2Rad * cosLatA) + northA * (pieceA.driftSpeedLat * Mathf.Deg2Rad);
-
-                                float vNormalA = Vector3.Dot(velA, dirAtoB);
-                                if (vNormalA > 0f)
-                                {
-                                    Vector3 velA_deflected = velA - vNormalA * dirAtoB;
-                                    pieceA.driftSpeedLon = Vector3.Dot(velA_deflected, eastA) / (Mathf.Deg2Rad * cosLatA);
-                                    pieceA.driftSpeedLat = Vector3.Dot(velA_deflected, northA) / Mathf.Deg2Rad;
-                                    // Limit North-South speed post-deflection to maintain weak derivation
-                                    float maxLatSpeedA = Mathf.Abs(pieceA.driftSpeedLon) * 0.25f + 1e-6f;
-                                    pieceA.driftSpeedLat = Mathf.Clamp(pieceA.driftSpeedLat, -maxLatSpeedA, maxLatSpeedA);
-                                }
-
-                                // Tangent basis vectors for B (east = dP/dLon, north = dP/dLat = east x pos)
-                                Vector3 eastB = new Vector3(-Mathf.Sin(lonRadB), 0f, Mathf.Cos(lonRadB));
-                                Vector3 northB = Vector3.Cross(eastB, posB).normalized;
-                                Vector3 velB = eastB * (pieceB.driftSpeedLon * Mathf.Deg2Rad * cosLatB) + northB * (pieceB.driftSpeedLat * Mathf.Deg2Rad);
-
-                                float vNormalB = Vector3.Dot(velB, dirBtoA);
-                                if (vNormalB > 0f)
-                                {
-                                    Vector3 velB_deflected = velB - vNormalB * dirBtoA;
-                                    pieceB.driftSpeedLon = Vector3.Dot(velB_deflected, eastB) / (Mathf.Deg2Rad * cosLatB);
-                                    pieceB.driftSpeedLat = Vector3.Dot(velB_deflected, northB) / Mathf.Deg2Rad;
-                                    // Limit North-South speed post-deflection to maintain weak derivation
-                                    float maxLatSpeedB = Mathf.Abs(pieceB.driftSpeedLon) * 0.25f + 1e-6f;
-                                    pieceB.driftSpeedLat = Mathf.Clamp(pieceB.driftSpeedLat, -maxLatSpeedB, maxLatSpeedB);
-                                }
+                                Vector3 sepB = dirAtoB * (overlap * 0.5f);
+                                Vector3 newPosB = (posB + sepB).normalized;
+                                float newLatB = Mathf.Asin(Mathf.Clamp(newPosB.y, -1f, 1f)) * Mathf.Rad2Deg;
+                                float newLonB = Mathf.Atan2(newPosB.z, newPosB.x) * Mathf.Rad2Deg;
+                                pieceB.currentLongitude = Mathf.Repeat(newLonB, 360f);
+                                pieceB.currentLatitude = Mathf.Clamp(newLatB, -50f, 50f);
                             }
                         }
                     }
@@ -1022,22 +1025,22 @@ public class CubeSphereTerrain : MonoBehaviour
                     piece.currentLatitude = Mathf.Clamp(piece.currentLatitude + deltaLat, -50f, 50f);
                     needsRebuild = true;
 
-                    // Update attached craters and volcanoes
+                    // Update attached craters and volcanoes to remain strictly locked to parent piece crust
                     foreach (var crater in activeCraters)
                     {
-                        if (crater.parentPiece == piece)
+                        if (crater.parentPiece != null)
                         {
-                            crater.longitudeDegrees = Mathf.Repeat(crater.longitudeDegrees + deltaLon, 360f);
-                            crater.latitudeDegrees = Mathf.Clamp(crater.latitudeDegrees + deltaLat, -85f, 85f);
+                            crater.longitudeDegrees = Mathf.Repeat(crater.parentPiece.currentLongitude + crater.offsetLonFromParent, 360f);
+                            crater.latitudeDegrees = Mathf.Clamp(crater.parentPiece.currentLatitude + crater.offsetLatFromParent, -85f, 85f);
                         }
                     }
 
                     foreach (var vol in activeVolcanoes)
                     {
-                        if (vol.parentPiece == piece)
+                        if (vol.parentPiece != null)
                         {
-                            vol.longitudeDegrees = Mathf.Repeat(vol.longitudeDegrees + deltaLon, 360f);
-                            vol.latitudeDegrees = Mathf.Clamp(vol.latitudeDegrees + deltaLat, -85f, 85f);
+                            vol.longitudeDegrees = Mathf.Repeat(vol.parentPiece.currentLongitude + vol.offsetLonFromParent, 360f);
+                            vol.latitudeDegrees = Mathf.Clamp(vol.parentPiece.currentLatitude + vol.offsetLatFromParent, -85f, 85f);
                         }
                     }
                 }
