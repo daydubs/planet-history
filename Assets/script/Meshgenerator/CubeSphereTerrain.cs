@@ -1057,7 +1057,7 @@ public class CubeSphereTerrain : MonoBehaviour
                         field?.AddContinent(
                             crater.longitudeDegrees * Mathf.Deg2Rad,
                             crater.latitudeDegrees * Mathf.Deg2Rad,
-                            Mathf.Max(3f, crater.radiusDegrees * 0.8f) * Mathf.Deg2Rad,
+                            Mathf.Max(0.5f, crater.radiusDegrees * 0.8f) * Mathf.Deg2Rad,
                             0.15f,
                             1.0f);
 
