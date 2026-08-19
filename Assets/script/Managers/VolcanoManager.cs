@@ -237,7 +237,7 @@ public class VolcanoManager : MonoBehaviour
             VolcanoInstance vol = volcanoes[i];
             vol.stateTimer += simDt;
 
-            // 1. Tectonic Drift Update
+            // 1. Tectonic Drift Update: maintain fixed offset on solid crust
             if (vol.parentPiece != null)
             {
                 vol.longitudeDegrees = Mathf.Repeat(vol.parentPiece.currentLongitude + vol.offsetLonFromParent, 360f);
@@ -245,11 +245,12 @@ public class VolcanoManager : MonoBehaviour
             }
             else if (terrain != null)
             {
-                vol.parentPiece = terrain.FindParentPiece(vol.longitudeDegrees, vol.latitudeDegrees);
-                if (vol.parentPiece != null)
+                var parent = terrain.FindParentPiece(vol.longitudeDegrees, vol.latitudeDegrees);
+                if (parent != null)
                 {
-                    vol.offsetLonFromParent = CubeSphereTerrain.DeltaLongitudeDegrees(vol.longitudeDegrees, vol.parentPiece.currentLongitude);
-                    vol.offsetLatFromParent = vol.latitudeDegrees - vol.parentPiece.currentLatitude;
+                    vol.parentPiece = parent;
+                    vol.offsetLonFromParent = CubeSphereTerrain.DeltaLongitudeDegrees(vol.longitudeDegrees, parent.currentLongitude);
+                    vol.offsetLatFromParent = vol.latitudeDegrees - parent.currentLatitude;
                 }
             }
 
