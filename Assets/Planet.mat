@@ -14,7 +14,7 @@ Material:
   m_ValidKeywords: []
   m_InvalidKeywords: []
   m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
+  m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
@@ -144,7 +144,7 @@ Material:
     - _Color: {r: 0.2666666, g: 0.3475444, b: 0.46274495, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _IceColor: {r: 0.92, g: 0.95, b: 1, a: 1}
-    - _LandColor: {r: 0.15999997, g: 0.34999996, b: 0.13999996, a: 1}
+    - _LandColor: {r: 0.3490566, g: 0.3490566, b: 0.3490566, a: 1}
     - _MountainColor: {r: 0.37999994, g: 0.32999998, b: 0.28999996, a: 1}
     - _OceanColor: {r: 0.02, g: 0.11999995, b: 0.31999996, a: 1}
     - _ShoreColor: {r: 0.72, g: 0.68, b: 0.45, a: 1}
