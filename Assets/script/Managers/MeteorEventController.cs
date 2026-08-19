@@ -143,7 +143,7 @@ public class MeteorEventController : MonoBehaviour
             case MeteorSizeTier.Small:
                 data.displayName = "Petit Météore";
                 data.scaleFactor = Random.Range(0.5f, 0.7f);
-                data.radiusDegrees = Random.Range(5.0f, 8.5f);
+                data.radiusDegrees = Random.Range(0.25f, 0.40f);
                 data.depth = Random.Range(0.08f, 0.15f);
                 data.rimHeight = Random.Range(0.04f, 0.08f);
                 data.gasRelease = Random.Range(2.5f, 5.5f);
@@ -153,7 +153,7 @@ public class MeteorEventController : MonoBehaviour
             case MeteorSizeTier.Medium:
                 data.displayName = "Météore Standard";
                 data.scaleFactor = Random.Range(0.9f, 1.15f);
-                data.radiusDegrees = Random.Range(11.0f, 16.0f);
+                data.radiusDegrees = Random.Range(0.45f, 0.70f);
                 data.depth = Random.Range(0.20f, 0.35f);
                 data.rimHeight = Random.Range(0.12f, 0.22f);
                 data.gasRelease = Random.Range(8.0f, 15.0f);
@@ -163,7 +163,7 @@ public class MeteorEventController : MonoBehaviour
             case MeteorSizeTier.Large:
                 data.displayName = "Grand Météore";
                 data.scaleFactor = Random.Range(1.6f, 2.1f);
-                data.radiusDegrees = Random.Range(20.0f, 27.0f);
+                data.radiusDegrees = Random.Range(0.75f, 1.10f);
                 data.depth = Random.Range(0.42f, 0.60f);
                 data.rimHeight = Random.Range(0.25f, 0.38f);
                 data.gasRelease = Random.Range(20.0f, 32.0f);
@@ -173,7 +173,7 @@ public class MeteorEventController : MonoBehaviour
             case MeteorSizeTier.Massive:
                 data.displayName = "Météore Cataclysmique";
                 data.scaleFactor = Random.Range(2.7f, 3.4f);
-                data.radiusDegrees = Random.Range(32.0f, 42.0f);
+                data.radiusDegrees = Random.Range(1.20f, 1.50f);
                 data.depth = Random.Range(0.70f, 0.95f);
                 data.rimHeight = Random.Range(0.45f, 0.65f);
                 data.gasRelease = Random.Range(45.0f, 75.0f);
@@ -428,10 +428,10 @@ public class MeteorEventController : MonoBehaviour
             for (int i = 0; i < numVolcanoes; i++)
             {
                 float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
-                float dist = Random.Range(2f, 5f) * sizeData.scaleFactor;
+                float dist = Random.Range(0.5f, 1.5f) * sizeData.scaleFactor;
                 float volLon = Mathf.Repeat(lon + dist * Mathf.Cos(angle), 360f);
                 float volLat = Mathf.Clamp(lat + dist * Mathf.Sin(angle), -85f, 85f);
-                float volRad = Random.Range(6f, 12f) * sizeData.scaleFactor;
+                float volRad = Random.Range(0.4f, 1.0f) * sizeData.scaleFactor;
                 float volHeight = Random.Range(0.35f, 0.65f) * sizeData.scaleFactor;
 
                 terrain.AddTemporaryVolcanoDegrees(volLon, volLat, volRad, volHeight, fadeSpeedVal: 0.008f);
