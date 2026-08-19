@@ -130,6 +130,7 @@ public class CubeSphereTerrain : MonoBehaviour
     public PlanetHeightField Field => field;
     public float BaseRadius => baseRadius;
     public float HeightScale => heightScale;
+    public ContinentalPiece[] ContinentalPieces => continentalPieces;
 
     private void Start()
     {
@@ -285,7 +286,7 @@ public class CubeSphereTerrain : MonoBehaviour
     /// <summary>Trouve le morceau continental parent chevauchant les coordonnées données.</summary>
     public ContinentalPiece FindParentPiece(float longitudeDegrees, float latitudeDegrees)
     {
-        if (continentalPieces == null) return null;
+        if (continentalPieces == null || continentalPieces.Length == 0) return null;
 
         ContinentalPiece closestPiece = null;
         float minDistance = float.MaxValue;
@@ -305,18 +306,14 @@ public class CubeSphereTerrain : MonoBehaviour
 
         if (closestPiece != null) return closestPiece;
 
-        // Fallback: check if height at degrees indicates continental crust (> 0.05f)
-        float h = GetHeightAtDegrees(longitudeDegrees, latitudeDegrees);
-        if (h > 0.05f)
+        // Fallback: always return nearest continental piece so every volcano/crater is anchored to a plate
+        foreach (var piece in continentalPieces)
         {
-            foreach (var piece in continentalPieces)
+            float dist = AngularDistanceDegrees(piece.currentLongitude, piece.currentLatitude, longitudeDegrees, latitudeDegrees);
+            if (dist < minDistance)
             {
-                float dist = AngularDistanceDegrees(piece.currentLongitude, piece.currentLatitude, longitudeDegrees, latitudeDegrees);
-                if (dist < minDistance)
-                {
-                    minDistance = dist;
-                    closestPiece = piece;
-                }
+                minDistance = dist;
+                closestPiece = piece;
             }
         }
 
@@ -534,16 +531,12 @@ public class CubeSphereTerrain : MonoBehaviour
 
             // Mid angle of sector determines center position and radial drift direction
             float midAngle = (piece.sectorStartAngle + piece.sectorEndAngle) * 0.5f;
-
-            // Offset piece base position slightly outwards along sector direction
-            float pieceDistOffset = supercontinentRadius * 0.25f;
             float cosLat = Mathf.Max(Mathf.Cos(centerLat * Mathf.Deg2Rad), 0.2f);
 
-            float pieceLonDeg = centerLon + (Mathf.Cos(midAngle) * pieceDistOffset) / cosLat;
-            float pieceLatDeg = centerLat + (Mathf.Sin(midAngle) * pieceDistOffset);
-
-            piece.baseLongitude = Mathf.Repeat(pieceLonDeg, 360f);
-            piece.baseLatitude = Mathf.Clamp(pieceLatDeg, -45f, 45f);
+            // Base position starts strictly unified at supercontinent center (0 initial offset)
+            // so pieces start contiguous as Pangaea and separate organically over time
+            piece.baseLongitude = Mathf.Repeat(centerLon, 360f);
+            piece.baseLatitude = Mathf.Clamp(centerLat, -45f, 45f);
             piece.radius = supercontinentRadius * 0.9f;
             piece.height = supercontinentHeight;
 
@@ -984,9 +977,10 @@ public class CubeSphereTerrain : MonoBehaviour
                                 pieceB.driftSpeedLat = Mathf.Clamp(pieceB.driftSpeedLat, -maxLatSpeedB, maxLatSpeedB);
                             }
 
-                            // Positional correction if plates are penetrating too close
+                            // Positional correction ONLY when plates are converging towards each other (vNormal > 0),
+                            // preventing artificial push teleportation during initial divergent rifting.
                             float minAllowedDist = collisionDistance * 0.95f;
-                            if (dist < minAllowedDist && dist > 0.01f)
+                            if ((vNormalA > 0f || vNormalB > 0f) && dist < minAllowedDist && dist > 0.01f)
                             {
                                 float overlap = minAllowedDist - dist;
                                 // Push pieceA away along dirBtoA and pieceB along dirAtoB
