@@ -81,4 +81,6 @@ Builds/
 # Ignore large archives and executables
 *.zip
 *.exe
+*.tif
+*.wav
 
