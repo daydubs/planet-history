@@ -1,6 +1,30 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
+
+public class UIHoverTooltipTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+{
+    public string title;
+    public string body;
+    public GameHudController hudController;
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (hudController != null)
+        {
+            hudController.ShowTooltip(title, body);
+        }
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        if (hudController != null)
+        {
+            hudController.HideTooltip();
+        }
+    }
+}
 
 public class GameHudController : MonoBehaviour
 {
@@ -44,6 +68,10 @@ public class GameHudController : MonoBehaviour
     private readonly System.Collections.Generic.List<Button> prebioticActionButtons = new System.Collections.Generic.List<Button>();
     private float refreshTimer;
 
+    private GameObject tooltipPanel;
+    private TMP_Text tooltipTitleText;
+    private TMP_Text tooltipBodyText;
+
     private void Awake()
     {
         if (gameManager == null)
@@ -73,6 +101,79 @@ public class GameHudController : MonoBehaviour
 
         CreateVolcanoUI();
         CreatePrebioticUI();
+        CreateTooltipUI();
+    }
+
+    private void CreateTooltipUI()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null) canvas = FindAnyObjectByType<Canvas>();
+        if (canvas == null) return;
+
+        // Container in bottom right
+        tooltipPanel = new GameObject("PrebioticTooltipPanel", typeof(RectTransform));
+        tooltipPanel.transform.SetParent(canvas.transform, false);
+
+        RectTransform panelRect = tooltipPanel.GetComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(1f, 0f);
+        panelRect.anchorMax = new Vector2(1f, 0f);
+        panelRect.pivot = new Vector2(1f, 0f);
+        panelRect.anchoredPosition = new Vector2(-20f, 20f);
+        panelRect.sizeDelta = new Vector2(340f, 160f);
+
+        Image bg = tooltipPanel.AddComponent<Image>();
+        bg.color = new Color(0.08f, 0.10f, 0.14f, 0.92f);
+
+        VerticalLayoutGroup layout = tooltipPanel.AddComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(14, 14, 12, 12);
+        layout.spacing = 6f;
+        layout.childControlWidth = true;
+        layout.childControlHeight = false;
+        layout.childForceExpandWidth = true;
+
+        ContentSizeFitter fitter = tooltipPanel.AddComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        // Title
+        GameObject titleGo = new GameObject("TooltipTitle", typeof(RectTransform));
+        titleGo.transform.SetParent(tooltipPanel.transform, false);
+        tooltipTitleText = titleGo.AddComponent<TextMeshProUGUI>();
+        tooltipTitleText.fontSize = 16;
+        tooltipTitleText.fontStyle = FontStyles.Bold;
+        tooltipTitleText.color = new Color(0.95f, 0.80f, 0.30f, 1f);
+
+        // Body
+        GameObject bodyGo = new GameObject("TooltipBody", typeof(RectTransform));
+        bodyGo.transform.SetParent(tooltipPanel.transform, false);
+        tooltipBodyText = bodyGo.AddComponent<TextMeshProUGUI>();
+        tooltipBodyText.fontSize = 13;
+        tooltipBodyText.fontStyle = FontStyles.Normal;
+        tooltipBodyText.color = new Color(0.90f, 0.92f, 0.95f, 1f);
+        tooltipBodyText.enableWordWrapping = true;
+
+        tooltipPanel.SetActive(false);
+    }
+
+    public void ShowTooltip(string title, string body)
+    {
+        if (tooltipPanel == null) return;
+
+        if (tooltipTitleText != null) tooltipTitleText.text = title;
+        if (tooltipBodyText != null) tooltipBodyText.text = body;
+
+        tooltipPanel.SetActive(true);
+        tooltipPanel.transform.SetAsLastSibling();
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(tooltipPanel.GetComponent<RectTransform>());
+    }
+
+    public void HideTooltip()
+    {
+        if (tooltipPanel != null)
+        {
+            tooltipPanel.SetActive(false);
+        }
     }
 
     private void CreateVolcanoUI()
@@ -183,27 +284,41 @@ public class GameHudController : MonoBehaviour
         containerGo.transform.SetParent(hudRoot, false);
 
         LayoutElement containerLayout = containerGo.AddComponent<LayoutElement>();
-        containerLayout.minHeight = 120f;
+        containerLayout.minHeight = 150f;
+        containerLayout.preferredHeight = 150f;
         containerLayout.flexibleWidth = 1f;
 
         VerticalLayoutGroup vertical = containerGo.AddComponent<VerticalLayoutGroup>();
         vertical.childAlignment = TextAnchor.UpperLeft;
         vertical.childControlWidth = true;
         vertical.childControlHeight = false;
-        vertical.spacing = 6f;
+        vertical.spacing = 8f;
 
         // Header + Progress Label
         GameObject labelGo = new GameObject("PrebioticProgressLabel", typeof(RectTransform));
         labelGo.transform.SetParent(containerGo.transform, false);
+
+        LayoutElement labelLayout = labelGo.AddComponent<LayoutElement>();
+        labelLayout.minHeight = 85f;
+        labelLayout.preferredHeight = 85f;
+        labelLayout.flexibleWidth = 1f;
+
         prebioticProgressText = labelGo.AddComponent<TextMeshProUGUI>();
-        prebioticProgressText.fontSize = 18;
+        prebioticProgressText.fontSize = 15;
         prebioticProgressText.fontStyle = FontStyles.Bold;
         prebioticProgressText.color = new Color(0.26f, 0.82f, 0.72f, 1f);
         prebioticProgressText.alignment = TextAlignmentOptions.Left;
+        prebioticProgressText.enableWordWrapping = true;
+        prebioticProgressText.overflowMode = TextOverflowModes.Overflow;
 
         // Buttons Grid / Row
         GameObject btnRowGo = new GameObject("PrebioticButtonsRow", typeof(RectTransform));
         btnRowGo.transform.SetParent(containerGo.transform, false);
+
+        LayoutElement btnRowLayout = btnRowGo.AddComponent<LayoutElement>();
+        btnRowLayout.minHeight = 40f;
+        btnRowLayout.preferredHeight = 40f;
+        btnRowLayout.flexibleWidth = 1f;
 
         HorizontalLayoutGroup btnLayout = btnRowGo.AddComponent<HorizontalLayoutGroup>();
         btnLayout.childAlignment = TextAnchor.MiddleLeft;
@@ -211,35 +326,59 @@ public class GameHudController : MonoBehaviour
         btnLayout.childControlHeight = true;
         btnLayout.spacing = 8f;
 
-        CreatePrebioticActionButton(btnRowGo.transform, "Miller-Urey", new Color(0.2f, 0.6f, 0.86f, 1f), () =>
-        {
-            if (PrebioticMiniGameController.Instance != null)
-                PrebioticMiniGameController.Instance.TriggerLightningDischarge();
-        });
+        CreatePrebioticActionButton(
+            btnRowGo.transform,
+            "Miller-Urey",
+            "Expérience de Miller-Urey (1953)",
+            "Simule des décharges électriques (éclairs) traversant une atmosphère réductrice riche en vapeur d'eau et gaz volcaniques. Synthétise principalement la Glycine et l'Alanine.",
+            new Color(0.2f, 0.6f, 0.86f, 1f),
+            () =>
+            {
+                if (PrebioticMiniGameController.Instance != null)
+                    PrebioticMiniGameController.Instance.TriggerLightningDischarge();
+            });
 
-        CreatePrebioticActionButton(btnRowGo.transform, "Hydrothermale", new Color(0.86f, 0.35f, 0.2f, 1f), () =>
-        {
-            if (PrebioticMiniGameController.Instance != null)
-                PrebioticMiniGameController.Instance.TriggerHydrothermalVent();
-        });
+        CreatePrebioticActionButton(
+            btnRowGo.transform,
+            "Hydrothermale",
+            "Sources Hydrothermales",
+            "Simule les réactions chimiques au niveau des évents hydrothermaux sous-marins (fumeurs noirs). Synthétise l'Acide Aspartique et l'Acide Glutamique sous haute pression et chaleur.",
+            new Color(0.86f, 0.35f, 0.2f, 1f),
+            () =>
+            {
+                if (PrebioticMiniGameController.Instance != null)
+                    PrebioticMiniGameController.Instance.TriggerHydrothermalVent();
+            });
 
-        CreatePrebioticActionButton(btnRowGo.transform, "Météorite", new Color(0.6f, 0.35f, 0.75f, 1f), () =>
-        {
-            if (PrebioticMiniGameController.Instance != null)
-                PrebioticMiniGameController.Instance.TriggerMeteorBombardment();
-        });
+        CreatePrebioticActionButton(
+            btnRowGo.transform,
+            "Météorite",
+            "Bombardement Météoritique",
+            "Simule l'apport extraterrestre de molécules organiques (ex: météorite de Murchison). Apporte de la Sérine et de la Valine à la soupe primitive.",
+            new Color(0.6f, 0.35f, 0.75f, 1f),
+            () =>
+            {
+                if (PrebioticMiniGameController.Instance != null)
+                    PrebioticMiniGameController.Instance.TriggerMeteorBombardment();
+            });
 
-        CreatePrebioticActionButton(btnRowGo.transform, "Catalyse UV", new Color(0.9f, 0.75f, 0.2f, 1f), () =>
-        {
-            if (PrebioticMiniGameController.Instance != null)
-                PrebioticMiniGameController.Instance.TriggerUvCatalysis();
-        });
+        CreatePrebioticActionButton(
+            btnRowGo.transform,
+            "Catalyse UV",
+            "Catalyse Photochimique UV",
+            "Simule l'impact des rayons ultraviolets solaires non filtrés sur la surface océanique primitive. Synthétise la Leucine et l'Isoleucine.",
+            new Color(0.9f, 0.75f, 0.2f, 1f),
+            () =>
+            {
+                if (PrebioticMiniGameController.Instance != null)
+                    PrebioticMiniGameController.Instance.TriggerUvCatalysis();
+            });
 
         Canvas.ForceUpdateCanvases();
         LayoutRebuilder.ForceRebuildLayoutImmediate(hudRoot);
     }
 
-    private void CreatePrebioticActionButton(Transform parent, string title, Color btnColor, UnityEngine.Events.UnityAction action)
+    private void CreatePrebioticActionButton(Transform parent, string title, string tooltipTitle, string tooltipBody, Color btnColor, UnityEngine.Events.UnityAction action)
     {
         GameObject buttonGo = new GameObject($"Btn_{title}", typeof(RectTransform));
         buttonGo.transform.SetParent(parent, false);
@@ -250,6 +389,11 @@ public class GameHudController : MonoBehaviour
         Button button = buttonGo.AddComponent<Button>();
         button.targetGraphic = buttonImage;
         prebioticActionButtons.Add(button);
+
+        UIHoverTooltipTrigger hoverTrigger = buttonGo.AddComponent<UIHoverTooltipTrigger>();
+        hoverTrigger.title = tooltipTitle;
+        hoverTrigger.body = tooltipBody;
+        hoverTrigger.hudController = this;
 
         ColorBlock cb = button.colors;
         cb.normalColor = btnColor;
@@ -342,6 +486,7 @@ public class GameHudController : MonoBehaviour
         if (atmosphereCompositionText != null)
         {
             atmosphereCompositionText.enableWordWrapping = true;
+            atmosphereCompositionText.overflowMode = TextOverflowModes.Overflow;
             atmosphereCompositionText.fontSize = 15f;
 
             float total = gameManager.Pressure;
@@ -350,11 +495,11 @@ public class GameHudController : MonoBehaviour
             float n2Pct = total > 0 ? (gameManager.NitrogenPressure / total) * 100f : 0f;
             float otherPct = total > 0 ? (gameManager.OtherGasesPressure / total) * 100f : 0f;
 
-            atmosphereCompositionText.text = $"Atmosphère (Pré-biotique) :\n" +
-                $" • H2O (Vapeur d'eau) : {gameManager.WaterVaporPressure:0.0} atm ({h2oPct:0.0}%)\n" +
-                $" • CO2 (Dioxyde de carbone) : {gameManager.Co2Pressure:0.0} atm ({co2Pct:0.0}%)\n" +
-                $" • N2 (Azote) : {gameManager.NitrogenPressure:0.0} atm ({n2Pct:0.0}%)\n" +
-                $" • Gaz réduits (CH4, NH3, SO2) : {gameManager.OtherGasesPressure:0.0} atm ({otherPct:0.0}%)";
+            atmosphereCompositionText.text = $"Composition Atmosphérique ({gameManager.CurrentEpoch}) - Total: {total:0.00} atm :\n" +
+                $" • H2O (Vapeur d'eau) : {gameManager.WaterVaporPressure:0.00} atm ({h2oPct:0.1}%)\n" +
+                $" • CO2 (Dioxyde de carbone) : {gameManager.Co2Pressure:0.00} atm ({co2Pct:0.1}%)\n" +
+                $" • N2 (Azote) : {gameManager.NitrogenPressure:0.00} atm ({n2Pct:0.1}%)\n" +
+                $" • Gaz réduits / volcaniques (CH4, NH3, SO2) : {gameManager.OtherGasesPressure:0.00} atm ({otherPct:0.1}%)";
         }
 
         if (sessionSlider != null) sessionSlider.value = gameManager.SessionProgress;
@@ -366,20 +511,22 @@ public class GameHudController : MonoBehaviour
             if (PrebioticMiniGameController.Instance != null && isPrebiotic)
             {
                 var p = PrebioticMiniGameController.Instance;
-                prebioticProgressText.text = $"[Phase Pré-Biotique - Synthèse d'Acides Aminés : {p.TotalProgress * 100f:0.0}%]\n" +
-                    $"Glycine: {p.Glycine:0}% | Alanine: {p.Alanine:0}% | Aspartique: {p.AsparticAcid:0}% | Glutamique: {p.GlutamicAcid:0}%\n" +
-                    $"Sérine: {p.Serine:0}% | Valine: {p.Valine:0}% | Leucine: {p.Leucine:0}% | Isoleucine: {p.Isoleucine:0}%";
+                prebioticProgressText.text = $"<b>[Synthèse Pre-Biotique - Avancement : {p.TotalProgress * 100f:0.0}%]</b>\n" +
+                    $" • Glycine: {p.Glycine:0}% | Alanine: {p.Alanine:0}% | Ac. Aspartique: {p.AsparticAcid:0}%\n" +
+                    $" • Ac. Glutamique: {p.GlutamicAcid:0}% | Sérine: {p.Serine:0}% | Valine: {p.Valine:0}%\n" +
+                    $" • Leucine: {p.Leucine:0}% | Isoleucine: {p.Isoleucine:0}%";
             }
             else
             {
-                prebioticProgressText.text = $"[Phase Pré-Biotique verrouillée - En attente de l'époque Pré-Biotique]\n" +
-                    $"Glycine: 0% | Alanine: 0% | Aspartique: 0% | Glutamique: 0%\n" +
-                    $"Sérine: 0% | Valine: 0% | Leucine: 0% | Isoleucine: 0%";
+                prebioticProgressText.text = $"<b>[Synthèse Pre-Biotique (Verrouillée - Attente de l'époque Prebiotic)]</b>\n" +
+                    $" • Glycine: 0% | Alanine: 0% | Ac. Aspartique: 0%\n" +
+                    $" • Ac. Glutamique: 0% | Sérine: 0% | Valine: 0%\n" +
+                    $" • Leucine: 0% | Isoleucine: 0%";
             }
         }
 
         // Update button interactable states based on epoch
-        if (volcanoButton != null) volcanoButton.interactable = isPrebiotic;
+        if (volcanoButton != null) volcanoButton.interactable = true;
         foreach (Button btn in prebioticActionButtons)
         {
             if (btn != null) btn.interactable = isPrebiotic;
@@ -388,7 +535,7 @@ public class GameHudController : MonoBehaviour
         var meteorCtrl = GetComponent<MeteorEventController>();
         if (meteorCtrl != null && meteorCtrl.MeteorButton != null)
         {
-            meteorCtrl.MeteorButton.interactable = isPrebiotic;
+            meteorCtrl.MeteorButton.interactable = true;
         }
 
         string hex = GetEpochHex(gameManager.CurrentEpoch);

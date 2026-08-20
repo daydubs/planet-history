@@ -205,7 +205,7 @@ public class GameHudLayoutPreset : MonoBehaviour
 
         foreach (RectTransform row in rows)
         {
-            float targetHeight = (row == atmosphereRow || row.name == "compositionAtmpan" || row.name == "AtmosphereRow") ? rowHeight * 3.5f : rowHeight;
+            float targetHeight = (row == atmosphereRow || row.name == "compositionAtmpan" || row.name == "AtmosphereRow") ? rowHeight * 4.2f : rowHeight;
             SetupRow(row, targetHeight);
         }
     }
@@ -336,7 +336,7 @@ public class GameHudLayoutPreset : MonoBehaviour
             text.fontSize = isTitle ? titleFontSize : bodyFontSize;
             text.fontStyle = isTitle ? titleStyle : bodyStyle;
             text.textWrappingMode = TextWrappingModes.Normal;
-            text.overflowMode = TextOverflowModes.Ellipsis;
+            text.overflowMode = text.name.Contains("CompAtm") || text.name.Contains("Atmosphere") ? TextOverflowModes.Overflow : TextOverflowModes.Ellipsis;
         }
     }
 
