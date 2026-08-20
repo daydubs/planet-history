@@ -28,12 +28,16 @@ public class GameHudController : MonoBehaviour
     [SerializeField] private Image epochBadgeImage;
     [SerializeField] private TMP_Text epochBadgeHexText;
 
+    [Header("Labels Prebiotique")]
+    [SerializeField] private TMP_Text prebioticProgressText;
+
     [Header("Palette (Hex)")]
     [SerializeField] private string hadeanHex = "#D1495B";
     [SerializeField] private string crustFormationHex = "#F79256";
     [SerializeField] private string volcanicAgeHex = "#F9C74F";
     [SerializeField] private string protoOceanHex = "#43AA8B";
     [SerializeField] private string tectonicDriftHex = "#4D96FF";
+    [SerializeField] private string prebioticHex = "#2A9D8F";
     [SerializeField] private string fallbackHex = "#9AA0A6";
 
     private float refreshTimer;
@@ -58,7 +62,15 @@ public class GameHudController : MonoBehaviour
             volcanoManagerObj.AddComponent<VolcanoManager>();
         }
 
+        // Dynamically attach PrebioticMiniGameController to scene if missing
+        if (FindAnyObjectByType<PrebioticMiniGameController>() == null)
+        {
+            GameObject prebioticObj = new GameObject("PrebioticMiniGameController");
+            prebioticObj.AddComponent<PrebioticMiniGameController>();
+        }
+
         CreateVolcanoUI();
+        CreatePrebioticUI();
     }
 
     private void CreateVolcanoUI()
@@ -155,6 +167,113 @@ public class GameHudController : MonoBehaviour
         LayoutRebuilder.ForceRebuildLayoutImmediate(hudRoot);
     }
 
+    private void CreatePrebioticUI()
+    {
+        RectTransform hudRoot = transform as RectTransform;
+        if (hudRoot == null) return;
+
+        // Container Panel
+        GameObject containerGo = new GameObject("PrebioticPanel", typeof(RectTransform));
+        containerGo.transform.SetParent(hudRoot, false);
+
+        LayoutElement containerLayout = containerGo.AddComponent<LayoutElement>();
+        containerLayout.minHeight = 120f;
+        containerLayout.flexibleWidth = 1f;
+
+        VerticalLayoutGroup vertical = containerGo.AddComponent<VerticalLayoutGroup>();
+        vertical.childAlignment = TextAnchor.UpperLeft;
+        vertical.childControlWidth = true;
+        vertical.childControlHeight = false;
+        vertical.spacing = 6f;
+
+        // Header + Progress Label
+        GameObject labelGo = new GameObject("PrebioticProgressLabel", typeof(RectTransform));
+        labelGo.transform.SetParent(containerGo.transform, false);
+        prebioticProgressText = labelGo.AddComponent<TextMeshProUGUI>();
+        prebioticProgressText.fontSize = 18;
+        prebioticProgressText.fontStyle = FontStyles.Bold;
+        prebioticProgressText.color = new Color(0.26f, 0.82f, 0.72f, 1f);
+        prebioticProgressText.alignment = TextAlignmentOptions.Left;
+
+        // Buttons Grid / Row
+        GameObject btnRowGo = new GameObject("PrebioticButtonsRow", typeof(RectTransform));
+        btnRowGo.transform.SetParent(containerGo.transform, false);
+
+        HorizontalLayoutGroup btnLayout = btnRowGo.AddComponent<HorizontalLayoutGroup>();
+        btnLayout.childAlignment = TextAnchor.MiddleLeft;
+        btnLayout.childControlWidth = true;
+        btnLayout.childControlHeight = true;
+        btnLayout.spacing = 8f;
+
+        CreatePrebioticActionButton(btnRowGo.transform, "⚡ Miller-Urey (Éclair)", new Color(0.2f, 0.6f, 0.86f, 1f), () =>
+        {
+            if (PrebioticMiniGameController.Instance != null)
+                PrebioticMiniGameController.Instance.TriggerLightningDischarge();
+        });
+
+        CreatePrebioticActionButton(btnRowGo.transform, "🌋 Hydrothermal", new Color(0.86f, 0.35f, 0.2f, 1f), () =>
+        {
+            if (PrebioticMiniGameController.Instance != null)
+                PrebioticMiniGameController.Instance.TriggerHydrothermalVent();
+        });
+
+        CreatePrebioticActionButton(btnRowGo.transform, "☄️ Météorite", new Color(0.6f, 0.35f, 0.75f, 1f), () =>
+        {
+            if (PrebioticMiniGameController.Instance != null)
+                PrebioticMiniGameController.Instance.TriggerMeteorBombardment();
+        });
+
+        CreatePrebioticActionButton(btnRowGo.transform, "☀️ Catalyse UV", new Color(0.9f, 0.75f, 0.2f, 1f), () =>
+        {
+            if (PrebioticMiniGameController.Instance != null)
+                PrebioticMiniGameController.Instance.TriggerUvCatalysis();
+        });
+
+        Canvas.ForceUpdateCanvases();
+        LayoutRebuilder.ForceRebuildLayoutImmediate(hudRoot);
+    }
+
+    private void CreatePrebioticActionButton(Transform parent, string title, Color btnColor, UnityEngine.Events.UnityAction action)
+    {
+        GameObject buttonGo = new GameObject($"Btn_{title}", typeof(RectTransform));
+        buttonGo.transform.SetParent(parent, false);
+
+        Image buttonImage = buttonGo.AddComponent<Image>();
+        buttonImage.color = btnColor;
+
+        Button button = buttonGo.AddComponent<Button>();
+        button.targetGraphic = buttonImage;
+
+        ColorBlock cb = button.colors;
+        cb.normalColor = btnColor;
+        cb.highlightedColor = btnColor * 1.2f;
+        cb.pressedColor = btnColor * 0.8f;
+        button.colors = cb;
+
+        GameObject buttonTextGo = new GameObject("Text", typeof(RectTransform));
+        buttonTextGo.transform.SetParent(buttonGo.transform, false);
+        TextMeshProUGUI buttonText = buttonTextGo.AddComponent<TextMeshProUGUI>();
+        buttonText.text = title;
+        buttonText.fontSize = 14;
+        buttonText.fontStyle = FontStyles.Bold;
+        buttonText.color = Color.white;
+        buttonText.alignment = TextAlignmentOptions.Center;
+
+        RectTransform textRect = buttonTextGo.GetComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.sizeDelta = Vector2.zero;
+
+        LayoutElement buttonLayout = buttonGo.AddComponent<LayoutElement>();
+        buttonLayout.minWidth = 110f;
+        buttonLayout.preferredWidth = 135f;
+        buttonLayout.flexibleWidth = 1f;
+        buttonLayout.minHeight = 30f;
+        buttonLayout.preferredHeight = 32f;
+
+        button.onClick.AddListener(action);
+    }
+
     private void OnEnable()
     {
         if (gameManager != null)
@@ -228,6 +347,14 @@ public class GameHudController : MonoBehaviour
         if (waterSlider != null) waterSlider.value = gameManager.WaterRatio;
         if (tectonicSlider != null) tectonicSlider.value = gameManager.TectonicActivity;
 
+        if (prebioticProgressText != null && PrebioticMiniGameController.Instance != null)
+        {
+            var p = PrebioticMiniGameController.Instance;
+            prebioticProgressText.text = $"[Phase Pre-Biotique - Synthèse d'Acides Aminés : {p.TotalProgress * 100f:0.0}%]\n" +
+                $"Glycine: {p.Glycine:0}% | Alanine: {p.Alanine:0}% | Aspartique: {p.AsparticAcid:0}% | Glutamique: {p.GlutamicAcid:0}%\n" +
+                $"Sérine: {p.Serine:0}% | Valine: {p.Valine:0}% | Leucine: {p.Leucine:0}% | Isoleucine: {p.Isoleucine:0}%";
+        }
+
         string hex = GetEpochHex(gameManager.CurrentEpoch);
         if (epochBadgeImage != null && ColorUtility.TryParseHtmlString(hex, out Color c))
         {
@@ -246,6 +373,7 @@ public class GameHudController : MonoBehaviour
             PlanetEpoch.VolcanicAge => volcanicAgeHex,
             PlanetEpoch.ProtoOcean => protoOceanHex,
             PlanetEpoch.TectonicDrift => tectonicDriftHex,
+            PlanetEpoch.Prebiotic => prebioticHex,
             _ => fallbackHex
         };
     }

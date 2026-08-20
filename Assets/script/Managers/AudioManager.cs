@@ -125,6 +125,7 @@ public class AudioManager : MonoBehaviour
             PlanetEpoch.VolcanicAge => musicVolcanicClip,
             PlanetEpoch.ProtoOcean => musicOceanClip,
             PlanetEpoch.TectonicDrift => musicOceanClip,
+            PlanetEpoch.Prebiotic => musicOceanClip,
             _ => musicHadeanClip
         };
 

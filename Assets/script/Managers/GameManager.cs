@@ -10,7 +10,8 @@ public enum PlanetEpoch
     CrustFormation, // Formation de la croûte
     VolcanicAge,    // Activité volcanique intense
     ProtoOcean,     // Eau liquide commence à apparaître
-    TectonicDrift   // Dérive continentale active
+    TectonicDrift,  // Dérive continentale active
+    Prebiotic       // Phase pré-biotique: synthèse des acides aminés
 }
 
 public enum SessionLengthPreset
@@ -265,8 +266,10 @@ public class GameManager : MonoBehaviour
             newEpoch = PlanetEpoch.VolcanicAge;
         else if (waterRatio < 0.30f)
             newEpoch = PlanetEpoch.ProtoOcean;
-        else
+        else if (waterRatio < 0.60f)
             newEpoch = PlanetEpoch.TectonicDrift;
+        else
+            newEpoch = PlanetEpoch.Prebiotic;
 
         if (newEpoch != currentEpoch)
         {
