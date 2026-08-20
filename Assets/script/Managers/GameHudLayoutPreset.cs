@@ -28,8 +28,8 @@ public class GameHudLayoutPreset : MonoBehaviour
     [SerializeField] private Slider tectonicSlider;
 
     [Header("Typography")]
-    [SerializeField, Min(10)] private int titleFontSize = 28;
-    [SerializeField, Min(10)] private int bodyFontSize = 22;
+    [SerializeField, Min(10)] private int titleFontSize = 22;
+    [SerializeField, Min(10)] private int bodyFontSize = 16;
     [SerializeField] private FontStyles titleStyle = FontStyles.Bold;
     [SerializeField] private FontStyles bodyStyle = FontStyles.Normal;
 
@@ -205,7 +205,7 @@ public class GameHudLayoutPreset : MonoBehaviour
 
         foreach (RectTransform row in rows)
         {
-            float targetHeight = (row == atmosphereRow || row.name == "compositionAtmpan" || row.name == "AtmosphereRow") ? rowHeight * 3f : rowHeight;
+            float targetHeight = (row == atmosphereRow || row.name == "compositionAtmpan" || row.name == "AtmosphereRow") ? rowHeight * 3.5f : rowHeight;
             SetupRow(row, targetHeight);
         }
     }
@@ -335,8 +335,8 @@ public class GameHudLayoutPreset : MonoBehaviour
             bool isTitle = text.name.Contains("Epoch") || text.name.Contains("Title");
             text.fontSize = isTitle ? titleFontSize : bodyFontSize;
             text.fontStyle = isTitle ? titleStyle : bodyStyle;
-            text.textWrappingMode = TextWrappingModes.NoWrap;
-            text.overflowMode = TextOverflowModes.Overflow;
+            text.textWrappingMode = TextWrappingModes.Normal;
+            text.overflowMode = TextOverflowModes.Ellipsis;
         }
     }
 

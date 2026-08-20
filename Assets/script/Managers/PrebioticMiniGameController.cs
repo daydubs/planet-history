@@ -57,6 +57,12 @@ public class PrebioticMiniGameController : MonoBehaviour
     /// </summary>
     public void TriggerLightningDischarge()
     {
+        if (GameManager.Instance != null && GameManager.Instance.CurrentEpoch != PlanetEpoch.Prebiotic)
+        {
+            Debug.LogWarning("[PrebioticMiniGameController] Action indisponible : la planète n'est pas en période pré-biotique.");
+            return;
+        }
+
         if (GameManager.Instance != null)
         {
             // Vérification simple de l'atmosphère réductrice
@@ -88,6 +94,12 @@ public class PrebioticMiniGameController : MonoBehaviour
     /// </summary>
     public void TriggerHydrothermalVent()
     {
+        if (GameManager.Instance != null && GameManager.Instance.CurrentEpoch != PlanetEpoch.Prebiotic)
+        {
+            Debug.LogWarning("[PrebioticMiniGameController] Action indisponible : la planète n'est pas en période pré-biotique.");
+            return;
+        }
+
         if (GameManager.Instance != null)
         {
             float gain = 20f;
@@ -116,6 +128,12 @@ public class PrebioticMiniGameController : MonoBehaviour
     /// </summary>
     public void TriggerMeteorBombardment()
     {
+        if (GameManager.Instance != null && GameManager.Instance.CurrentEpoch != PlanetEpoch.Prebiotic)
+        {
+            Debug.LogWarning("[PrebioticMiniGameController] Action indisponible : la planète n'est pas en période pré-biotique.");
+            return;
+        }
+
         if (GameManager.Instance != null)
         {
             float gain = 22f;
@@ -144,6 +162,12 @@ public class PrebioticMiniGameController : MonoBehaviour
     /// </summary>
     public void TriggerUvCatalysis()
     {
+        if (GameManager.Instance != null && GameManager.Instance.CurrentEpoch != PlanetEpoch.Prebiotic)
+        {
+            Debug.LogWarning("[PrebioticMiniGameController] Action indisponible : la planète n'est pas en période pré-biotique.");
+            return;
+        }
+
         if (GameManager.Instance != null)
         {
             float gain = 25f;
