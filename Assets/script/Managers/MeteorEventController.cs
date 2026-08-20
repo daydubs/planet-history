@@ -29,12 +29,23 @@ public class MeteorEventController : MonoBehaviour
     [SerializeField] private GameObject meteorPrefab;
     [SerializeField] private float flightDuration = 2.0f;
 
+    public Button MeteorButton { get; private set; }
+
     private CubeSphereTerrain terrain;
 
     private void Start()
     {
         terrain = FindAnyObjectByType<CubeSphereTerrain>();
         CreateMeteorUI();
+    }
+
+    private void Update()
+    {
+        if (MeteorButton != null)
+        {
+            bool isPrebiotic = GameManager.Instance != null && GameManager.Instance.CurrentEpoch == PlanetEpoch.Prebiotic;
+            MeteorButton.interactable = isPrebiotic;
+        }
     }
 
     private void CreateMeteorUI()
@@ -94,20 +105,24 @@ public class MeteorEventController : MonoBehaviour
         // Add Button component
         Button button = buttonGo.AddComponent<Button>();
         button.targetGraphic = buttonImage;
+        MeteorButton = button;
 
         // Color block for button states
         ColorBlock cb = button.colors;
         cb.normalColor = new Color(0.82f, 0.28f, 0.35f, 1f);
         cb.highlightedColor = new Color(0.92f, 0.38f, 0.45f, 1f);
         cb.pressedColor = new Color(0.62f, 0.18f, 0.25f, 1f);
+        cb.disabledColor = new Color(0.35f, 0.35f, 0.35f, 0.5f);
         button.colors = cb;
 
         // Create Button Text
         GameObject buttonTextGo = new GameObject("Text", typeof(RectTransform));
         buttonTextGo.transform.SetParent(buttonGo.transform, false);
         TextMeshProUGUI buttonText = buttonTextGo.AddComponent<TextMeshProUGUI>();
-        buttonText.text = "DECLENCHER";
-        buttonText.fontSize = 18;
+        buttonText.text = "Déclencher";
+        buttonText.enableAutoSizing = true;
+        buttonText.fontSizeMin = 12;
+        buttonText.fontSizeMax = 18;
         buttonText.fontStyle = FontStyles.Bold;
         buttonText.color = Color.white;
         buttonText.alignment = TextAlignmentOptions.Center;

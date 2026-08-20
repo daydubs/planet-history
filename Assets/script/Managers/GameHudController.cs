@@ -40,6 +40,8 @@ public class GameHudController : MonoBehaviour
     [SerializeField] private string prebioticHex = "#2A9D8F";
     [SerializeField] private string fallbackHex = "#9AA0A6";
 
+    private Button volcanoButton;
+    private readonly System.Collections.Generic.List<Button> prebioticActionButtons = new System.Collections.Generic.List<Button>();
     private float refreshTimer;
 
     private void Awake()
@@ -122,18 +124,22 @@ public class GameHudController : MonoBehaviour
 
         Button button = buttonGo.AddComponent<Button>();
         button.targetGraphic = buttonImage;
+        volcanoButton = button;
 
         ColorBlock cb = button.colors;
         cb.normalColor = new Color(0.92f, 0.45f, 0.15f, 1f);
         cb.highlightedColor = new Color(1.0f, 0.55f, 0.25f, 1f);
         cb.pressedColor = new Color(0.72f, 0.35f, 0.05f, 1f);
+        cb.disabledColor = new Color(0.35f, 0.35f, 0.35f, 0.5f);
         button.colors = cb;
 
         GameObject buttonTextGo = new GameObject("Text", typeof(RectTransform));
         buttonTextGo.transform.SetParent(buttonGo.transform, false);
         TextMeshProUGUI buttonText = buttonTextGo.AddComponent<TextMeshProUGUI>();
-        buttonText.text = "CREER VOLCAN";
-        buttonText.fontSize = 18;
+        buttonText.text = "Créer Volcan";
+        buttonText.enableAutoSizing = true;
+        buttonText.fontSizeMin = 12;
+        buttonText.fontSizeMax = 18;
         buttonText.fontStyle = FontStyles.Bold;
         buttonText.color = Color.white;
         buttonText.alignment = TextAlignmentOptions.Center;
@@ -205,25 +211,25 @@ public class GameHudController : MonoBehaviour
         btnLayout.childControlHeight = true;
         btnLayout.spacing = 8f;
 
-        CreatePrebioticActionButton(btnRowGo.transform, "⚡ Miller-Urey (Éclair)", new Color(0.2f, 0.6f, 0.86f, 1f), () =>
+        CreatePrebioticActionButton(btnRowGo.transform, "Miller-Urey", new Color(0.2f, 0.6f, 0.86f, 1f), () =>
         {
             if (PrebioticMiniGameController.Instance != null)
                 PrebioticMiniGameController.Instance.TriggerLightningDischarge();
         });
 
-        CreatePrebioticActionButton(btnRowGo.transform, "🌋 Hydrothermal", new Color(0.86f, 0.35f, 0.2f, 1f), () =>
+        CreatePrebioticActionButton(btnRowGo.transform, "Hydrothermale", new Color(0.86f, 0.35f, 0.2f, 1f), () =>
         {
             if (PrebioticMiniGameController.Instance != null)
                 PrebioticMiniGameController.Instance.TriggerHydrothermalVent();
         });
 
-        CreatePrebioticActionButton(btnRowGo.transform, "☄️ Météorite", new Color(0.6f, 0.35f, 0.75f, 1f), () =>
+        CreatePrebioticActionButton(btnRowGo.transform, "Météorite", new Color(0.6f, 0.35f, 0.75f, 1f), () =>
         {
             if (PrebioticMiniGameController.Instance != null)
                 PrebioticMiniGameController.Instance.TriggerMeteorBombardment();
         });
 
-        CreatePrebioticActionButton(btnRowGo.transform, "☀️ Catalyse UV", new Color(0.9f, 0.75f, 0.2f, 1f), () =>
+        CreatePrebioticActionButton(btnRowGo.transform, "Catalyse UV", new Color(0.9f, 0.75f, 0.2f, 1f), () =>
         {
             if (PrebioticMiniGameController.Instance != null)
                 PrebioticMiniGameController.Instance.TriggerUvCatalysis();
@@ -243,18 +249,23 @@ public class GameHudController : MonoBehaviour
 
         Button button = buttonGo.AddComponent<Button>();
         button.targetGraphic = buttonImage;
+        prebioticActionButtons.Add(button);
 
         ColorBlock cb = button.colors;
         cb.normalColor = btnColor;
         cb.highlightedColor = btnColor * 1.2f;
         cb.pressedColor = btnColor * 0.8f;
+        cb.disabledColor = new Color(btnColor.r * 0.35f, btnColor.g * 0.35f, btnColor.b * 0.35f, 0.5f);
         button.colors = cb;
 
         GameObject buttonTextGo = new GameObject("Text", typeof(RectTransform));
         buttonTextGo.transform.SetParent(buttonGo.transform, false);
         TextMeshProUGUI buttonText = buttonTextGo.AddComponent<TextMeshProUGUI>();
         buttonText.text = title;
-        buttonText.fontSize = 14;
+        buttonText.enableAutoSizing = true;
+        buttonText.fontSizeMin = 10;
+        buttonText.fontSizeMax = 14;
+        buttonText.textWrappingMode = TextWrappingModes.Normal;
         buttonText.fontStyle = FontStyles.Bold;
         buttonText.color = Color.white;
         buttonText.alignment = TextAlignmentOptions.Center;
@@ -265,11 +276,11 @@ public class GameHudController : MonoBehaviour
         textRect.sizeDelta = Vector2.zero;
 
         LayoutElement buttonLayout = buttonGo.AddComponent<LayoutElement>();
-        buttonLayout.minWidth = 110f;
-        buttonLayout.preferredWidth = 135f;
+        buttonLayout.minWidth = 90f;
+        buttonLayout.preferredWidth = 115f;
         buttonLayout.flexibleWidth = 1f;
-        buttonLayout.minHeight = 30f;
-        buttonLayout.preferredHeight = 32f;
+        buttonLayout.minHeight = 32f;
+        buttonLayout.preferredHeight = 34f;
 
         button.onClick.AddListener(action);
     }
@@ -328,31 +339,58 @@ public class GameHudController : MonoBehaviour
         SetText(waterText, $"Eau liquide: {gameManager.WaterRatio * 100f:0.00}%");
         SetText(tectonicText, $"Activite tectonique: {gameManager.TectonicActivity * 100f:0.00}%");
 
+        bool isPrebiotic = gameManager != null && gameManager.CurrentEpoch == PlanetEpoch.Prebiotic;
+
         if (atmosphereCompositionText != null)
         {
+            atmosphereCompositionText.enableWordWrapping = true;
+            atmosphereCompositionText.fontSize = 15f;
+
             float total = gameManager.Pressure;
             float h2oPct = total > 0 ? (gameManager.WaterVaporPressure / total) * 100f : 0f;
             float co2Pct = total > 0 ? (gameManager.Co2Pressure / total) * 100f : 0f;
             float n2Pct = total > 0 ? (gameManager.NitrogenPressure / total) * 100f : 0f;
             float otherPct = total > 0 ? (gameManager.OtherGasesPressure / total) * 100f : 0f;
 
-            atmosphereCompositionText.text = $"Atmosphere (Pre-biotique):\n" +
-                $"- H2O (Vapeur d'eau): {gameManager.WaterVaporPressure:0.0} atm ({h2oPct:0.0}%)\n" +
-                $"- CO2 (Dioxyde de carbone): {gameManager.Co2Pressure:0.0} atm ({co2Pct:0.0}%)\n" +
-                $"- N2 (Azote): {gameManager.NitrogenPressure:0.0} atm ({n2Pct:0.0}%)\n" +
-                $"- Gaz reduits pre-biotiques (CH4, NH3, SO2): {gameManager.OtherGasesPressure:0.0} atm ({otherPct:0.0}%)";
+            atmosphereCompositionText.text = $"Atmosphère (Pré-biotique) :\n" +
+                $" • H2O (Vapeur d'eau) : {gameManager.WaterVaporPressure:0.0} atm ({h2oPct:0.0}%)\n" +
+                $" • CO2 (Dioxyde de carbone) : {gameManager.Co2Pressure:0.0} atm ({co2Pct:0.0}%)\n" +
+                $" • N2 (Azote) : {gameManager.NitrogenPressure:0.0} atm ({n2Pct:0.0}%)\n" +
+                $" • Gaz réduits (CH4, NH3, SO2) : {gameManager.OtherGasesPressure:0.0} atm ({otherPct:0.0}%)";
         }
 
         if (sessionSlider != null) sessionSlider.value = gameManager.SessionProgress;
         if (waterSlider != null) waterSlider.value = gameManager.WaterRatio;
         if (tectonicSlider != null) tectonicSlider.value = gameManager.TectonicActivity;
 
-        if (prebioticProgressText != null && PrebioticMiniGameController.Instance != null)
+        if (prebioticProgressText != null)
         {
-            var p = PrebioticMiniGameController.Instance;
-            prebioticProgressText.text = $"[Phase Pre-Biotique - Synthèse d'Acides Aminés : {p.TotalProgress * 100f:0.0}%]\n" +
-                $"Glycine: {p.Glycine:0}% | Alanine: {p.Alanine:0}% | Aspartique: {p.AsparticAcid:0}% | Glutamique: {p.GlutamicAcid:0}%\n" +
-                $"Sérine: {p.Serine:0}% | Valine: {p.Valine:0}% | Leucine: {p.Leucine:0}% | Isoleucine: {p.Isoleucine:0}%";
+            if (PrebioticMiniGameController.Instance != null && isPrebiotic)
+            {
+                var p = PrebioticMiniGameController.Instance;
+                prebioticProgressText.text = $"[Phase Pré-Biotique - Synthèse d'Acides Aminés : {p.TotalProgress * 100f:0.0}%]\n" +
+                    $"Glycine: {p.Glycine:0}% | Alanine: {p.Alanine:0}% | Aspartique: {p.AsparticAcid:0}% | Glutamique: {p.GlutamicAcid:0}%\n" +
+                    $"Sérine: {p.Serine:0}% | Valine: {p.Valine:0}% | Leucine: {p.Leucine:0}% | Isoleucine: {p.Isoleucine:0}%";
+            }
+            else
+            {
+                prebioticProgressText.text = $"[Phase Pré-Biotique verrouillée - En attente de l'époque Pré-Biotique]\n" +
+                    $"Glycine: 0% | Alanine: 0% | Aspartique: 0% | Glutamique: 0%\n" +
+                    $"Sérine: 0% | Valine: 0% | Leucine: 0% | Isoleucine: 0%";
+            }
+        }
+
+        // Update button interactable states based on epoch
+        if (volcanoButton != null) volcanoButton.interactable = isPrebiotic;
+        foreach (Button btn in prebioticActionButtons)
+        {
+            if (btn != null) btn.interactable = isPrebiotic;
+        }
+
+        var meteorCtrl = GetComponent<MeteorEventController>();
+        if (meteorCtrl != null && meteorCtrl.MeteorButton != null)
+        {
+            meteorCtrl.MeteorButton.interactable = isPrebiotic;
         }
 
         string hex = GetEpochHex(gameManager.CurrentEpoch);
@@ -361,7 +399,8 @@ public class GameHudController : MonoBehaviour
             epochBadgeImage.color = c;
         }
 
-        SetText(epochBadgeHexText, hex);
+        // Clear hex badge text to avoid displaying raw hex string on HUD
+        SetText(epochBadgeHexText, string.Empty);
     }
 
     private string GetEpochHex(PlanetEpoch epoch)
