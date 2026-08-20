@@ -153,6 +153,13 @@ public class PrebioticMiniGameController : MonoBehaviour
             valine = Mathf.Min(targetPerAcid, valine + 19f);
         }
 
+        // Trigger visual and physical meteor event on the planet
+        var meteorCtrl = FindAnyObjectByType<MeteorEventController>();
+        if (meteorCtrl != null)
+        {
+            meteorCtrl.TriggerMeteor();
+        }
+
         OnPrebioticProgressUpdated?.Invoke();
     }
 

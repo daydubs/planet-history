@@ -43,8 +43,7 @@ public class MeteorEventController : MonoBehaviour
     {
         if (MeteorButton != null)
         {
-            bool isPrebiotic = GameManager.Instance != null && GameManager.Instance.CurrentEpoch == PlanetEpoch.Prebiotic;
-            MeteorButton.interactable = isPrebiotic;
+            MeteorButton.interactable = true;
         }
     }
 
