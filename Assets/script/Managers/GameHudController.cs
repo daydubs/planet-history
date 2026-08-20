@@ -254,10 +254,11 @@ public class GameHudController : MonoBehaviour
         buttonTextGo.transform.SetParent(buttonGo.transform, false);
         TextMeshProUGUI buttonText = buttonTextGo.AddComponent<TextMeshProUGUI>();
         buttonText.text = title;
-        buttonText.fontSize = 14;
+        buttonText.fontSize = 10;
         buttonText.fontStyle = FontStyles.Bold;
         buttonText.color = Color.white;
         buttonText.alignment = TextAlignmentOptions.Center;
+        buttonText.textWrappingMode = TextWrappingModes.Normal;
 
         RectTransform textRect = buttonTextGo.GetComponent<RectTransform>();
         textRect.anchorMin = Vector2.zero;
