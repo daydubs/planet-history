@@ -518,6 +518,20 @@ public class CubeSphereTerrain : MonoBehaviour
             remainingAngle -= share;
         }
 
+        float centerLonRad = centerLon * Mathf.Deg2Rad;
+        float centerLatRad = centerLat * Mathf.Deg2Rad;
+        float cosCenterLat = Mathf.Max(Mathf.Cos(centerLatRad), 0.2f);
+        float sinCenterLat = Mathf.Sin(centerLatRad);
+
+        Vector3 supercenterDir = new Vector3(
+            cosCenterLat * Mathf.Cos(centerLonRad),
+            sinCenterLat,
+            cosCenterLat * Mathf.Sin(centerLonRad)
+        );
+
+        Vector3 eastCenter = new Vector3(-Mathf.Sin(centerLonRad), 0f, Mathf.Cos(centerLonRad));
+        Vector3 northCenter = Vector3.Cross(supercenterDir, eastCenter).normalized;
+
         for (int i = 0; i < numPieces; i++)
         {
             var piece = new ContinentalPiece();
@@ -529,30 +543,42 @@ public class CubeSphereTerrain : MonoBehaviour
             piece.sectorStartAngle = sectorAngles[i];
             piece.sectorEndAngle = sectorAngles[i + 1];
 
-            // Mid angle of sector determines center position and radial drift direction
+            // Sector mid angle relative to supercontinent tangent frame
             float midAngle = (piece.sectorStartAngle + piece.sectorEndAngle) * 0.5f;
-            float cosLat = Mathf.Max(Mathf.Cos(centerLat * Mathf.Deg2Rad), 0.2f);
 
-            // Base position starts strictly unified at supercontinent center (0 initial offset)
-            // so pieces start contiguous as Pangaea and separate organically over time
-            piece.baseLongitude = Mathf.Repeat(centerLon, 360f);
-            piece.baseLatitude = Mathf.Clamp(centerLat, -45f, 45f);
+            // Calculate sector centroid location on the sphere so fragments start at their natural piece centers
+            // (preventing dist = 0 overlap and avoiding initial instant teleportation)
+            float centroidOffsetRad = (supercontinentRadius * 0.35f) * Mathf.Deg2Rad;
+            Vector3 radialDir = (Mathf.Cos(midAngle) * eastCenter + Mathf.Sin(midAngle) * northCenter).normalized;
+            Vector3 centroidPos = (supercenterDir + radialDir * Mathf.Sin(centroidOffsetRad)).normalized;
+
+            float baseLat = Mathf.Asin(Mathf.Clamp(centroidPos.y, -1f, 1f)) * Mathf.Rad2Deg;
+            float baseLon = Mathf.Atan2(centroidPos.z, centroidPos.x) * Mathf.Rad2Deg;
+
+            piece.baseLongitude = Mathf.Repeat(baseLon, 360f);
+            piece.baseLatitude = Mathf.Clamp(baseLat, -45f, 45f);
             piece.radius = supercontinentRadius * 0.9f;
             piece.height = supercontinentHeight;
 
-            // Predominantly East-West spreading drift speed to prevent fragments from entering polar ice caps,
-            // with a weak North-South derivation.
+            // Pure outward radial drift ("explosion" behavior away from supercontinent center)
             float driftMagnitude = (float)(2.5e-5 + prng.NextDouble() * 2.5e-5); // ~ 2.5e-5 to 5.0e-5
-            float dirLon = Mathf.Cos(midAngle);
-            if (Mathf.Abs(dirLon) < 0.3f)
-            {
-                dirLon = (dirLon >= 0f ? 0.5f : -0.5f);
-                if (dirLon == 0f) dirLon = (i % 2 == 0) ? 0.5f : -0.5f;
-            }
+            Vector3 piecePos = LatLonToVector3(piece.baseLongitude, piece.baseLatitude);
+            float pieceLatRad = piece.baseLatitude * Mathf.Deg2Rad;
+            float pieceLonRad = piece.baseLongitude * Mathf.Deg2Rad;
+            float cosPieceLat = Mathf.Max(Mathf.Cos(pieceLatRad), 0.2f);
+
+            Vector3 eastPiece = new Vector3(-Mathf.Sin(pieceLonRad), 0f, Mathf.Cos(pieceLonRad));
+            Vector3 northPiece = Vector3.Cross(eastPiece, piecePos).normalized;
+
+            // Outward vector pointing radially away from supercontinent center
+            Vector3 outwardDir = (piecePos - supercenterDir * Vector3.Dot(supercenterDir, piecePos)).normalized;
+
+            float vLon = Vector3.Dot(outwardDir, eastPiece);
+            float vLat = Vector3.Dot(outwardDir, northPiece);
 
             float latScale = 0.18f; // Weak North-South derivation factor
-            piece.driftSpeedLon = (dirLon * driftMagnitude) / cosLat;
-            piece.driftSpeedLat = Mathf.Sin(midAngle) * driftMagnitude * latScale;
+            piece.driftSpeedLon = (vLon * driftMagnitude) / cosPieceLat;
+            piece.driftSpeedLat = vLat * driftMagnitude * latScale;
 
             // Pre-bake heightmap for this sector piece
             BakePieceHeightGrid(piece);
@@ -569,6 +595,7 @@ public class CubeSphereTerrain : MonoBehaviour
 
         float centerLonRad = piece.supercontinentCenterLon * Mathf.Deg2Rad;
         float centerLatRad = piece.supercontinentCenterLat * Mathf.Deg2Rad;
+        float cosPieceLat = Mathf.Max(Mathf.Cos(piece.baseLatitude * Mathf.Deg2Rad), 0.2f);
         float cosLat = Mathf.Max(Mathf.Cos(centerLatRad), 0.2f);
         float sinLat = Mathf.Sin(centerLatRad);
 
@@ -594,7 +621,7 @@ public class CubeSphereTerrain : MonoBehaviour
             for (int x = 0; x < gridSize; x++)
             {
                 float u = (float)x / (gridSize - 1);
-                float dLonDeg = (u - 0.5f) * 2f * piece.radius / cosLat;
+                float dLonDeg = (u - 0.5f) * 2f * piece.radius / cosPieceLat;
                 float lonDeg = piece.baseLongitude + dLonDeg;
                 float lonRad = lonDeg * Mathf.Deg2Rad;
 
@@ -982,16 +1009,19 @@ public class CubeSphereTerrain : MonoBehaviour
                             float minAllowedDist = collisionDistance * 0.95f;
                             if ((vNormalA > 0f || vNormalB > 0f) && dist < minAllowedDist && dist > 0.01f)
                             {
-                                float overlap = minAllowedDist - dist;
+                                float overlapDeg = minAllowedDist - dist;
+                                float maxPushDeg = 0.2f; // Max degree push per simulation step
+                                float overlapRad = Mathf.Min(overlapDeg, maxPushDeg) * Mathf.Deg2Rad;
+
                                 // Push pieceA away along dirBtoA and pieceB along dirAtoB
-                                Vector3 sepA = dirBtoA * (overlap * 0.5f);
+                                Vector3 sepA = dirBtoA * (overlapRad * 0.5f);
                                 Vector3 newPosA = (posA + sepA).normalized;
                                 float newLatA = Mathf.Asin(Mathf.Clamp(newPosA.y, -1f, 1f)) * Mathf.Rad2Deg;
                                 float newLonA = Mathf.Atan2(newPosA.z, newPosA.x) * Mathf.Rad2Deg;
                                 pieceA.currentLongitude = Mathf.Repeat(newLonA, 360f);
                                 pieceA.currentLatitude = Mathf.Clamp(newLatA, -50f, 50f);
 
-                                Vector3 sepB = dirAtoB * (overlap * 0.5f);
+                                Vector3 sepB = dirAtoB * (overlapRad * 0.5f);
                                 Vector3 newPosB = (posB + sepB).normalized;
                                 float newLatB = Mathf.Asin(Mathf.Clamp(newPosB.y, -1f, 1f)) * Mathf.Rad2Deg;
                                 float newLonB = Mathf.Atan2(newPosB.z, newPosB.x) * Mathf.Rad2Deg;
