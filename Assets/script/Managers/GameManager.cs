@@ -120,7 +120,17 @@ public class GameManager : MonoBehaviour
         // Optionnel: si tu veux garder entre scènes
         // DontDestroyOnLoad(gameObject);
 
+        EnsureAudioManager();
         InitializeCsvLogger();
+    }
+
+    private void EnsureAudioManager()
+    {
+        if (AudioManager.Instance == null && FindAnyObjectByType<AudioManager>() == null)
+        {
+            GameObject audioMgrObj = new GameObject("AudioManager");
+            audioMgrObj.AddComponent<AudioManager>();
+        }
     }
 
 #if UNITY_EDITOR

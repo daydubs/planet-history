@@ -243,6 +243,12 @@ public class MeteorEventController : MonoBehaviour
         // 4. Instantiate Meteor Object with visual scale factor
         GameObject meteorObj = SpawnMeteorObject(p0, sizeData.scaleFactor);
 
+        // Play meteor flight sound effect
+        if (AudioManager.Instance != null && meteorObj != null)
+        {
+            AudioManager.Instance.PlayMeteorFlight(meteorObj);
+        }
+
         // 5. Start animation coroutine (deferred impact execution)
         StartCoroutine(AnimateMeteorFlight(meteorObj, p0, p1, localImpactPos, lon, lat, sizeData, epoch, isOceanic));
     }
@@ -369,6 +375,13 @@ public class MeteorEventController : MonoBehaviour
         // --- IMPACT MOMENT ---
         Vector3 finalImpactPos = terrain.transform.TransformPoint(localImpactPos);
         Vector3 worldNormal = terrain.transform.TransformDirection(localImpactDir).normalized;
+
+        // Play meteor impact sound effect
+        if (AudioManager.Instance != null)
+        {
+            float pitch = Mathf.Clamp(1.2f - sizeData.scaleFactor * 0.2f, 0.6f, 1.4f);
+            AudioManager.Instance.PlayMeteorImpact(finalImpactPos, sizeData.scaleFactor, pitch);
+        }
 
         // 1. Spawn Impact Particle System with scale factor
         SpawnImpactParticleSystem(finalImpactPos, worldNormal, sizeData.scaleFactor);
