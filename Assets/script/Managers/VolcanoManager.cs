@@ -341,6 +341,18 @@ public class VolcanoManager : MonoBehaviour
                 {
                     vol.particleSystemRef.Play();
                 }
+
+                if (AudioManager.Instance != null && terrain != null)
+                {
+                    Vector3 localDir = MeteorEventController.DegreesToLocalDirection(vol.longitudeDegrees, vol.latitudeDegrees);
+                    float h = terrain.GetHeightAtDegrees(vol.longitudeDegrees, vol.latitudeDegrees);
+                    Vector3 localPos = localDir * (terrain.BaseRadius + h * terrain.HeightScale);
+                    Vector3 volPos = terrain.transform.TransformPoint(localPos);
+
+                    AudioManager.Instance.PlayVolcanoEruption(volPos, vol.currentRadiusDegrees);
+                    AudioManager.Instance.PlayVolcanicExplosion(volPos, vol.currentRadiusDegrees, UnityEngine.Random.Range(0.85f, 1.15f));
+                }
+
                 Debug.Log($"[VolcanoManager] Volcano [{vol.id}] entering ERUPTIVE phase!");
                 break;
 
