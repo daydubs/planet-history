@@ -412,11 +412,21 @@ public class MeteorEventController : MonoBehaviour
 
     private void ApplyImpactEffects(float lon, float lat, MeteorSizeData sizeData, PlanetEpoch epoch, bool isOceanic)
     {
-        // 1. Always release atmospheric volatile gases proportional to meteor size
+        // 1. Always release atmospheric volatile gases and apply thermal impact shock pulse
         if (sizeData.gasRelease > 0f)
         {
             GameManager.Instance?.AddMeteorGases(sizeData.gasRelease);
         }
+
+        float thermalPulse = sizeData.tier switch
+        {
+            MeteorSizeTier.Small => Random.Range(12f, 18f),
+            MeteorSizeTier.Medium => Random.Range(30f, 45f),
+            MeteorSizeTier.Large => Random.Range(65f, 90f),
+            MeteorSizeTier.Massive => Random.Range(130f, 180f),
+            _ => 20f
+        };
+        GameManager.Instance?.AddImpactThermalPulse(thermalPulse);
 
         // 2. Epoch-tailored terrain deformation and aquatic effects
         float radius = sizeData.radiusDegrees;
