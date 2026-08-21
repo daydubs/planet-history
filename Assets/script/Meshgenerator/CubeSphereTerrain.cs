@@ -934,9 +934,13 @@ public class CubeSphereTerrain : MonoBehaviour
             }
         }
 
-        // 2. Handle drift during TectonicDrift
-        if (epoch == PlanetEpoch.TectonicDrift && simDt > 0f)
+        // 2. Handle drift during TectonicDrift and subsequent epochs (e.g., Prebiotic)
+        if (epoch >= PlanetEpoch.TectonicDrift && simDt > 0f)
         {
+            // Speed factor: full speed during main TectonicDrift epoch, reduced residual speed (e.g. 20% scaled by remaining tectonic activity) in later epochs
+            float tectonicFactor = GameManager.Instance != null ? Mathf.Clamp01(GameManager.Instance.TectonicActivity / 0.23f) : 1f;
+            float speedFactor = (epoch == PlanetEpoch.TectonicDrift) ? 1.0f : (0.20f * tectonicFactor);
+
             // First perform continental piece collision detection
             if (continentalPieces != null && continentalPieces.Length > 1)
             {
@@ -976,11 +980,11 @@ public class CubeSphereTerrain : MonoBehaviour
 
                             Vector3 eastA = new Vector3(-Mathf.Sin(lonRadA), 0f, Mathf.Cos(lonRadA));
                             Vector3 northA = Vector3.Cross(eastA, posA).normalized;
-                            Vector3 velA = eastA * (pieceA.driftSpeedLon * Mathf.Deg2Rad * cosLatA) + northA * (pieceA.driftSpeedLat * Mathf.Deg2Rad);
+                            Vector3 velA = (eastA * (pieceA.driftSpeedLon * Mathf.Deg2Rad * cosLatA) + northA * (pieceA.driftSpeedLat * Mathf.Deg2Rad)) * speedFactor;
 
                             Vector3 eastB = new Vector3(-Mathf.Sin(lonRadB), 0f, Mathf.Cos(lonRadB));
                             Vector3 northB = Vector3.Cross(eastB, posB).normalized;
-                            Vector3 velB = eastB * (pieceB.driftSpeedLon * Mathf.Deg2Rad * cosLatB) + northB * (pieceB.driftSpeedLat * Mathf.Deg2Rad);
+                            Vector3 velB = (eastB * (pieceB.driftSpeedLon * Mathf.Deg2Rad * cosLatB) + northB * (pieceB.driftSpeedLat * Mathf.Deg2Rad)) * speedFactor;
 
                             float vNormalA = Vector3.Dot(velA, dirAtoB);
                             float vNormalB = Vector3.Dot(velB, dirBtoA);
@@ -989,8 +993,9 @@ public class CubeSphereTerrain : MonoBehaviour
                             if (vNormalA > 0f)
                             {
                                 Vector3 velA_deflected = velA - vNormalA * dirAtoB;
-                                pieceA.driftSpeedLon = Vector3.Dot(velA_deflected, eastA) / (Mathf.Deg2Rad * cosLatA);
-                                pieceA.driftSpeedLat = Vector3.Dot(velA_deflected, northA) / Mathf.Deg2Rad;
+                                float safeSpeedFactor = Mathf.Max(speedFactor, 1e-5f);
+                                pieceA.driftSpeedLon = (Vector3.Dot(velA_deflected, eastA) / safeSpeedFactor) / (Mathf.Deg2Rad * cosLatA);
+                                pieceA.driftSpeedLat = (Vector3.Dot(velA_deflected, northA) / safeSpeedFactor) / Mathf.Deg2Rad;
                                 float maxLatSpeedA = Mathf.Abs(pieceA.driftSpeedLon) * 0.25f + 1e-6f;
                                 pieceA.driftSpeedLat = Mathf.Clamp(pieceA.driftSpeedLat, -maxLatSpeedA, maxLatSpeedA);
                             }
@@ -998,8 +1003,9 @@ public class CubeSphereTerrain : MonoBehaviour
                             if (vNormalB > 0f)
                             {
                                 Vector3 velB_deflected = velB - vNormalB * dirBtoA;
-                                pieceB.driftSpeedLon = Vector3.Dot(velB_deflected, eastB) / (Mathf.Deg2Rad * cosLatB);
-                                pieceB.driftSpeedLat = Vector3.Dot(velB_deflected, northB) / Mathf.Deg2Rad;
+                                float safeSpeedFactor = Mathf.Max(speedFactor, 1e-5f);
+                                pieceB.driftSpeedLon = (Vector3.Dot(velB_deflected, eastB) / safeSpeedFactor) / (Mathf.Deg2Rad * cosLatB);
+                                pieceB.driftSpeedLat = (Vector3.Dot(velB_deflected, northB) / safeSpeedFactor) / Mathf.Deg2Rad;
                                 float maxLatSpeedB = Mathf.Abs(pieceB.driftSpeedLon) * 0.25f + 1e-6f;
                                 pieceB.driftSpeedLat = Mathf.Clamp(pieceB.driftSpeedLat, -maxLatSpeedB, maxLatSpeedB);
                             }
@@ -1037,8 +1043,8 @@ public class CubeSphereTerrain : MonoBehaviour
             {
                 if (piece.driftSpeedLon != 0f || piece.driftSpeedLat != 0f)
                 {
-                    float deltaLon = piece.driftSpeedLon * simDt;
-                    float deltaLat = piece.driftSpeedLat * simDt;
+                    float deltaLon = piece.driftSpeedLon * speedFactor * simDt;
+                    float deltaLat = piece.driftSpeedLat * speedFactor * simDt;
 
                     // Smoothly damp North-South drift as piece latitude approaches +/- 50° to prevent entering polar ice caps
                     float currentAbsLat = Mathf.Abs(piece.currentLatitude);
