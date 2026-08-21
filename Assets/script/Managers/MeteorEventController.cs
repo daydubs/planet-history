@@ -29,6 +29,12 @@ public class MeteorEventController : MonoBehaviour
     [SerializeField] private GameObject meteorPrefab;
     [SerializeField] private float flightDuration = 2.0f;
 
+    [Header("ParticlePack Effects")]
+    [SerializeField] private GameObject fireballTrailPrefab;
+    [SerializeField] private GameObject bigExplosionPrefab;
+    [SerializeField] private GameObject smallExplosionPrefab;
+    [SerializeField] private GameObject tinyExplosionPrefab;
+
     public Button MeteorButton { get; private set; }
 
     private CubeSphereTerrain terrain;
@@ -307,13 +313,36 @@ public class MeteorEventController : MonoBehaviour
     {
         if (meteorObj == null) return;
 
+        GameObject prefabToUse = fireballTrailPrefab;
+        if (prefabToUse == null)
+        {
+            prefabToUse = Resources.Load<GameObject>("ParticlePack/FireBall");
+        }
+
+        if (prefabToUse != null)
+        {
+            GameObject trailInst = Instantiate(prefabToUse, meteorObj.transform);
+            trailInst.name = "MeteorFireBallTrail";
+            trailInst.transform.localPosition = Vector3.zero;
+            trailInst.transform.localRotation = Quaternion.identity;
+            trailInst.transform.localScale = Vector3.one * scaleFactor;
+
+            ParticleSystem[] particleSystems = trailInst.GetComponentsInChildren<ParticleSystem>();
+            foreach (var ps in particleSystems)
+            {
+                ps.Play(true);
+            }
+            return;
+        }
+
+        // --- Fallback Procedural Trail ---
         GameObject trailGo = new GameObject("MeteorTrail");
         trailGo.transform.SetParent(meteorObj.transform, false);
 
-        ParticleSystem ps = trailGo.AddComponent<ParticleSystem>();
-        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        ParticleSystem fallbackPs = trailGo.AddComponent<ParticleSystem>();
+        fallbackPs.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
 
-        var main = ps.main;
+        var main = fallbackPs.main;
         main.duration = 5f;
         main.loop = true;
         main.startLifetime = new ParticleSystem.MinMaxCurve(0.3f * scaleFactor, 0.7f * scaleFactor);
@@ -321,14 +350,14 @@ public class MeteorEventController : MonoBehaviour
         main.startSize = new ParticleSystem.MinMaxCurve(0.8f * scaleFactor, 2.0f * scaleFactor);
         main.simulationSpace = ParticleSystemSimulationSpace.World;
 
-        var emission = ps.emission;
+        var emission = fallbackPs.emission;
         emission.rateOverTime = 80f * scaleFactor;
 
-        var shape = ps.shape;
+        var shape = fallbackPs.shape;
         shape.shapeType = ParticleSystemShapeType.Sphere;
         shape.radius = 0.5f * scaleFactor;
 
-        var colorOverLifetime = ps.colorOverLifetime;
+        var colorOverLifetime = fallbackPs.colorOverLifetime;
         colorOverLifetime.enabled = true;
         Gradient grad = new Gradient();
         grad.SetKeys(
@@ -338,11 +367,11 @@ public class MeteorEventController : MonoBehaviour
         colorOverLifetime.color = grad;
 
         var texture = Resources.Load<Texture2D>("Textures/particle_spark_old");
-        var renderer = ps.GetComponent<ParticleSystemRenderer>();
+        var renderer = fallbackPs.GetComponent<ParticleSystemRenderer>();
         renderer.material = new Material(Shader.Find("Particles/Standard Unlit"));
         renderer.material.mainTexture = texture;
 
-        ps.Play();
+        fallbackPs.Play();
     }
 
     private System.Collections.IEnumerator AnimateMeteorFlight(
@@ -496,6 +525,48 @@ public class MeteorEventController : MonoBehaviour
 
     private void SpawnImpactParticleSystem(Vector3 position, Vector3 normal, float scaleFactor)
     {
+        GameObject prefabToUse = null;
+
+        if (scaleFactor >= 2.0f)
+        {
+            prefabToUse = bigExplosionPrefab;
+            if (prefabToUse == null) prefabToUse = Resources.Load<GameObject>("ParticlePack/BigExplosion");
+        }
+        else if (scaleFactor >= 0.8f)
+        {
+            prefabToUse = smallExplosionPrefab;
+            if (prefabToUse == null) prefabToUse = Resources.Load<GameObject>("ParticlePack/SmallExplosion");
+        }
+        else
+        {
+            prefabToUse = tinyExplosionPrefab;
+            if (prefabToUse == null) prefabToUse = Resources.Load<GameObject>("ParticlePack/TinyExplosion");
+        }
+
+        // Fallback to SmallExplosion if specific tier prefab was null
+        if (prefabToUse == null)
+        {
+            prefabToUse = smallExplosionPrefab;
+            if (prefabToUse == null) prefabToUse = Resources.Load<GameObject>("ParticlePack/SmallExplosion");
+        }
+
+        if (prefabToUse != null)
+        {
+            GameObject impactInst = Instantiate(prefabToUse, position, Quaternion.LookRotation(normal));
+            impactInst.name = "MeteorImpactExplosion";
+            impactInst.transform.localScale = Vector3.one * scaleFactor;
+
+            ParticleSystem[] particleSystems = impactInst.GetComponentsInChildren<ParticleSystem>();
+            foreach (var ps in particleSystems)
+            {
+                ps.Play(true);
+            }
+
+            Destroy(impactInst, 5.0f);
+            return;
+        }
+
+        // --- Fallback Procedural Impact Particle System ---
         GameObject impactGo = new GameObject("MeteorImpactParticles");
         impactGo.transform.position = position;
         impactGo.transform.rotation = Quaternion.LookRotation(normal);
