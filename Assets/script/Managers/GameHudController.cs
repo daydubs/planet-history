@@ -964,7 +964,18 @@ public class GameHudController : MonoBehaviour
                 : $"Temps restant: {remainingHours:0.00} h");
 
         SetText(internalTempText, $"Temp. interne: {gameManager.InternalTemperature:0.0} K ({gameManager.InternalTemperature - 273.15f:0.0} °C)");
-        SetText(surfaceTempText, $"Temp. surface: {gameManager.SurfaceTemperature:0.0} K ({gameManager.SurfaceTemperature - 273.15f:0.0} °C)");
+
+        string thermalExtras = "";
+        if (gameManager.GreenhouseDeltaTemp > 0.1f)
+        {
+            thermalExtras += $" [Serre: +{gameManager.GreenhouseDeltaTemp:0.0} K]";
+        }
+        if (gameManager.ImpactThermalPulse > 0.1f)
+        {
+            thermalExtras += $" [Choc Météore: +{gameManager.ImpactThermalPulse:0.0} K]";
+        }
+
+        SetText(surfaceTempText, $"Temp. surface: {gameManager.SurfaceTemperature:0.0} K ({gameManager.SurfaceTemperature - 273.15f:0.0} °C){thermalExtras}");
         SetText(pressureText, $"Pression: {gameManager.Pressure:0.000} atm");
         SetText(waterText, $"Eau liquide: {gameManager.WaterRatio * 100f:0.00}%");
         SetText(tectonicText, $"Activite tectonique: {gameManager.TectonicActivity * 100f:0.00}%");
