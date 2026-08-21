@@ -106,10 +106,70 @@ public class GameHudController : MonoBehaviour
             prebioticObj.AddComponent<PrebioticMiniGameController>();
         }
 
+        // Dynamically attach GameMenuController to scene if missing
+        if (FindAnyObjectByType<GameMenuController>() == null && GameMenuController.Instance == null)
+        {
+            GameObject menuObj = new GameObject("GameMenuController");
+            menuObj.AddComponent<GameMenuController>();
+        }
+
+        CreatePauseButtonUI();
         CreateVolcanoUI();
         CreatePrebioticUI();
         CreateTooltipUI();
         CreatePrebioticCompletionWindowUI();
+    }
+
+    private void CreatePauseButtonUI()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null) canvas = FindAnyObjectByType<Canvas>();
+        if (canvas == null) return;
+
+        GameObject pauseBtnGo = new GameObject("HUD_PauseButton", typeof(RectTransform));
+        pauseBtnGo.transform.SetParent(canvas.transform, false);
+
+        RectTransform btnRect = pauseBtnGo.GetComponent<RectTransform>();
+        btnRect.anchorMin = new Vector2(1f, 1f);
+        btnRect.anchorMax = new Vector2(1f, 1f);
+        btnRect.pivot = new Vector2(1f, 1f);
+        btnRect.anchoredPosition = new Vector2(-20f, -20f);
+        btnRect.sizeDelta = new Vector2(130f, 40f);
+
+        Image btnImg = pauseBtnGo.AddComponent<Image>();
+        btnImg.color = new Color(0.18f, 0.25f, 0.35f, 0.90f);
+
+        Button button = pauseBtnGo.AddComponent<Button>();
+        button.targetGraphic = btnImg;
+
+        ColorBlock cb = button.colors;
+        cb.normalColor = new Color(0.18f, 0.25f, 0.35f, 0.90f);
+        cb.highlightedColor = new Color(0.28f, 0.38f, 0.50f, 1.0f);
+        cb.pressedColor = new Color(0.12f, 0.18f, 0.25f, 1.0f);
+        button.colors = cb;
+
+        GameObject textGo = new GameObject("Text", typeof(RectTransform));
+        textGo.transform.SetParent(pauseBtnGo.transform, false);
+
+        TextMeshProUGUI btnText = textGo.AddComponent<TextMeshProUGUI>();
+        btnText.text = "⏸ Pause";
+        btnText.fontSize = 16;
+        btnText.fontStyle = FontStyles.Bold;
+        btnText.color = Color.white;
+        btnText.alignment = TextAlignmentOptions.Center;
+
+        RectTransform textRect = textGo.GetComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.sizeDelta = Vector2.zero;
+
+        button.onClick.AddListener(() =>
+        {
+            if (GameMenuController.Instance != null)
+            {
+                GameMenuController.Instance.TogglePauseMenu();
+            }
+        });
     }
 
     private void CreateTooltipUI()
