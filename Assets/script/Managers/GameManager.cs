@@ -46,12 +46,19 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float simulationTimeSeconds; // temps total simulé
     [SerializeField] private bool isPaused;
 
+    [Header("Courbes d'évolution scientifiques de la Terre")]
+    [SerializeField] private AnimationCurve internalTempCurve;
+    [SerializeField] private AnimationCurve surfaceTempBaselineCurve;
+    [SerializeField, Min(0f)] private float greenhouseSensitivity = 25f;
+
     [Header("Variables planétaires")]
     [SerializeField] private float internalTemperature = 5000f; // K
     [SerializeField] private float surfaceTemperature = 1800f;  // K
     [SerializeField] private float pressure = 100f;              // atm arbitraire
     [SerializeField] private float waterRatio = 0f;              // 0..1
     [SerializeField] private float tectonicActivity = 0f;        // 0..1
+    [SerializeField] private float impactThermalPulse = 0f;      // K (Choc thermique météorite)
+    [SerializeField] private float greenhouseDeltaTemp = 0f;      // K (Réchauffement de serre)
 
     [Header("Composants de l'Atmosphère (pression partielle en atm)")]
     [SerializeField] private float waterVaporPressure;
@@ -89,6 +96,8 @@ public class GameManager : MonoBehaviour
     public float OtherGasesPressure => otherGasesPressure;
     public float MeteorGasesPressure => meteorGasesPressure;
     public float TsunamiWaterRise => tsunamiWaterRise;
+    public float ImpactThermalPulse => impactThermalPulse;
+    public float GreenhouseDeltaTemp => greenhouseDeltaTemp;
     public PlanetEpoch CurrentEpoch => currentEpoch;
     public bool IsPaused => isPaused;
     public bool NoPlayerBaseline => noPlayerBaseline;
@@ -121,8 +130,35 @@ public class GameManager : MonoBehaviour
         // Optionnel: si tu veux garder entre scènes
         // DontDestroyOnLoad(gameObject);
 
+        EnsureDefaultCurves();
         EnsureAudioManager();
         InitializeCsvLogger();
+    }
+
+    private void EnsureDefaultCurves()
+    {
+        if (internalTempCurve == null || internalTempCurve.length == 0)
+        {
+            internalTempCurve = new AnimationCurve(
+                new Keyframe(0.00f, 5000f), // Hadéen précoce (manteau/noyau en fusion)
+                new Keyframe(0.15f, 3500f), // Formation de la croûte
+                new Keyframe(0.35f, 2200f), // Âge volcanique
+                new Keyframe(0.60f, 1700f), // Dérive tectonique & proto-océan
+                new Keyframe(1.00f, 1500f)  // Stabilisation thermique mantle
+            );
+        }
+
+        if (surfaceTempBaselineCurve == null || surfaceTempBaselineCurve.length == 0)
+        {
+            surfaceTempBaselineCurve = new AnimationCurve(
+                new Keyframe(0.00f, 1800f),  // Océan de magma Hadéen
+                new Keyframe(0.10f, 1200f),  // Refroidissement croûte solide
+                new Keyframe(0.25f, 650f),   // Surface volcanique
+                new Keyframe(0.45f, 380f),   // Seuil de condensation de l'eau
+                new Keyframe(0.70f, 310f),   // Océans liquides
+                new Keyframe(1.00f, 298.15f) // 25 °C cible stabilité prébiotique
+            );
+        }
     }
 
     private void EnsureAudioManager()
@@ -141,6 +177,7 @@ public class GameManager : MonoBehaviour
         baselineSimulationUnits = Mathf.Max(1f, baselineSimulationUnits);
         playerSpeedMultiplier = Mathf.Max(0f, playerSpeedMultiplier);
         csvLogIntervalSimulationUnits = Mathf.Max(1f, csvLogIntervalSimulationUnits);
+        EnsureDefaultCurves();
     }
 #endif
 
@@ -172,6 +209,13 @@ public class GameManager : MonoBehaviour
             tsunamiWaterRise = Mathf.Max(0f, tsunamiWaterRise);
         }
 
+        if (impactThermalPulse > 0f)
+        {
+            // Dissipation progressive du choc thermique de météore
+            impactThermalPulse -= 0.02f * dt;
+            impactThermalPulse = Mathf.Max(0f, impactThermalPulse);
+        }
+
         UpdateEpochFromState();
         TryLogCsvSample();
 
@@ -190,14 +234,36 @@ public class GameManager : MonoBehaviour
 
     private void SimulateTemperatures(float dt)
     {
-        // Refroidissement interne lent
-        internalTemperature -= 0.001f * dt;
-        internalTemperature = Mathf.Max(internalTemperature, 1500f);
+        // 1. La température interne suit la courbe d'évolution scientifique du modèle terrestre
+        float progress = SessionProgress;
+        if (internalTempCurve != null && internalTempCurve.length > 0)
+        {
+            internalTemperature = internalTempCurve.Evaluate(progress);
+        }
+        else
+        {
+            internalTemperature = Mathf.Max(internalTemperature - 0.001f * dt, 1500f);
+        }
 
-        // La température de surface suit progressivement la baisse de la température interne.
-        // On effectue une interpolation linéaire afin de stabiliser la température de surface
-        // à environ 25 °C (298.15 K) en fin de phase de refroidissement de la planète (lorsque l'interne atteint 1500 K).
-        float targetSurface = Mathf.Lerp(298.15f, 1472.2f, Mathf.Clamp01((internalTemperature - 1500f) / 3500f));
+        // 2. Température de surface baseline (modèle d'évolution scientifique théorique)
+        float baselineSurface = surfaceTempBaselineCurve != null && surfaceTempBaselineCurve.length > 0
+            ? surfaceTempBaselineCurve.Evaluate(progress)
+            : Mathf.Lerp(298.15f, 1472.2f, Mathf.Clamp01((internalTemperature - 1500f) / 3500f));
+
+        // 3. Couplage physique de l'Effet de Serre (Greenhouse Effect) :
+        // Le CO2, la vapeur d'eau (H2O) et les gaz volcaniques/météoritiques (SO2, CH4, etc.)
+        // piègent le rayonnement infrarouge et augmentent la température de surface.
+        // On utilise la loi physique logarithmique de forçage radiatif du réchauffement de serre :
+        float greenhouseGasForcing = co2Pressure + 0.35f * waterVaporPressure + 0.75f * otherGasesPressure;
+        // Pression de référence de serre à l'équilibre prébiotique (~2.3 atm)
+        float baselineForcing = 2.3f;
+        float excessForcing = Mathf.Max(0f, greenhouseGasForcing - baselineForcing);
+
+        greenhouseDeltaTemp = greenhouseSensitivity * Mathf.Log(1f + excessForcing / 8f);
+
+        // 4. Température de surface dynamique globale = Baseline + Effet de Serre + Choc Thermique d'impact
+        float targetSurface = baselineSurface + greenhouseDeltaTemp + impactThermalPulse;
+
         surfaceTemperature = Mathf.MoveTowards(surfaceTemperature, targetSurface, 0.05f * dt);
         surfaceTemperature = Mathf.Max(surfaceTemperature, 100f);
     }
@@ -457,6 +523,12 @@ public class GameManager : MonoBehaviour
     {
         meteorGasesPressure += amount;
         LogEvent("Meteor Gases Released", $"Added {amount:F1} atm of other volcanic gases.");
+    }
+
+    public void AddImpactThermalPulse(float amount)
+    {
+        impactThermalPulse += amount;
+        LogEvent("Impact Thermal Shock", $"Surface temperature spiked by +{amount:F1} K.");
     }
 
     public void AddVolcanicGases(float co2Amount, float waterVaporAmount, float otherGasesAmount)
