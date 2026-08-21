@@ -264,9 +264,9 @@ public class GameManager : MonoBehaviour
             newEpoch = PlanetEpoch.CrustFormation;
         else if (waterRatio < 0.05f)
             newEpoch = PlanetEpoch.VolcanicAge;
-        else if (waterRatio < 0.30f)
+        else if (waterRatio < 0.10f)
             newEpoch = PlanetEpoch.ProtoOcean;
-        else if (waterRatio < 0.60f)
+        else if (waterRatio < 1.00f)
             newEpoch = PlanetEpoch.TectonicDrift;
         else
             newEpoch = PlanetEpoch.Prebiotic;
