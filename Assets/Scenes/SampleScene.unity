@@ -5135,6 +5135,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MeteorEventController
   meteorPrefab: {fileID: 154406678901532293, guid: c74c11b5ab519d24dac33c0d5e219cd9, type: 3}
   flightDuration: 2
+  fireballTrailPrefab: {fileID: 1947871717301538, guid: a990e3ac1318b834488c784d851f42a9, type: 3}
+  bigExplosionPrefab: {fileID: 1121192042590650, guid: e1b08032bec16ba4eb1ae23cbd572664, type: 3}
+  smallExplosionPrefab: {fileID: 1828176872806910, guid: 64891a0eb28db934898420d80ca07cb3, type: 3}
+  tinyExplosionPrefab: {fileID: 1337198075554910, guid: 25c7aa9ad705fe143a4d71c1c8deb7d4, type: 3}
 --- !u!4 &1669618554
 Transform:
   m_ObjectHideFlags: 0
