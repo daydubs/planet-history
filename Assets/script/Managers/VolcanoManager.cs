@@ -62,6 +62,11 @@ public class VolcanoManager : MonoBehaviour
     // Average radius of supercontinent in degrees (~45 degrees => ~90 degrees diameter)
     [SerializeField] private float supercontinentRadiusDegrees = 45f;
 
+    [Header("ParticlePack Volcanic Effects")]
+    [SerializeField] private GameObject volcanoFlamePrefab;
+    [SerializeField] private GameObject volcanoSmokePrefab;
+    [SerializeField] private GameObject volcanoExplosionPrefab;
+
     private List<VolcanoInstance> volcanoes = new List<VolcanoInstance>();
     private bool volcanicEpochTriggered = false;
     private Material sharedVolcanoParticleMaterial;
@@ -337,20 +342,35 @@ public class VolcanoManager : MonoBehaviour
         {
             case VolcanoState.Eruptive:
                 vol.currentPhaseDuration = UnityEngine.Random.Range(150f, 400f);
-                if (vol.particleSystemRef != null)
+
+                if (vol.particleSystemObject != null)
                 {
-                    vol.particleSystemRef.Play();
+                    ParticleSystem[] particleSystems = vol.particleSystemObject.GetComponentsInChildren<ParticleSystem>();
+                    foreach (var ps in particleSystems)
+                    {
+                        ps.Play(true);
+                    }
+                }
+                else
+                {
+                    CreateVolcanoParticleSystem(vol);
                 }
 
-                if (AudioManager.Instance != null && terrain != null)
+                if (terrain != null)
                 {
                     Vector3 localDir = MeteorEventController.DegreesToLocalDirection(vol.longitudeDegrees, vol.latitudeDegrees);
                     float h = terrain.GetHeightAtDegrees(vol.longitudeDegrees, vol.latitudeDegrees);
                     Vector3 localPos = localDir * (terrain.BaseRadius + h * terrain.HeightScale);
                     Vector3 volPos = terrain.transform.TransformPoint(localPos);
+                    Vector3 volNormal = terrain.transform.TransformDirection(localDir).normalized;
 
-                    AudioManager.Instance.PlayVolcanoEruption(volPos, vol.currentRadiusDegrees);
-                    AudioManager.Instance.PlayVolcanicExplosion(volPos, vol.currentRadiusDegrees, UnityEngine.Random.Range(0.85f, 1.15f));
+                    TriggerEruptionBurstEffect(volPos, volNormal, vol.currentRadiusDegrees);
+
+                    if (AudioManager.Instance != null)
+                    {
+                        AudioManager.Instance.PlayVolcanoEruption(volPos, vol.currentRadiusDegrees);
+                        AudioManager.Instance.PlayVolcanicExplosion(volPos, vol.currentRadiusDegrees, UnityEngine.Random.Range(0.85f, 1.15f));
+                    }
                 }
 
                 Debug.Log($"[VolcanoManager] Volcano [{vol.id}] entering ERUPTIVE phase!");
@@ -358,12 +378,42 @@ public class VolcanoManager : MonoBehaviour
 
             case VolcanoState.Dormant:
                 vol.currentPhaseDuration = UnityEngine.Random.Range(200f, 600f);
-                if (vol.particleSystemRef != null)
+                if (vol.particleSystemObject != null)
                 {
-                    vol.particleSystemRef.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                    ParticleSystem[] particleSystems = vol.particleSystemObject.GetComponentsInChildren<ParticleSystem>();
+                    foreach (var ps in particleSystems)
+                    {
+                        ps.Stop(true, ParticleSystemStopBehavior.StopEmitting);
+                    }
                 }
                 Debug.Log($"[VolcanoManager] Volcano [{vol.id}] entering DORMANT phase.");
                 break;
+        }
+    }
+
+    private void TriggerEruptionBurstEffect(Vector3 position, Vector3 normal, float radiusDegrees)
+    {
+        GameObject prefabToUse = volcanoExplosionPrefab;
+        if (prefabToUse == null)
+        {
+            prefabToUse = Resources.Load<GameObject>("ParticlePack/DustExplosion")
+                       ?? Resources.Load<GameObject>("ParticlePack/BigExplosion");
+        }
+
+        if (prefabToUse != null)
+        {
+            float scale = Mathf.Clamp(radiusDegrees / (supercontinentRadiusDegrees * 0.05f), 0.5f, 3f);
+            GameObject burstInst = Instantiate(prefabToUse, position, Quaternion.LookRotation(normal));
+            burstInst.name = "VolcanoEruptionBurst";
+            burstInst.transform.localScale = Vector3.one * scale;
+
+            ParticleSystem[] pss = burstInst.GetComponentsInChildren<ParticleSystem>();
+            foreach (var ps in pss)
+            {
+                ps.Play(true);
+            }
+
+            Destroy(burstInst, 5.0f);
         }
     }
 
@@ -387,77 +437,130 @@ public class VolcanoManager : MonoBehaviour
 
             vol.particleSystemObject.transform.position = worldPos;
             vol.particleSystemObject.transform.rotation = Quaternion.LookRotation(worldNormal);
+
+            float scale = Mathf.Clamp(vol.currentRadiusDegrees / (supercontinentRadiusDegrees * 0.05f), 0.4f, 2.5f);
+            vol.particleSystemObject.transform.localScale = Vector3.one * scale;
         }
     }
 
     private void CreateVolcanoParticleSystem(VolcanoInstance vol)
     {
         GameObject pObj = new GameObject($"VolcanoEruption_{vol.id}");
-        ParticleSystem ps = pObj.AddComponent<ParticleSystem>();
-        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        float scale = Mathf.Clamp(vol.currentRadiusDegrees / (supercontinentRadiusDegrees * 0.05f), 0.4f, 2.5f);
+        pObj.transform.localScale = Vector3.one * scale;
 
-        float scale = vol.currentRadiusDegrees / (supercontinentRadiusDegrees * 0.05f); // normalized scale factor
-
-        var main = ps.main;
-        main.duration = 5f;
-        main.loop = true;
-        main.startLifetime = new ParticleSystem.MinMaxCurve(0.8f * scale, 2.0f * scale);
-        main.startSpeed = new ParticleSystem.MinMaxCurve(1.2f * scale, 3.5f * scale);
-        main.startSize = new ParticleSystem.MinMaxCurve(0.18f * scale, 0.45f * scale);
-        main.simulationSpace = ParticleSystemSimulationSpace.World;
-
-        var emission = ps.emission;
-        emission.rateOverTime = 25f * scale;
-
-        var shape = ps.shape;
-        shape.shapeType = ParticleSystemShapeType.Cone;
-        shape.angle = 18f;
-        shape.radius = 0.15f * scale;
-
-        var colorOverLifetime = ps.colorOverLifetime;
-        colorOverLifetime.enabled = true;
-        Gradient grad = new Gradient();
-        grad.SetKeys(
-            new GradientColorKey[] {
-                new GradientColorKey(new Color(1f, 0.4f, 0.05f), 0f),   // Bright lava fire
-                new GradientColorKey(new Color(0.2f, 0.2f, 0.2f), 0.4f), // Dark ash smoke
-                new GradientColorKey(new Color(0.1f, 0.1f, 0.1f), 1f)
-            },
-            new GradientAlphaKey[] {
-                new GradientAlphaKey(0.9f, 0f),
-                new GradientAlphaKey(0.6f, 0.5f),
-                new GradientAlphaKey(0f, 1f)
-            }
-        );
-        colorOverLifetime.color = grad;
-
-        if (sharedVolcanoParticleMaterial == null)
+        // Try loading ParticlePack Flame Stream and Smoke prefabs
+        GameObject flamePrefabToUse = volcanoFlamePrefab;
+        if (flamePrefabToUse == null)
         {
-            var texture = Resources.Load<Texture2D>("Textures/particle_spark");
-            if (texture == null)
-            {
-                texture = Resources.Load<Texture2D>("Textures/particle_spark_old");
-            }
-            Shader particleShader = Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Mobile/Particles/Additive") ?? Shader.Find("Sprites/Default");
-            sharedVolcanoParticleMaterial = new Material(particleShader);
-            if (texture != null)
-            {
-                sharedVolcanoParticleMaterial.mainTexture = texture;
-            }
+            flamePrefabToUse = Resources.Load<GameObject>("ParticlePack/FlameStream")
+                            ?? Resources.Load<GameObject>("ParticlePack/LargeFlames");
         }
 
-        var renderer = ps.GetComponent<ParticleSystemRenderer>();
-        if (sharedVolcanoParticleMaterial != null)
+        GameObject smokePrefabToUse = volcanoSmokePrefab;
+        if (smokePrefabToUse == null)
         {
-            renderer.sharedMaterial = sharedVolcanoParticleMaterial;
+            smokePrefabToUse = Resources.Load<GameObject>("ParticlePack/SmokeEffect");
+        }
+
+        bool attachedParticlePack = false;
+
+        if (flamePrefabToUse != null)
+        {
+            GameObject flameInst = Instantiate(flamePrefabToUse, pObj.transform);
+            flameInst.name = "FlameStream";
+            flameInst.transform.localPosition = Vector3.zero;
+            flameInst.transform.localRotation = Quaternion.identity;
+            flameInst.transform.localScale = Vector3.one;
+            attachedParticlePack = true;
+        }
+
+        if (smokePrefabToUse != null)
+        {
+            GameObject smokeInst = Instantiate(smokePrefabToUse, pObj.transform);
+            smokeInst.name = "SmokeColumn";
+            smokeInst.transform.localPosition = Vector3.up * 0.2f;
+            smokeInst.transform.localRotation = Quaternion.identity;
+            smokeInst.transform.localScale = Vector3.one * 1.2f;
+            attachedParticlePack = true;
+        }
+
+        // Fallback procedural particle system if no prefabs loaded
+        if (!attachedParticlePack)
+        {
+            ParticleSystem ps = pObj.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+            var main = ps.main;
+            main.duration = 5f;
+            main.loop = true;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.8f, 2.0f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(1.2f, 3.5f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.45f);
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+
+            var emission = ps.emission;
+            emission.rateOverTime = 25f;
+
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 18f;
+            shape.radius = 0.15f;
+
+            var colorOverLifetime = ps.colorOverLifetime;
+            colorOverLifetime.enabled = true;
+            Gradient grad = new Gradient();
+            grad.SetKeys(
+                new GradientColorKey[] {
+                    new GradientColorKey(new Color(1f, 0.4f, 0.05f), 0f),   // Bright lava fire
+                    new GradientColorKey(new Color(0.2f, 0.2f, 0.2f), 0.4f), // Dark ash smoke
+                    new GradientColorKey(new Color(0.1f, 0.1f, 0.1f), 1f)
+                },
+                new GradientAlphaKey[] {
+                    new GradientAlphaKey(0.9f, 0f),
+                    new GradientAlphaKey(0.6f, 0.5f),
+                    new GradientAlphaKey(0f, 1f)
+                }
+            );
+            colorOverLifetime.color = grad;
+
+            if (sharedVolcanoParticleMaterial == null)
+            {
+                var texture = Resources.Load<Texture2D>("Textures/particle_spark")
+                           ?? Resources.Load<Texture2D>("Textures/particle_spark_old");
+                Shader particleShader = Shader.Find("Particles/Standard Unlit")
+                                     ?? Shader.Find("Mobile/Particles/Additive")
+                                     ?? Shader.Find("Sprites/Default");
+                sharedVolcanoParticleMaterial = new Material(particleShader);
+                if (texture != null)
+                {
+                    sharedVolcanoParticleMaterial.mainTexture = texture;
+                }
+            }
+
+            var renderer = ps.GetComponent<ParticleSystemRenderer>();
+            if (sharedVolcanoParticleMaterial != null)
+            {
+                renderer.sharedMaterial = sharedVolcanoParticleMaterial;
+            }
+
+            vol.particleSystemRef = ps;
+        }
+        else
+        {
+            vol.particleSystemRef = pObj.GetComponentInChildren<ParticleSystem>();
         }
 
         vol.particleSystemObject = pObj;
-        vol.particleSystemRef = ps;
 
+        // Start emitting if in Eruptive state
         if (vol.state == VolcanoState.Eruptive)
         {
-            ps.Play();
+            ParticleSystem[] particleSystems = pObj.GetComponentsInChildren<ParticleSystem>();
+            foreach (var ps in particleSystems)
+            {
+                ps.Play(true);
+            }
         }
     }
 
