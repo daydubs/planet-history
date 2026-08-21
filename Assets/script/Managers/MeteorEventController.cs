@@ -538,7 +538,7 @@ public class MeteorEventController : MonoBehaviour
         curve.AddKey(1f, 0.1f);
         sizeOverLifetime.size = new ParticleSystem.MinMaxCurve(1f, curve);
 
-        var texture = Resources.Load<Texture2D>("Textures/particle_spark");
+        var texture = Resources.Load<Texture2D>("Textures/particle_spark_0");
         var renderer = ps.GetComponent<ParticleSystemRenderer>();
         renderer.material = new Material(Shader.Find("Particles/Standard Unlit"));
         renderer.material.mainTexture = texture;
