@@ -58,6 +58,11 @@ public class GameHudController : MonoBehaviour
     [Header("Prebiotique Completion Popup")]
     [SerializeField] private Sprite prebioticCompletionSprite;
 
+    [Header("Minimap")]
+    [SerializeField] private RawImage minimapRawImage;
+    [SerializeField] private int minimapWidth = 256;
+    [SerializeField] private int minimapHeight = 128;
+
     [Header("Palette (Hex)")]
     [SerializeField] private string hadeanHex = "#D1495B";
     [SerializeField] private string crustFormationHex = "#F79256";
@@ -114,6 +119,7 @@ public class GameHudController : MonoBehaviour
         }
 
         CreatePauseButtonUI();
+        CreateMinimapUI();
         CreateVolcanoUI();
         CreatePrebioticUI();
         CreateTooltipUI();
@@ -170,6 +176,239 @@ public class GameHudController : MonoBehaviour
                 GameMenuController.Instance.TogglePauseMenu();
             }
         });
+    }
+
+    private GameObject minimapPanel;
+    private Texture2D minimapTexture;
+    private Color[] minimapPixels;
+    private CubeSphereTerrain cachedTerrain;
+    private bool minimapExpanded = true;
+
+    private void CreateMinimapUI()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null) canvas = FindAnyObjectByType<Canvas>();
+        if (canvas == null) return;
+
+        // Minimap panel container positioned top-right below pause button
+        minimapPanel = new GameObject("HUD_MinimapPanel", typeof(RectTransform));
+        minimapPanel.transform.SetParent(canvas.transform, false);
+
+        RectTransform panelRect = minimapPanel.GetComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(1f, 1f);
+        panelRect.anchorMax = new Vector2(1f, 1f);
+        panelRect.pivot = new Vector2(1f, 1f);
+        panelRect.anchoredPosition = new Vector2(-20f, -70f);
+        panelRect.sizeDelta = new Vector2(256f, 160f);
+
+        Image panelBg = minimapPanel.AddComponent<Image>();
+        panelBg.color = new Color(0.08f, 0.12f, 0.16f, 0.92f); // Dark slate frame
+
+        // Header Bar (Title + Toggle)
+        GameObject headerGo = new GameObject("MinimapHeader", typeof(RectTransform));
+        headerGo.transform.SetParent(minimapPanel.transform, false);
+
+        RectTransform headerRect = headerGo.GetComponent<RectTransform>();
+        headerRect.anchorMin = new Vector2(0f, 1f);
+        headerRect.anchorMax = new Vector2(1f, 1f);
+        headerRect.pivot = new Vector2(0.5f, 1f);
+        headerRect.anchoredPosition = Vector2.zero;
+        headerRect.sizeDelta = new Vector2(0f, 30f);
+
+        GameObject titleGo = new GameObject("Title", typeof(RectTransform));
+        titleGo.transform.SetParent(headerGo.transform, false);
+
+        TextMeshProUGUI titleText = titleGo.AddComponent<TextMeshProUGUI>();
+        titleText.text = "🗺 Carte Couleur";
+        titleText.fontSize = 13;
+        titleText.fontStyle = FontStyles.Bold;
+        titleText.color = new Color(0.92f, 0.95f, 0.98f, 1f);
+        titleText.alignment = TextAlignmentOptions.MidlineLeft;
+
+        RectTransform titleRect = titleGo.GetComponent<RectTransform>();
+        titleRect.anchorMin = new Vector2(0f, 0f);
+        titleRect.anchorMax = new Vector2(1f, 1f);
+        titleRect.offsetMin = new Vector2(10f, 0f);
+        titleRect.offsetMax = new Vector2(-35f, 0f);
+
+        // Toggle Minimap Collapse Button
+        GameObject toggleBtnGo = new GameObject("ToggleBtn", typeof(RectTransform));
+        toggleBtnGo.transform.SetParent(headerGo.transform, false);
+
+        RectTransform toggleRect = toggleBtnGo.GetComponent<RectTransform>();
+        toggleRect.anchorMin = new Vector2(1f, 0.5f);
+        toggleRect.anchorMax = new Vector2(1f, 0.5f);
+        toggleRect.pivot = new Vector2(1f, 0.5f);
+        toggleRect.anchoredPosition = new Vector2(-5f, 0f);
+        toggleRect.sizeDelta = new Vector2(24f, 22f);
+
+        Image toggleImg = toggleBtnGo.AddComponent<Image>();
+        toggleImg.color = new Color(0.22f, 0.30f, 0.40f, 0.9f);
+
+        Button toggleBtn = toggleBtnGo.AddComponent<Button>();
+        toggleBtn.targetGraphic = toggleImg;
+
+        GameObject toggleTextGo = new GameObject("Text", typeof(RectTransform));
+        toggleTextGo.transform.SetParent(toggleBtnGo.transform, false);
+        TextMeshProUGUI toggleText = toggleTextGo.AddComponent<TextMeshProUGUI>();
+        toggleText.text = "▼";
+        toggleText.fontSize = 12;
+        toggleText.fontStyle = FontStyles.Bold;
+        toggleText.color = Color.white;
+        toggleText.alignment = TextAlignmentOptions.Center;
+
+        RectTransform toggleTextRect = toggleTextGo.GetComponent<RectTransform>();
+        toggleTextRect.anchorMin = Vector2.zero;
+        toggleTextRect.anchorMax = Vector2.one;
+        toggleTextRect.sizeDelta = Vector2.zero;
+
+        // Minimap RawImage display area
+        GameObject rawImageGo = new GameObject("MinimapRawImage", typeof(RectTransform));
+        rawImageGo.transform.SetParent(minimapPanel.transform, false);
+
+        RectTransform rawRect = rawImageGo.GetComponent<RectTransform>();
+        rawRect.anchorMin = new Vector2(0.5f, 0f);
+        rawRect.anchorMax = new Vector2(0.5f, 0f);
+        rawRect.pivot = new Vector2(0.5f, 0f);
+        rawRect.anchoredPosition = new Vector2(0f, 6f);
+        rawRect.sizeDelta = new Vector2(244f, 122f);
+
+        minimapRawImage = rawImageGo.AddComponent<RawImage>();
+        minimapRawImage.color = Color.white;
+
+        // Toggle click handler
+        toggleBtn.onClick.AddListener(() =>
+        {
+            minimapExpanded = !minimapExpanded;
+            rawImageGo.SetActive(minimapExpanded);
+            panelRect.sizeDelta = new Vector2(256f, minimapExpanded ? 160f : 30f);
+            toggleText.text = minimapExpanded ? "▼" : "▲";
+        });
+    }
+
+    private void UpdateMinimapTexture()
+    {
+        if (minimapRawImage == null || !minimapRawImage.gameObject.activeInHierarchy) return;
+
+        if (cachedTerrain == null)
+        {
+            cachedTerrain = FindAnyObjectByType<CubeSphereTerrain>();
+        }
+
+        if (cachedTerrain == null || cachedTerrain.Field == null) return;
+
+        PlanetHeightField field = cachedTerrain.Field;
+        int width = minimapWidth;
+        int height = minimapHeight;
+
+        if (minimapTexture == null || minimapTexture.width != width || minimapTexture.height != height)
+        {
+            minimapTexture = new Texture2D(width, height, TextureFormat.RGBA32, false)
+            {
+                wrapMode = TextureWrapMode.Repeat,
+                filterMode = FilterMode.Bilinear
+            };
+            minimapPixels = new Color[width * height];
+            minimapRawImage.texture = minimapTexture;
+        }
+
+        float surfaceTemp = gameManager != null ? gameManager.SurfaceTemperature : 1800f;
+        float waterRatio = gameManager != null ? gameManager.WaterRatio : 0f;
+
+        float fieldWidth = field.Width;
+        float fieldHeight = field.Height;
+
+        for (int y = 0; y < height; y++)
+        {
+            float v = (float)y / (height - 1);
+            float lat01 = Mathf.Abs(v - 0.5f) * 2f; // 0 at equator, 1 at pole
+            int fieldY = Mathf.Clamp(Mathf.RoundToInt(v * (fieldHeight - 1)), 0, (int)fieldHeight - 1);
+
+            for (int x = 0; x < width; x++)
+            {
+                float u = (float)x / (width - 1);
+                int fieldX = Mathf.Clamp(Mathf.RoundToInt(u * (fieldWidth - 1)), 0, (int)fieldWidth - 1);
+
+                float h = field.GetCurrent(fieldX, fieldY);
+                Color pixelColor = EvaluateHeightAlbedo(h, lat01, surfaceTemp, waterRatio);
+                minimapPixels[x + y * width] = pixelColor;
+            }
+        }
+
+        minimapTexture.SetPixels(minimapPixels);
+        minimapTexture.Apply();
+    }
+
+    private static Color EvaluateHeightAlbedo(float height, float latitude01, float surfaceTemp, float waterRatio)
+    {
+        // Colors from PlanetReliefShader.shader
+        Color oceanColor = new Color(0.02f, 0.12f, 0.32f, 1f);
+        Color shoreColor = new Color(0.72f, 0.68f, 0.45f, 1f);
+        Color landColor = new Color(0.16f, 0.35f, 0.14f, 1f);
+        Color mountainColor = new Color(0.38f, 0.33f, 0.29f, 1f);
+        Color iceColor = new Color(0.92f, 0.95f, 1.0f, 1f);
+
+        // Standard land palette
+        Color standardShore = shoreColor;
+        Color standardLand = Color.Lerp(standardShore, landColor, SmoothStep(0.08f, 0.35f, height));
+        Color standardMountain = Color.Lerp(standardLand, mountainColor, SmoothStep(0.35f, 0.70f, height));
+
+        // Dry volcanic ash palette
+        Color dryShore = new Color(0.12f, 0.12f, 0.13f, 1f);
+        Color dryLand = new Color(0.18f, 0.18f, 0.20f, 1f);
+        Color dryMountain = new Color(0.35f, 0.35f, 0.35f, 1f);
+
+        Color volcanicLand = Color.Lerp(dryShore, dryLand, SmoothStep(0.08f, 0.35f, height));
+        volcanicLand = Color.Lerp(volcanicLand, dryMountain, SmoothStep(0.35f, 0.70f, height));
+
+        Color baseLandColor = Color.Lerp(volcanicLand, standardMountain, waterRatio);
+
+        // Ice / poles
+        float ice = SmoothStep(0.82f - 0.08f, 0.82f + 0.08f, latitude01) * waterRatio;
+        baseLandColor = Color.Lerp(baseLandColor, iceColor, ice);
+
+        Color finalColor = baseLandColor;
+
+        // Lava layer above 500 K
+        float lavaMask = SmoothStep(500f, 1400f, surfaceTemp);
+        if (lavaMask > 0.001f)
+        {
+            float heightLavaBias = SmoothStep(0.5f, 0.1f, height);
+            lavaMask = Mathf.Clamp01(lavaMask * (0.3f + 0.7f * heightLavaBias));
+
+            if (lavaMask > 0.001f)
+            {
+                Color lavaBaseColor = new Color(0.75f, 0.02f, 0.0f, 1f);
+                Color lavaHotColor = new Color(1.0f, 0.28f, 0.0f, 1f);
+                Color currentLavaColor = Color.Lerp(lavaBaseColor, lavaHotColor, 0.5f);
+                finalColor = Color.Lerp(finalColor, currentLavaColor, lavaMask);
+            }
+        }
+
+        // Ocean water flooding layer
+        if (waterRatio > 0.001f)
+        {
+            float maxWaterLevel = 0.02f * 1.5f;
+            float waterLevel = maxWaterLevel * waterRatio;
+
+            if (height < waterLevel + 0.02f)
+            {
+                float depth = waterLevel - height;
+                if (depth > 0f)
+                {
+                    float waterBlend = Mathf.Clamp01(depth * 100f);
+                    finalColor = Color.Lerp(finalColor, oceanColor, waterBlend);
+                }
+            }
+        }
+
+        return finalColor;
+    }
+
+    private static float SmoothStep(float min, float max, float value)
+    {
+        float t = Mathf.Clamp01((value - min) / (max - min));
+        return t * t * (3f - 2f * t);
     }
 
     private void CreateTooltipUI()
@@ -797,6 +1036,7 @@ public class GameHudController : MonoBehaviour
         SetText(epochBadgeHexText, string.Empty);
 
         CheckPrebioticCompletion();
+        UpdateMinimapTexture();
     }
 
     private string GetEpochHex(PlanetEpoch epoch)
