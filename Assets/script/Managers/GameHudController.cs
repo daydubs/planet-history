@@ -55,6 +55,9 @@ public class GameHudController : MonoBehaviour
     [Header("Labels Prebiotique")]
     [SerializeField] private TMP_Text prebioticProgressText;
 
+    [Header("Prebiotique Completion Popup")]
+    [SerializeField] private Sprite prebioticCompletionSprite;
+
     [Header("Palette (Hex)")]
     [SerializeField] private string hadeanHex = "#D1495B";
     [SerializeField] private string crustFormationHex = "#F79256";
@@ -71,6 +74,10 @@ public class GameHudController : MonoBehaviour
     private GameObject tooltipPanel;
     private TMP_Text tooltipTitleText;
     private TMP_Text tooltipBodyText;
+
+    private GameObject prebioticCompletionPanel;
+    private Image prebioticCompletionImageComponent;
+    private bool hasShownPrebioticCompletionWindow = false;
 
     private void Awake()
     {
@@ -102,6 +109,7 @@ public class GameHudController : MonoBehaviour
         CreateVolcanoUI();
         CreatePrebioticUI();
         CreateTooltipUI();
+        CreatePrebioticCompletionWindowUI();
     }
 
     private void CreateTooltipUI()
@@ -427,11 +435,187 @@ public class GameHudController : MonoBehaviour
         button.onClick.AddListener(action);
     }
 
+    private void CreatePrebioticCompletionWindowUI()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null) canvas = FindAnyObjectByType<Canvas>();
+        if (canvas == null) return;
+
+        // Container anchored on Middle-Left (gauche centre)
+        prebioticCompletionPanel = new GameObject("PrebioticCompletionPanel", typeof(RectTransform));
+        prebioticCompletionPanel.transform.SetParent(canvas.transform, false);
+
+        RectTransform panelRect = prebioticCompletionPanel.GetComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(0f, 0.5f);
+        panelRect.anchorMax = new Vector2(0f, 0.5f);
+        panelRect.pivot = new Vector2(0f, 0.5f);
+        panelRect.anchoredPosition = new Vector2(25f, 0f);
+        panelRect.sizeDelta = new Vector2(380f, 480f);
+
+        // Panel Background
+        Image bg = prebioticCompletionPanel.AddComponent<Image>();
+        bg.color = new Color(0.06f, 0.12f, 0.16f, 0.95f); // Dark cyan / slate background
+
+        VerticalLayoutGroup layout = prebioticCompletionPanel.AddComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(18, 18, 18, 18);
+        layout.spacing = 10f;
+        layout.childControlWidth = true;
+        layout.childControlHeight = false;
+        layout.childForceExpandWidth = true;
+        layout.childAlignment = TextAnchor.UpperCenter;
+
+        ContentSizeFitter fitter = prebioticCompletionPanel.AddComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        // Title: Félicitations !
+        GameObject titleGo = new GameObject("CompletionTitle", typeof(RectTransform));
+        titleGo.transform.SetParent(prebioticCompletionPanel.transform, false);
+        TextMeshProUGUI titleText = titleGo.AddComponent<TextMeshProUGUI>();
+        titleText.text = "FÉLICITATIONS !";
+        titleText.fontSize = 22;
+        titleText.fontStyle = FontStyles.Bold;
+        titleText.color = new Color(0.98f, 0.85f, 0.35f, 1f); // Gold
+        titleText.alignment = TextAlignmentOptions.Center;
+
+        // Subtitle: Synthèse des Acides Aminés Complétée
+        GameObject subtitleGo = new GameObject("CompletionSubtitle", typeof(RectTransform));
+        subtitleGo.transform.SetParent(prebioticCompletionPanel.transform, false);
+        TextMeshProUGUI subtitleText = subtitleGo.AddComponent<TextMeshProUGUI>();
+        subtitleText.text = "Création des Acides Aminés (100%)";
+        subtitleText.fontSize = 16;
+        subtitleText.fontStyle = FontStyles.Bold;
+        subtitleText.color = new Color(0.30f, 0.90f, 0.75f, 1f); // Teal
+        subtitleText.alignment = TextAlignmentOptions.Center;
+
+        // Description Message
+        GameObject msgGo = new GameObject("CompletionMessage", typeof(RectTransform));
+        msgGo.transform.SetParent(prebioticCompletionPanel.transform, false);
+        TextMeshProUGUI msgText = msgGo.AddComponent<TextMeshProUGUI>();
+        msgText.text = "Toutes les briques fondamentales du vivant (les 8 acides aminés essentiels : Glycine, Alanine, Acides Aspartique et Glutamique, Sérine, Valine, Leucine et Isoleucine) ont été avec succès synthétisées dans la soupe primitive !";
+        msgText.fontSize = 13;
+        msgText.fontStyle = FontStyles.Normal;
+        msgText.color = new Color(0.92f, 0.95f, 0.97f, 1f);
+        msgText.alignment = TextAlignmentOptions.Left;
+        msgText.enableWordWrapping = true;
+
+        // Image Container for Custom Downloaded Image
+        GameObject imageGo = new GameObject("CompletionImage", typeof(RectTransform));
+        imageGo.transform.SetParent(prebioticCompletionPanel.transform, false);
+        prebioticCompletionImageComponent = imageGo.AddComponent<Image>();
+        prebioticCompletionImageComponent.preserveAspect = true;
+
+        LayoutElement imageLayout = imageGo.AddComponent<LayoutElement>();
+        imageLayout.minWidth = 320f;
+        imageLayout.preferredWidth = 340f;
+        imageLayout.minHeight = 180f;
+        imageLayout.preferredHeight = 200f;
+        imageLayout.flexibleWidth = 1f;
+
+        if (prebioticCompletionSprite != null)
+        {
+            prebioticCompletionImageComponent.sprite = prebioticCompletionSprite;
+        }
+        else
+        {
+            Sprite loadedSprite = Resources.Load<Sprite>("PrebioticAminoAcids");
+            if (loadedSprite != null) prebioticCompletionImageComponent.sprite = loadedSprite;
+        }
+
+        // Close / Continue Button
+        GameObject closeBtnGo = new GameObject("CompletionCloseBtn", typeof(RectTransform));
+        closeBtnGo.transform.SetParent(prebioticCompletionPanel.transform, false);
+
+        Image closeBtnImg = closeBtnGo.AddComponent<Image>();
+        closeBtnImg.color = new Color(0.18f, 0.65f, 0.55f, 1f);
+
+        Button closeBtn = closeBtnGo.AddComponent<Button>();
+        closeBtn.targetGraphic = closeBtnImg;
+        closeBtn.onClick.AddListener(HidePrebioticCompletionWindow);
+
+        LayoutElement btnLayout = closeBtnGo.AddComponent<LayoutElement>();
+        btnLayout.minHeight = 36f;
+        btnLayout.preferredHeight = 38f;
+        btnLayout.flexibleWidth = 1f;
+
+        GameObject btnTextGo = new GameObject("Text", typeof(RectTransform));
+        btnTextGo.transform.SetParent(closeBtnGo.transform, false);
+        TextMeshProUGUI btnText = btnTextGo.AddComponent<TextMeshProUGUI>();
+        btnText.text = "Fermer";
+        btnText.fontSize = 15;
+        btnText.fontStyle = FontStyles.Bold;
+        btnText.color = Color.white;
+        btnText.alignment = TextAlignmentOptions.Center;
+
+        RectTransform btnTextRect = btnTextGo.GetComponent<RectTransform>();
+        btnTextRect.anchorMin = Vector2.zero;
+        btnTextRect.anchorMax = Vector2.one;
+        btnTextRect.sizeDelta = Vector2.zero;
+
+        prebioticCompletionPanel.SetActive(false);
+    }
+
+    public void ShowPrebioticCompletionWindow()
+    {
+        hasShownPrebioticCompletionWindow = true;
+
+        if (prebioticCompletionPanel == null)
+        {
+            CreatePrebioticCompletionWindowUI();
+        }
+
+        if (prebioticCompletionPanel != null)
+        {
+            if (prebioticCompletionSprite != null && prebioticCompletionImageComponent != null)
+            {
+                prebioticCompletionImageComponent.sprite = prebioticCompletionSprite;
+            }
+            else if (prebioticCompletionImageComponent != null && prebioticCompletionImageComponent.sprite == null)
+            {
+                Sprite loaded = Resources.Load<Sprite>("PrebioticAminoAcids");
+                if (loaded != null) prebioticCompletionImageComponent.sprite = loaded;
+            }
+
+            prebioticCompletionPanel.SetActive(true);
+            prebioticCompletionPanel.transform.SetAsLastSibling();
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(prebioticCompletionPanel.GetComponent<RectTransform>());
+        }
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.LogEvent("Prebiotic Synthesis Complete", "100% of amino acids synthesized.");
+        }
+    }
+
+    public void HidePrebioticCompletionWindow()
+    {
+        if (prebioticCompletionPanel != null)
+        {
+            prebioticCompletionPanel.SetActive(false);
+        }
+    }
+
+    private void CheckPrebioticCompletion()
+    {
+        if (hasShownPrebioticCompletionWindow) return;
+
+        if (PrebioticMiniGameController.Instance != null && PrebioticMiniGameController.Instance.TotalProgress >= 0.999f)
+        {
+            ShowPrebioticCompletionWindow();
+        }
+    }
+
     private void OnEnable()
     {
         if (gameManager != null)
         {
             gameManager.OnEpochChanged += HandleEpochChanged;
+        }
+
+        if (PrebioticMiniGameController.Instance != null)
+        {
+            PrebioticMiniGameController.Instance.OnPrebioticProgressUpdated += CheckPrebioticCompletion;
         }
 
         RefreshAll();
@@ -442,6 +626,11 @@ public class GameHudController : MonoBehaviour
         if (gameManager != null)
         {
             gameManager.OnEpochChanged -= HandleEpochChanged;
+        }
+
+        if (PrebioticMiniGameController.Instance != null)
+        {
+            PrebioticMiniGameController.Instance.OnPrebioticProgressUpdated -= CheckPrebioticCompletion;
         }
     }
 
@@ -546,6 +735,8 @@ public class GameHudController : MonoBehaviour
 
         // Clear hex badge text to avoid displaying raw hex string on HUD
         SetText(epochBadgeHexText, string.Empty);
+
+        CheckPrebioticCompletion();
     }
 
     private string GetEpochHex(PlanetEpoch epoch)
