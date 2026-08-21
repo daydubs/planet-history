@@ -937,9 +937,9 @@ public class CubeSphereTerrain : MonoBehaviour
         // 2. Handle drift during TectonicDrift and subsequent epochs (e.g., Prebiotic)
         if (epoch >= PlanetEpoch.TectonicDrift && simDt > 0f)
         {
-            // Speed factor: full speed during main TectonicDrift epoch, reduced residual speed (e.g. 20% scaled by remaining tectonic activity) in later epochs
+            // Speed factor: rush speed during main TectonicDrift epoch (scaled to 1/3 so that 3x longer duration maintains identical total displacement), reduced residual speed in later epochs
             float tectonicFactor = GameManager.Instance != null ? Mathf.Clamp01(GameManager.Instance.TectonicActivity / 0.23f) : 1f;
-            float speedFactor = (epoch == PlanetEpoch.TectonicDrift) ? 1.0f : (0.20f * tectonicFactor);
+            float speedFactor = (epoch == PlanetEpoch.TectonicDrift) ? (1.0f / 3.0f) : (0.20f * tectonicFactor);
 
             // First perform continental piece collision detection
             if (continentalPieces != null && continentalPieces.Length > 1)
