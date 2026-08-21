@@ -26,6 +26,70 @@ public class UIHoverTooltipTrigger : MonoBehaviour, IPointerEnterHandler, IPoint
     }
 }
 
+public class MinimapInteractionHandler : MonoBehaviour, IPointerDownHandler, IDragHandler, IScrollHandler
+{
+    public GameHudController hudController;
+
+    public void OnPointerDown(PointerEventData eventData)
+    {
+        // Intercept pointer down to capture drag focus on minimap
+    }
+
+    public void OnDrag(PointerEventData eventData)
+    {
+        if (hudController == null) return;
+
+        RectTransform rectTransform = transform as RectTransform;
+        if (rectTransform == null) return;
+
+        Vector2 size = rectTransform.rect.size;
+        if (size.x <= 0f || size.y <= 0f) return;
+
+        // Convert screen drag delta to normalized minimap delta
+        Vector2 deltaNormalized = new Vector2(eventData.delta.x / size.x, eventData.delta.y / size.y);
+        hudController.PanMinimap(deltaNormalized);
+    }
+
+    public void OnScroll(PointerEventData eventData)
+    {
+        if (hudController == null) return;
+
+        RectTransform rectTransform = transform as RectTransform;
+        if (rectTransform == null) return;
+
+        // Calculate normalized cursor position within RawImage [0..1]
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            rectTransform,
+            eventData.position,
+            eventData.pressEventCamera,
+            out Vector2 localPoint);
+
+        Vector2 size = rectTransform.rect.size;
+        Vector2 pivotNormalized = new Vector2(
+            (localPoint.x - rectTransform.rect.xMin) / size.x,
+            (localPoint.y - rectTransform.rect.yMin) / size.y);
+
+        pivotNormalized.x = Mathf.Clamp01(pivotNormalized.x);
+        pivotNormalized.y = Mathf.Clamp01(pivotNormalized.y);
+
+        // Determine zoom direction (mouse wheel scroll)
+        float scrollDelta = eventData.scrollDelta.y;
+        if (Mathf.Abs(scrollDelta) < 0.01f)
+        {
+            scrollDelta = eventData.scrollDelta.x;
+        }
+
+        if (scrollDelta > 0.01f)
+        {
+            hudController.ZoomMinimap(1.2f, pivotNormalized);
+        }
+        else if (scrollDelta < -0.01f)
+        {
+            hudController.ZoomMinimap(1f / 1.2f, pivotNormalized);
+        }
+    }
+}
+
 public class GameHudController : MonoBehaviour
 {
     [Header("Source")]
@@ -60,8 +124,8 @@ public class GameHudController : MonoBehaviour
 
     [Header("Minimap")]
     [SerializeField] private RawImage minimapRawImage;
-    [SerializeField] private int minimapWidth = 256;
-    [SerializeField] private int minimapHeight = 128;
+    [SerializeField] private int minimapWidth = 360;
+    [SerializeField] private int minimapHeight = 180;
 
     [Header("Palette (Hex)")]
     [SerializeField] private string hadeanHex = "#D1495B";
@@ -184,6 +248,12 @@ public class GameHudController : MonoBehaviour
     private CubeSphereTerrain cachedTerrain;
     private bool minimapExpanded = true;
 
+    // Minimap Zoom & Pan State
+    private float minimapZoom = 1.0f;
+    private Vector2 minimapPanOffset = Vector2.zero; // UV center offset (0..1)
+    private const float MinMinimapZoom = 1.0f;
+    private const float MaxMinimapZoom = 8.0f;
+
     private void CreateMinimapUI()
     {
         Canvas canvas = GetComponentInParent<Canvas>();
@@ -199,12 +269,12 @@ public class GameHudController : MonoBehaviour
         panelRect.anchorMax = new Vector2(1f, 1f);
         panelRect.pivot = new Vector2(1f, 1f);
         panelRect.anchoredPosition = new Vector2(-20f, -70f);
-        panelRect.sizeDelta = new Vector2(256f, 160f);
+        panelRect.sizeDelta = new Vector2(380f, 230f);
 
         Image panelBg = minimapPanel.AddComponent<Image>();
         panelBg.color = new Color(0.08f, 0.12f, 0.16f, 0.92f); // Dark slate frame
 
-        // Header Bar (Title + Toggle)
+        // Header Bar (Title + Controls + Toggle)
         GameObject headerGo = new GameObject("MinimapHeader", typeof(RectTransform));
         headerGo.transform.SetParent(minimapPanel.transform, false);
 
@@ -213,7 +283,7 @@ public class GameHudController : MonoBehaviour
         headerRect.anchorMax = new Vector2(1f, 1f);
         headerRect.pivot = new Vector2(0.5f, 1f);
         headerRect.anchoredPosition = Vector2.zero;
-        headerRect.sizeDelta = new Vector2(0f, 30f);
+        headerRect.sizeDelta = new Vector2(0f, 32f);
 
         GameObject titleGo = new GameObject("Title", typeof(RectTransform));
         titleGo.transform.SetParent(headerGo.transform, false);
@@ -229,17 +299,34 @@ public class GameHudController : MonoBehaviour
         titleRect.anchorMin = new Vector2(0f, 0f);
         titleRect.anchorMax = new Vector2(1f, 1f);
         titleRect.offsetMin = new Vector2(10f, 0f);
-        titleRect.offsetMax = new Vector2(-35f, 0f);
+        titleRect.offsetMax = new Vector2(-120f, 0f);
+
+        // Header Buttons Container (Zoom +, Zoom -, Reset, Collapse)
+        GameObject controlsGo = new GameObject("MinimapControls", typeof(RectTransform));
+        controlsGo.transform.SetParent(headerGo.transform, false);
+
+        RectTransform controlsRect = controlsGo.GetComponent<RectTransform>();
+        controlsRect.anchorMin = new Vector2(1f, 0.5f);
+        controlsRect.anchorMax = new Vector2(1f, 0.5f);
+        controlsRect.pivot = new Vector2(1f, 0.5f);
+        controlsRect.anchoredPosition = new Vector2(-5f, 0f);
+        controlsRect.sizeDelta = new Vector2(115f, 24f);
+
+        HorizontalLayoutGroup controlsLayout = controlsGo.AddComponent<HorizontalLayoutGroup>();
+        controlsLayout.spacing = 4f;
+        controlsLayout.childAlignment = TextAnchor.MiddleRight;
+        controlsLayout.childControlWidth = false;
+        controlsLayout.childControlHeight = false;
+
+        Button zoomInBtn = CreateMinimapHeaderButton(controlsGo.transform, "+", "Zoom Avant", () => ZoomMinimap(1.25f, new Vector2(0.5f, 0.5f)));
+        Button zoomOutBtn = CreateMinimapHeaderButton(controlsGo.transform, "-", "Zoom Arrière", () => ZoomMinimap(1f / 1.25f, new Vector2(0.5f, 0.5f)));
+        Button resetBtn = CreateMinimapHeaderButton(controlsGo.transform, "⟲", "Réinitialiser Vue", ResetMinimapView);
 
         // Toggle Minimap Collapse Button
         GameObject toggleBtnGo = new GameObject("ToggleBtn", typeof(RectTransform));
-        toggleBtnGo.transform.SetParent(headerGo.transform, false);
+        toggleBtnGo.transform.SetParent(controlsGo.transform, false);
 
         RectTransform toggleRect = toggleBtnGo.GetComponent<RectTransform>();
-        toggleRect.anchorMin = new Vector2(1f, 0.5f);
-        toggleRect.anchorMax = new Vector2(1f, 0.5f);
-        toggleRect.pivot = new Vector2(1f, 0.5f);
-        toggleRect.anchoredPosition = new Vector2(-5f, 0f);
         toggleRect.sizeDelta = new Vector2(24f, 22f);
 
         Image toggleImg = toggleBtnGo.AddComponent<Image>();
@@ -271,19 +358,122 @@ public class GameHudController : MonoBehaviour
         rawRect.anchorMax = new Vector2(0.5f, 0f);
         rawRect.pivot = new Vector2(0.5f, 0f);
         rawRect.anchoredPosition = new Vector2(0f, 6f);
-        rawRect.sizeDelta = new Vector2(244f, 122f);
+        rawRect.sizeDelta = new Vector2(364f, 182f);
 
         minimapRawImage = rawImageGo.AddComponent<RawImage>();
         minimapRawImage.color = Color.white;
+
+        // Attach interactive zoom and pan controller
+        MinimapInteractionHandler interactionHandler = rawImageGo.AddComponent<MinimapInteractionHandler>();
+        interactionHandler.hudController = this;
 
         // Toggle click handler
         toggleBtn.onClick.AddListener(() =>
         {
             minimapExpanded = !minimapExpanded;
             rawImageGo.SetActive(minimapExpanded);
-            panelRect.sizeDelta = new Vector2(256f, minimapExpanded ? 160f : 30f);
+            panelRect.sizeDelta = new Vector2(380f, minimapExpanded ? 230f : 32f);
             toggleText.text = minimapExpanded ? "▼" : "▲";
         });
+    }
+
+    public void ZoomMinimap(float factor, Vector2 pivotNormalized)
+    {
+        float prevZoom = minimapZoom;
+        minimapZoom = Mathf.Clamp(minimapZoom * factor, MinMinimapZoom, MaxMinimapZoom);
+
+        if (Mathf.Approximately(minimapZoom, prevZoom)) return;
+
+        if (minimapZoom <= MinMinimapZoom)
+        {
+            minimapPanOffset = Vector2.zero;
+            return;
+        }
+
+        // Adjust panOffset to zoom centered around pivotNormalized (in 0..1 RawImage normalized space)
+        float uPivotPrev = (pivotNormalized.x - 0.5f) / prevZoom + 0.5f + minimapPanOffset.x;
+        float vPivotPrev = (pivotNormalized.y - 0.5f) / prevZoom + 0.5f + minimapPanOffset.y;
+
+        float uPivotNew = (pivotNormalized.x - 0.5f) / minimapZoom + 0.5f;
+        float vPivotNew = (pivotNormalized.y - 0.5f) / minimapZoom + 0.5f;
+
+        minimapPanOffset.x = uPivotPrev - uPivotNew;
+        minimapPanOffset.y = vPivotPrev - vPivotNew;
+
+        ClampMinimapPanOffset();
+    }
+
+    public void PanMinimap(Vector2 deltaNormalized)
+    {
+        if (minimapZoom <= 1.001f) return;
+
+        minimapPanOffset.x -= deltaNormalized.x / minimapZoom;
+        minimapPanOffset.y -= deltaNormalized.y / minimapZoom;
+
+        ClampMinimapPanOffset();
+    }
+
+    public void ResetMinimapView()
+    {
+        minimapZoom = 1.0f;
+        minimapPanOffset = Vector2.zero;
+    }
+
+    private void ClampMinimapPanOffset()
+    {
+        // Wrap X (longitude) seamlessly
+        minimapPanOffset.x = Mathf.Repeat(minimapPanOffset.x, 1.0f);
+
+        // Clamp Y (latitude) so viewport stays within valid [0, 1] range
+        float halfVRange = 0.5f / minimapZoom;
+        float maxOffsetV = 0.5f - halfVRange;
+        if (maxOffsetV <= 0f)
+        {
+            minimapPanOffset.y = 0f;
+        }
+        else
+        {
+            minimapPanOffset.y = Mathf.Clamp(minimapPanOffset.y, -maxOffsetV, maxOffsetV);
+        }
+    }
+
+    private Button CreateMinimapHeaderButton(Transform parent, string symbol, string tooltipText, UnityEngine.Events.UnityAction action)
+    {
+        GameObject btnGo = new GameObject($"Btn_{symbol}", typeof(RectTransform));
+        btnGo.transform.SetParent(parent, false);
+
+        RectTransform rect = btnGo.GetComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(24f, 22f);
+
+        Image img = btnGo.AddComponent<Image>();
+        img.color = new Color(0.22f, 0.30f, 0.40f, 0.9f);
+
+        Button button = btnGo.AddComponent<Button>();
+        button.targetGraphic = img;
+
+        ColorBlock cb = button.colors;
+        cb.normalColor = new Color(0.22f, 0.30f, 0.40f, 0.9f);
+        cb.highlightedColor = new Color(0.32f, 0.45f, 0.60f, 1.0f);
+        cb.pressedColor = new Color(0.15f, 0.20f, 0.30f, 1.0f);
+        button.colors = cb;
+
+        GameObject textGo = new GameObject("Text", typeof(RectTransform));
+        textGo.transform.SetParent(btnGo.transform, false);
+
+        TextMeshProUGUI txt = textGo.AddComponent<TextMeshProUGUI>();
+        txt.text = symbol;
+        txt.fontSize = 13;
+        txt.fontStyle = FontStyles.Bold;
+        txt.color = Color.white;
+        txt.alignment = TextAlignmentOptions.Center;
+
+        RectTransform textRect = textGo.GetComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.sizeDelta = Vector2.zero;
+
+        button.onClick.AddListener(action);
+        return button;
     }
 
     private void UpdateMinimapTexture()
@@ -320,13 +510,21 @@ public class GameHudController : MonoBehaviour
 
         for (int y = 0; y < height; y++)
         {
-            float v = (float)y / (height - 1);
+            float normY = (float)y / (height - 1);
+            // Map viewport normY through zoom and pan offset
+            float v = (normY - 0.5f) / minimapZoom + 0.5f + minimapPanOffset.y;
+            v = Mathf.Clamp01(v);
+
             float lat01 = Mathf.Abs(v - 0.5f) * 2f; // 0 at equator, 1 at pole
             int fieldY = Mathf.Clamp(Mathf.RoundToInt(v * (fieldHeight - 1)), 0, (int)fieldHeight - 1);
 
             for (int x = 0; x < width; x++)
             {
-                float u = (float)x / (width - 1);
+                float normX = (float)x / (width - 1);
+                // Map viewport normX through zoom and pan offset with horizontal repeat
+                float u = (normX - 0.5f) / minimapZoom + 0.5f + minimapPanOffset.x;
+                u = Mathf.Repeat(u, 1.0f);
+
                 int fieldX = Mathf.Clamp(Mathf.RoundToInt(u * (fieldWidth - 1)), 0, (int)fieldWidth - 1);
 
                 float h = field.GetCurrent(fieldX, fieldY);
