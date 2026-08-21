@@ -2,6 +2,7 @@ using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 public class GameMenuController : MonoBehaviour
 {
@@ -13,6 +14,8 @@ public class GameMenuController : MonoBehaviour
     private GameObject canvasObj;
     private GameObject launchScreenPanel;
     private GameObject pauseScreenPanel;
+    private GameObject launchOptionsBox;
+    private GameObject pauseOptionsBox;
 
     // UI Controls for sync
     private TMP_Text musicVolumeText;
@@ -57,7 +60,8 @@ public class GameMenuController : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Escape) || Input.GetKeyDown(KeyCode.P))
+        var keyboard = Keyboard.current;
+        if (keyboard != null && (keyboard.escapeKey.wasPressedThisFrame || keyboard.pKey.wasPressedThisFrame))
         {
             if (launchScreenPanel != null && launchScreenPanel.activeSelf)
             {
@@ -165,19 +169,20 @@ public class GameMenuController : MonoBehaviour
         mainActionsLayoutEl.minHeight = 50f;
 
         CreateButton(mainActionsRow.transform, "▶ JOUER / COMMENCER", new Color(0.18f, 0.65f, 0.38f, 1f), 220f, 48f, () => StartGameFromLaunch());
+        CreateButton(mainActionsRow.transform, "⚙ OPTIONS", new Color(0.20f, 0.50f, 0.70f, 1f), 150f, 48f, () => ToggleLaunchOptions());
         CreateButton(mainActionsRow.transform, "✖ QUITTER", new Color(0.75f, 0.25f, 0.25f, 1f), 160f, 48f, () => QuitGame());
 
         // Spacer
         CreateSpacer(contentObj.transform, 10f);
 
         // Options Box Panel
-        GameObject optionsBox = new GameObject("OptionsBox", typeof(RectTransform));
-        optionsBox.transform.SetParent(contentObj.transform, false);
+        launchOptionsBox = new GameObject("LaunchOptionsBox", typeof(RectTransform));
+        launchOptionsBox.transform.SetParent(contentObj.transform, false);
 
-        Image optionsBg = optionsBox.AddComponent<Image>();
-        optionsBg.color = new Color(0.08f, 0.12f, 0.18f, 0.85f);
+        Image optionsBg = launchOptionsBox.AddComponent<Image>();
+        optionsBg.color = new Color(0.08f, 0.12f, 0.18f, 0.92f);
 
-        VerticalLayoutGroup optionsLayout = optionsBox.AddComponent<VerticalLayoutGroup>();
+        VerticalLayoutGroup optionsLayout = launchOptionsBox.AddComponent<VerticalLayoutGroup>();
         optionsLayout.padding = new RectOffset(24, 24, 18, 18);
         optionsLayout.spacing = 14f;
         optionsLayout.childControlWidth = true;
@@ -185,7 +190,7 @@ public class GameMenuController : MonoBehaviour
 
         // Options Title
         GameObject optTitleObj = new GameObject("OptionsHeader", typeof(RectTransform));
-        optTitleObj.transform.SetParent(optionsBox.transform, false);
+        optTitleObj.transform.SetParent(launchOptionsBox.transform, false);
         TextMeshProUGUI optTitle = optTitleObj.AddComponent<TextMeshProUGUI>();
         optTitle.text = "<b>⚙ OPTIONS DU JEU</b>";
         optTitle.fontSize = 22;
@@ -193,10 +198,24 @@ public class GameMenuController : MonoBehaviour
         optTitle.alignment = TextAlignmentOptions.Center;
 
         // Game Length Settings Block
-        CreateGameLengthControls(optionsBox.transform);
+        CreateGameLengthControls(launchOptionsBox.transform);
 
         // Sound Settings Block
-        CreateSoundControls(optionsBox.transform);
+        CreateSoundControls(launchOptionsBox.transform);
+
+        // Close Options Button
+        GameObject closeBtnRow = new GameObject("CloseOptionsRow", typeof(RectTransform));
+        closeBtnRow.transform.SetParent(launchOptionsBox.transform, false);
+
+        HorizontalLayoutGroup closeBtnLayout = closeBtnRow.AddComponent<HorizontalLayoutGroup>();
+        closeBtnLayout.childAlignment = TextAnchor.MiddleCenter;
+
+        LayoutElement closeRowEl = closeBtnRow.AddComponent<LayoutElement>();
+        closeRowEl.minHeight = 36f;
+
+        CreateButton(closeBtnRow.transform, "✔ FERMER LES OPTIONS", new Color(0.25f, 0.55f, 0.45f, 1f), 220f, 36f, () => ToggleLaunchOptions());
+
+        launchOptionsBox.SetActive(false);
 
         LayoutRebuilder.ForceRebuildLayoutImmediate(panelRect);
     }
@@ -256,6 +275,7 @@ public class GameMenuController : MonoBehaviour
         actionsLayoutEl.minHeight = 44f;
 
         CreateButton(actionsRow.transform, "▶ REPRENDRE", new Color(0.18f, 0.65f, 0.38f, 1f), 180f, 44f, () => ResumeGame());
+        CreateButton(actionsRow.transform, "⚙ OPTIONS", new Color(0.20f, 0.50f, 0.70f, 1f), 150f, 44f, () => TogglePauseOptions());
         CreateButton(actionsRow.transform, "🏠 MENU PRINCIPAL", new Color(0.25f, 0.50f, 0.75f, 1f), 200f, 44f, () => ReturnToLaunchScreen());
         CreateButton(actionsRow.transform, "✖ QUITTER", new Color(0.75f, 0.25f, 0.25f, 1f), 140f, 44f, () => QuitGame());
 
@@ -263,13 +283,13 @@ public class GameMenuController : MonoBehaviour
         CreateSpacer(contentObj.transform, 10f);
 
         // Options Box Panel for Pause Screen
-        GameObject optionsBox = new GameObject("PauseOptionsBox", typeof(RectTransform));
-        optionsBox.transform.SetParent(contentObj.transform, false);
+        pauseOptionsBox = new GameObject("PauseOptionsBox", typeof(RectTransform));
+        pauseOptionsBox.transform.SetParent(contentObj.transform, false);
 
-        Image optionsBg = optionsBox.AddComponent<Image>();
-        optionsBg.color = new Color(0.08f, 0.12f, 0.18f, 0.85f);
+        Image optionsBg = pauseOptionsBox.AddComponent<Image>();
+        optionsBg.color = new Color(0.08f, 0.12f, 0.18f, 0.92f);
 
-        VerticalLayoutGroup optionsLayout = optionsBox.AddComponent<VerticalLayoutGroup>();
+        VerticalLayoutGroup optionsLayout = pauseOptionsBox.AddComponent<VerticalLayoutGroup>();
         optionsLayout.padding = new RectOffset(24, 24, 18, 18);
         optionsLayout.spacing = 14f;
         optionsLayout.childControlWidth = true;
@@ -277,7 +297,7 @@ public class GameMenuController : MonoBehaviour
 
         // Options Title
         GameObject optTitleObj = new GameObject("OptionsHeader", typeof(RectTransform));
-        optTitleObj.transform.SetParent(optionsBox.transform, false);
+        optTitleObj.transform.SetParent(pauseOptionsBox.transform, false);
         TextMeshProUGUI optTitle = optTitleObj.AddComponent<TextMeshProUGUI>();
         optTitle.text = "<b>⚙ OPTIONS DU JEU</b>";
         optTitle.fontSize = 20;
@@ -285,8 +305,22 @@ public class GameMenuController : MonoBehaviour
         optTitle.alignment = TextAlignmentOptions.Center;
 
         // Shared Game Length & Sound Controls
-        CreateGameLengthControls(optionsBox.transform);
-        CreateSoundControls(optionsBox.transform);
+        CreateGameLengthControls(pauseOptionsBox.transform);
+        CreateSoundControls(pauseOptionsBox.transform);
+
+        // Close Options Button
+        GameObject closeBtnRow = new GameObject("ClosePauseOptionsRow", typeof(RectTransform));
+        closeBtnRow.transform.SetParent(pauseOptionsBox.transform, false);
+
+        HorizontalLayoutGroup closeBtnLayout = closeBtnRow.AddComponent<HorizontalLayoutGroup>();
+        closeBtnLayout.childAlignment = TextAnchor.MiddleCenter;
+
+        LayoutElement closeRowEl = closeBtnRow.AddComponent<LayoutElement>();
+        closeRowEl.minHeight = 36f;
+
+        CreateButton(closeBtnRow.transform, "✔ FERMER LES OPTIONS", new Color(0.25f, 0.55f, 0.45f, 1f), 220f, 36f, () => TogglePauseOptions());
+
+        pauseOptionsBox.SetActive(false);
 
         pauseScreenPanel.SetActive(false);
     }
@@ -628,10 +662,28 @@ public class GameMenuController : MonoBehaviour
     #endregion
 
     #region Menu Actions & Sync
+    public void ToggleLaunchOptions()
+    {
+        if (launchOptionsBox != null)
+        {
+            launchOptionsBox.SetActive(!launchOptionsBox.activeSelf);
+        }
+    }
+
+    public void TogglePauseOptions()
+    {
+        if (pauseOptionsBox != null)
+        {
+            pauseOptionsBox.SetActive(!pauseOptionsBox.activeSelf);
+        }
+    }
+
     public void ShowLaunchScreen()
     {
         if (launchScreenPanel != null) launchScreenPanel.SetActive(true);
         if (pauseScreenPanel != null) pauseScreenPanel.SetActive(false);
+        if (launchOptionsBox != null) launchOptionsBox.SetActive(false);
+        if (pauseOptionsBox != null) pauseOptionsBox.SetActive(false);
 
         if (GameManager.Instance != null)
         {
@@ -646,6 +698,8 @@ public class GameMenuController : MonoBehaviour
         if (launchScreenPanel != null && launchScreenPanel.activeSelf) return;
 
         if (pauseScreenPanel != null) pauseScreenPanel.SetActive(true);
+        if (launchOptionsBox != null) launchOptionsBox.SetActive(false);
+        if (pauseOptionsBox != null) pauseOptionsBox.SetActive(false);
 
         if (GameManager.Instance != null)
         {
@@ -659,6 +713,8 @@ public class GameMenuController : MonoBehaviour
     {
         if (launchScreenPanel != null) launchScreenPanel.SetActive(false);
         if (pauseScreenPanel != null) pauseScreenPanel.SetActive(false);
+        if (launchOptionsBox != null) launchOptionsBox.SetActive(false);
+        if (pauseOptionsBox != null) pauseOptionsBox.SetActive(false);
 
         if (GameManager.Instance != null)
         {
@@ -735,6 +791,8 @@ public class GameMenuController : MonoBehaviour
     {
         if (launchScreenPanel != null) launchScreenPanel.SetActive(false);
         if (pauseScreenPanel != null) pauseScreenPanel.SetActive(false);
+        if (launchOptionsBox != null) launchOptionsBox.SetActive(false);
+        if (pauseOptionsBox != null) pauseOptionsBox.SetActive(false);
     }
     #endregion
 }
