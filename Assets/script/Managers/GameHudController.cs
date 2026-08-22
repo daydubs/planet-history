@@ -124,8 +124,10 @@ public class GameHudController : MonoBehaviour
 
     [Header("Minimap")]
     [SerializeField] private RawImage minimapRawImage;
-    [SerializeField] private int minimapWidth = 1024;
-    [SerializeField] private int minimapHeight = 512;
+    [SerializeField] private int minimapWidth = 256;
+    [SerializeField] private int minimapHeight = 128;
+    [SerializeField, Min(0.1f)] private float minimapRefreshInterval = 0.5f;
+    private float minimapRefreshTimer;
 
     [Header("Palette (Hex)")]
     [SerializeField] private string hadeanHex = "#D1495B";
@@ -387,6 +389,7 @@ public class GameHudController : MonoBehaviour
         if (minimapZoom <= MinMinimapZoom)
         {
             minimapPanOffset = Vector2.zero;
+            UpdateMinimapTexture(force: true);
             return;
         }
 
@@ -401,6 +404,7 @@ public class GameHudController : MonoBehaviour
         minimapPanOffset.y = vPivotPrev - vPivotNew;
 
         ClampMinimapPanOffset();
+        UpdateMinimapTexture(force: true);
     }
 
     public void PanMinimap(Vector2 deltaNormalized)
@@ -411,12 +415,14 @@ public class GameHudController : MonoBehaviour
         minimapPanOffset.y -= deltaNormalized.y / minimapZoom;
 
         ClampMinimapPanOffset();
+        UpdateMinimapTexture(force: true);
     }
 
     public void ResetMinimapView()
     {
         minimapZoom = 1.0f;
         minimapPanOffset = Vector2.zero;
+        UpdateMinimapTexture(force: true);
     }
 
     private void ClampMinimapPanOffset()
@@ -476,9 +482,16 @@ public class GameHudController : MonoBehaviour
         return button;
     }
 
-    private void UpdateMinimapTexture()
+    private void UpdateMinimapTexture(bool force = false)
     {
-        if (minimapRawImage == null || !minimapRawImage.gameObject.activeInHierarchy) return;
+        if (minimapRawImage == null || !minimapRawImage.gameObject.activeInHierarchy || !minimapExpanded) return;
+
+        if (!force)
+        {
+            minimapRefreshTimer += Time.deltaTime;
+            if (minimapRefreshTimer < minimapRefreshInterval) return;
+            minimapRefreshTimer = 0f;
+        }
 
         if (cachedTerrain == null)
         {

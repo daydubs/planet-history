@@ -39,17 +39,49 @@ public class MeteorEventController : MonoBehaviour
 
     private CubeSphereTerrain terrain;
 
+    private GameObject cachedMeteorPrefab;
+    private GameObject cachedFireballTrailPrefab;
+    private GameObject cachedBigExplosion;
+    private GameObject cachedSmallExplosion;
+    private GameObject cachedTinyExplosion;
+    private Texture2D cachedParticleTexture;
+    private Material cachedParticleMaterial;
+
     private void Start()
     {
         terrain = FindAnyObjectByType<CubeSphereTerrain>();
+        CachePrefabs();
         CreateMeteorUI();
     }
 
-    private void Update()
+    private void CachePrefabs()
     {
-        if (MeteorButton != null)
+        if (cachedMeteorPrefab == null)
+            cachedMeteorPrefab = meteorPrefab != null ? meteorPrefab : Resources.Load<GameObject>("meteorPrefab");
+
+        if (cachedFireballTrailPrefab == null)
+            cachedFireballTrailPrefab = fireballTrailPrefab != null ? fireballTrailPrefab : Resources.Load<GameObject>("ParticlePack/FireBall");
+
+        if (cachedBigExplosion == null)
+            cachedBigExplosion = bigExplosionPrefab != null ? bigExplosionPrefab : Resources.Load<GameObject>("ParticlePack/BigExplosion");
+
+        if (cachedSmallExplosion == null)
+            cachedSmallExplosion = smallExplosionPrefab != null ? smallExplosionPrefab : Resources.Load<GameObject>("ParticlePack/SmallExplosion");
+
+        if (cachedTinyExplosion == null)
+            cachedTinyExplosion = tinyExplosionPrefab != null ? tinyExplosionPrefab : Resources.Load<GameObject>("ParticlePack/TinyExplosion");
+
+        if (cachedParticleTexture == null)
+            cachedParticleTexture = Resources.Load<Texture2D>("Textures/particle_spark_old") ?? Resources.Load<Texture2D>("Textures/particle_spark_0");
+
+        if (cachedParticleMaterial == null && cachedParticleTexture != null)
         {
-            MeteorButton.interactable = true;
+            Shader shader = Shader.Find("Particles/Standard Unlit") ?? Shader.Find("Sprites/Default");
+            if (shader != null)
+            {
+                cachedParticleMaterial = new Material(shader);
+                cachedParticleMaterial.mainTexture = cachedParticleTexture;
+            }
         }
     }
 
@@ -276,15 +308,11 @@ public class MeteorEventController : MonoBehaviour
     private GameObject SpawnMeteorObject(Vector3 startPosition, float scaleFactor)
     {
         GameObject meteorObj = null;
+        GameObject prefabToUse = cachedMeteorPrefab ?? meteorPrefab;
 
-        if (meteorPrefab == null)
+        if (prefabToUse != null)
         {
-            meteorPrefab = Resources.Load<GameObject>("meteorPrefab");
-        }
-
-        if (meteorPrefab != null)
-        {
-            meteorObj = Instantiate(meteorPrefab, startPosition, Quaternion.identity);
+            meteorObj = Instantiate(prefabToUse, startPosition, Quaternion.identity);
             meteorObj.transform.localScale = meteorObj.transform.localScale * scaleFactor;
         }
         else
@@ -313,11 +341,7 @@ public class MeteorEventController : MonoBehaviour
     {
         if (meteorObj == null) return;
 
-        GameObject prefabToUse = fireballTrailPrefab;
-        if (prefabToUse == null)
-        {
-            prefabToUse = Resources.Load<GameObject>("ParticlePack/FireBall");
-        }
+        GameObject prefabToUse = cachedFireballTrailPrefab ?? fireballTrailPrefab;
 
         if (prefabToUse != null)
         {
@@ -366,10 +390,17 @@ public class MeteorEventController : MonoBehaviour
         );
         colorOverLifetime.color = grad;
 
-        var texture = Resources.Load<Texture2D>("Textures/particle_spark_old");
         var renderer = fallbackPs.GetComponent<ParticleSystemRenderer>();
-        renderer.material = new Material(Shader.Find("Particles/Standard Unlit"));
-        renderer.material.mainTexture = texture;
+        if (cachedParticleMaterial != null)
+        {
+            renderer.sharedMaterial = cachedParticleMaterial;
+        }
+        else
+        {
+            var texture = cachedParticleTexture ?? Resources.Load<Texture2D>("Textures/particle_spark_old");
+            renderer.material = new Material(Shader.Find("Particles/Standard Unlit"));
+            renderer.material.mainTexture = texture;
+        }
 
         fallbackPs.Play();
     }
@@ -529,25 +560,21 @@ public class MeteorEventController : MonoBehaviour
 
         if (scaleFactor >= 2.0f)
         {
-            prefabToUse = bigExplosionPrefab;
-            if (prefabToUse == null) prefabToUse = Resources.Load<GameObject>("ParticlePack/BigExplosion");
+            prefabToUse = cachedBigExplosion ?? bigExplosionPrefab;
         }
         else if (scaleFactor >= 0.8f)
         {
-            prefabToUse = smallExplosionPrefab;
-            if (prefabToUse == null) prefabToUse = Resources.Load<GameObject>("ParticlePack/SmallExplosion");
+            prefabToUse = cachedSmallExplosion ?? smallExplosionPrefab;
         }
         else
         {
-            prefabToUse = tinyExplosionPrefab;
-            if (prefabToUse == null) prefabToUse = Resources.Load<GameObject>("ParticlePack/TinyExplosion");
+            prefabToUse = cachedTinyExplosion ?? tinyExplosionPrefab;
         }
 
         // Fallback to SmallExplosion if specific tier prefab was null
         if (prefabToUse == null)
         {
-            prefabToUse = smallExplosionPrefab;
-            if (prefabToUse == null) prefabToUse = Resources.Load<GameObject>("ParticlePack/SmallExplosion");
+            prefabToUse = cachedSmallExplosion ?? smallExplosionPrefab;
         }
 
         if (prefabToUse != null)

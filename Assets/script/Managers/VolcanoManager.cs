@@ -71,6 +71,10 @@ public class VolcanoManager : MonoBehaviour
     private bool volcanicEpochTriggered = false;
     private Material sharedVolcanoParticleMaterial;
 
+    private GameObject cachedFlamePrefab;
+    private GameObject cachedSmokePrefab;
+    private GameObject cachedExplosionPrefab;
+
     public IReadOnlyList<VolcanoInstance> Volcanoes => volcanoes;
 
     private void Awake()
@@ -81,6 +85,7 @@ public class VolcanoManager : MonoBehaviour
             return;
         }
         Instance = this;
+        CachePrefabs();
     }
 
     private void Start()
@@ -89,6 +94,8 @@ public class VolcanoManager : MonoBehaviour
         {
             terrain = FindAnyObjectByType<CubeSphereTerrain>();
         }
+
+        CachePrefabs();
 
         if (GameManager.Instance != null)
         {
@@ -99,6 +106,44 @@ public class VolcanoManager : MonoBehaviour
             if (GameManager.Instance.CurrentEpoch == PlanetEpoch.VolcanicAge)
             {
                 TriggerVolcanicEpoch();
+            }
+        }
+    }
+
+    private void CachePrefabs()
+    {
+        if (cachedFlamePrefab == null)
+        {
+            cachedFlamePrefab = volcanoFlamePrefab != null ? volcanoFlamePrefab
+                : (Resources.Load<GameObject>("ParticlePack/FlameStream") ?? Resources.Load<GameObject>("ParticlePack/LargeFlames"));
+        }
+
+        if (cachedSmokePrefab == null)
+        {
+            cachedSmokePrefab = volcanoSmokePrefab != null ? volcanoSmokePrefab
+                : Resources.Load<GameObject>("ParticlePack/SmokeEffect");
+        }
+
+        if (cachedExplosionPrefab == null)
+        {
+            cachedExplosionPrefab = volcanoExplosionPrefab != null ? volcanoExplosionPrefab
+                : (Resources.Load<GameObject>("ParticlePack/DustExplosion") ?? Resources.Load<GameObject>("ParticlePack/BigExplosion"));
+        }
+
+        if (sharedVolcanoParticleMaterial == null)
+        {
+            var texture = Resources.Load<Texture2D>("Textures/particle_spark")
+                       ?? Resources.Load<Texture2D>("Textures/particle_spark_old");
+            Shader particleShader = Shader.Find("Particles/Standard Unlit")
+                                 ?? Shader.Find("Mobile/Particles/Additive")
+                                 ?? Shader.Find("Sprites/Default");
+            if (particleShader != null)
+            {
+                sharedVolcanoParticleMaterial = new Material(particleShader);
+                if (texture != null)
+                {
+                    sharedVolcanoParticleMaterial.mainTexture = texture;
+                }
             }
         }
     }
@@ -393,12 +438,7 @@ public class VolcanoManager : MonoBehaviour
 
     private void TriggerEruptionBurstEffect(Vector3 position, Vector3 normal, float radiusDegrees)
     {
-        GameObject prefabToUse = volcanoExplosionPrefab;
-        if (prefabToUse == null)
-        {
-            prefabToUse = Resources.Load<GameObject>("ParticlePack/DustExplosion")
-                       ?? Resources.Load<GameObject>("ParticlePack/BigExplosion");
-        }
+        GameObject prefabToUse = cachedExplosionPrefab ?? volcanoExplosionPrefab;
 
         if (prefabToUse != null)
         {
@@ -450,18 +490,8 @@ public class VolcanoManager : MonoBehaviour
         pObj.transform.localScale = Vector3.one * scale;
 
         // Try loading ParticlePack Flame Stream and Smoke prefabs
-        GameObject flamePrefabToUse = volcanoFlamePrefab;
-        if (flamePrefabToUse == null)
-        {
-            flamePrefabToUse = Resources.Load<GameObject>("ParticlePack/FlameStream")
-                            ?? Resources.Load<GameObject>("ParticlePack/LargeFlames");
-        }
-
-        GameObject smokePrefabToUse = volcanoSmokePrefab;
-        if (smokePrefabToUse == null)
-        {
-            smokePrefabToUse = Resources.Load<GameObject>("ParticlePack/SmokeEffect");
-        }
+        GameObject flamePrefabToUse = cachedFlamePrefab ?? volcanoFlamePrefab;
+        GameObject smokePrefabToUse = cachedSmokePrefab ?? volcanoSmokePrefab;
 
         bool attachedParticlePack = false;
 

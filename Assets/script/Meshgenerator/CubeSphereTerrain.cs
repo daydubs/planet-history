@@ -106,7 +106,7 @@ public class CubeSphereTerrain : MonoBehaviour
     [SerializeField] private int seed = 0;
 
     [Header("Performance Optimization")]
-    [SerializeField, Range(0.01f, 0.2f)] private float rebuildInterval = 0.05f;
+    [SerializeField, Range(0.01f, 0.2f)] private float rebuildInterval = 0.066f;
 
     private System.Collections.Generic.List<VolcanoStamp> activeVolcanoes = new System.Collections.Generic.List<VolcanoStamp>();
     private System.Collections.Generic.List<CraterStamp> activeCraters = new System.Collections.Generic.List<CraterStamp>();
