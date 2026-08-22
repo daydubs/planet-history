@@ -124,8 +124,8 @@ public class GameHudController : MonoBehaviour
 
     [Header("Minimap")]
     [SerializeField] private RawImage minimapRawImage;
-    [SerializeField] private int minimapWidth = 360;
-    [SerializeField] private int minimapHeight = 180;
+    [SerializeField] private int minimapWidth = 1024;
+    [SerializeField] private int minimapHeight = 512;
 
     [Header("Palette (Hex)")]
     [SerializeField] private string hadeanHex = "#D1495B";

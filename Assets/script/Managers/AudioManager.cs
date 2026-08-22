@@ -11,8 +11,8 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioSource sfxSource;
 
     [Header("Volume Settings")]
-    [SerializeField, Range(0f, 1f)] private float musicVolume = 0.5f;
-    [SerializeField, Range(0f, 1f)] private float sfxVolume = 0.8f;
+    [SerializeField, Range(0f, 1f)] private float musicVolume = 0.1f;
+    [SerializeField, Range(0f, 1f)] private float sfxVolume = 0.1f;
 
     [Header("Audio Clips - SFX")]
     [SerializeField] private AudioClip meteorFlightClip;

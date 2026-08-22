@@ -205,7 +205,7 @@ public class GameHudLayoutPreset : MonoBehaviour
 
         foreach (RectTransform row in rows)
         {
-            float targetHeight = (row == atmosphereRow || row.name == "compositionAtmpan" || row.name == "AtmosphereRow") ? rowHeight * 4.2f : rowHeight;
+            float targetHeight = (row == atmosphereRow || row.name == "compositionAtmpan" || row.name == "atmosphereRow") ? rowHeight * 4.2f : rowHeight;
             SetupRow(row, targetHeight);
         }
     }

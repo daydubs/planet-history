@@ -557,9 +557,9 @@ public class MeteorEventController : MonoBehaviour
             impactInst.transform.localScale = Vector3.one * scaleFactor;
 
             ParticleSystem[] particleSystems = impactInst.GetComponentsInChildren<ParticleSystem>();
-            foreach (var ps in particleSystems)
+            foreach (var pss in particleSystems)
             {
-                ps.Play(true);
+                pss.Play(true);
             }
 
             Destroy(impactInst, 5.0f);
