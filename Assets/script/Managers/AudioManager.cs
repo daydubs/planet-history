@@ -20,6 +20,7 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip volcanoEruptionClip;
     [SerializeField] private AudioClip volcanicExplosionClip;
     [SerializeField] private AudioClip earthquakeRumbleClip;
+    [SerializeField] private AudioClip buttonClickClip;
 
     [Header("Audio Clips - Music")]
     [SerializeField] private AudioClip musicHadeanClip;
@@ -94,6 +95,9 @@ public class AudioManager : MonoBehaviour
             sfxSource.playOnAwake = false;
         }
 
+        musicSource.ignoreListenerPause = true;
+        sfxSource.ignoreListenerPause = true;
+
         musicSource.volume = musicVolume;
         sfxSource.volume = sfxVolume;
     }
@@ -109,6 +113,54 @@ public class AudioManager : MonoBehaviour
         if (musicHadeanClip == null) musicHadeanClip = Resources.Load<AudioClip>("Audio/music_hadean");
         if (musicVolcanicClip == null) musicVolcanicClip = Resources.Load<AudioClip>("Audio/music_volcanic");
         if (musicOceanClip == null) musicOceanClip = Resources.Load<AudioClip>("Audio/music_ocean");
+
+        // Procedural fallbacks if clips are still missing
+        if (buttonClickClip == null) buttonClickClip = CreateToneClip("ButtonClick", 880f, 0.05f, 0.3f);
+        if (meteorFlightClip == null) meteorFlightClip = CreateNoiseClip("MeteorFlight", 1.5f, 0.2f);
+        if (meteorImpactClip == null) meteorImpactClip = CreateNoiseClip("MeteorImpact", 0.8f, 0.6f);
+        if (volcanoEruptionClip == null) volcanoEruptionClip = CreateNoiseClip("VolcanoEruption", 1.2f, 0.4f);
+        if (volcanicExplosionClip == null) volcanicExplosionClip = CreateNoiseClip("VolcanicExplosion", 0.6f, 0.7f);
+        if (earthquakeRumbleClip == null) earthquakeRumbleClip = CreateNoiseClip("EarthquakeRumble", 2.0f, 0.5f);
+
+        if (musicHadeanClip == null) musicHadeanClip = CreateToneClip("MusicHadean", 220f, 4.0f, 0.2f);
+        if (musicVolcanicClip == null) musicVolcanicClip = CreateToneClip("MusicVolcanic", 293.66f, 4.0f, 0.2f);
+        if (musicOceanClip == null) musicOceanClip = CreateToneClip("MusicOcean", 329.63f, 4.0f, 0.2f);
+    }
+
+    private AudioClip CreateToneClip(string name, float frequency, float lengthSeconds, float volumeScale)
+    {
+        int sampleRate = 44100;
+        int sampleCount = (int)(sampleRate * lengthSeconds);
+        float[] samples = new float[sampleCount];
+
+        for (int i = 0; i < sampleCount; i++)
+        {
+            float t = (float)i / sampleRate;
+            float envelope = Mathf.Sin(Mathf.PI * (t / lengthSeconds));
+            samples[i] = Mathf.Sin(2f * Mathf.PI * frequency * t) * envelope * volumeScale;
+        }
+
+        AudioClip clip = AudioClip.Create(name, sampleCount, 1, sampleRate, false);
+        clip.SetData(samples, 0);
+        return clip;
+    }
+
+    private AudioClip CreateNoiseClip(string name, float lengthSeconds, float volumeScale)
+    {
+        int sampleRate = 44100;
+        int sampleCount = (int)(sampleRate * lengthSeconds);
+        float[] samples = new float[sampleCount];
+
+        for (int i = 0; i < sampleCount; i++)
+        {
+            float t = (float)i / sampleRate;
+            float envelope = 1f - (t / lengthSeconds);
+            samples[i] = (Random.value * 2f - 1f) * envelope * volumeScale;
+        }
+
+        AudioClip clip = AudioClip.Create(name, sampleCount, 1, sampleRate, false);
+        clip.SetData(samples, 0);
+        return clip;
     }
 
     private void HandleEpochChanged(PlanetEpoch newEpoch)
@@ -139,7 +191,14 @@ public class AudioManager : MonoBehaviour
     {
         if (musicSource == null || clip == null) return;
 
-        if (musicSource.clip == clip && musicSource.isPlaying) return;
+        if (musicSource.clip == clip && musicSource.isPlaying)
+        {
+            if (musicSource.volume < musicVolume * 0.1f)
+            {
+                musicSource.volume = musicVolume;
+            }
+            return;
+        }
 
         StartCoroutine(CrossfadeMusic(clip, loop, 1.5f));
     }
@@ -148,12 +207,12 @@ public class AudioManager : MonoBehaviour
     {
         float startVolume = musicSource.volume;
 
-        if (musicSource.isPlaying)
+        if (musicSource.isPlaying && startVolume > 0.01f)
         {
             float elapsed = 0f;
             while (elapsed < fadeDuration)
             {
-                elapsed += Time.deltaTime;
+                elapsed += Time.unscaledDeltaTime;
                 musicSource.volume = Mathf.Lerp(startVolume, 0f, elapsed / fadeDuration);
                 yield return null;
             }
@@ -166,7 +225,7 @@ public class AudioManager : MonoBehaviour
         float fadeUpElapsed = 0f;
         while (fadeUpElapsed < fadeDuration)
         {
-            fadeUpElapsed += Time.deltaTime;
+            fadeUpElapsed += Time.unscaledDeltaTime;
             musicSource.volume = Mathf.Lerp(0f, musicVolume, fadeUpElapsed / fadeDuration);
             yield return null;
         }
@@ -270,6 +329,17 @@ public class AudioManager : MonoBehaviour
         audioSource.Play();
 
         Destroy(tempAudioGo, clip.length / Mathf.Max(0.1f, pitch) + 0.2f);
+    }
+
+    /// <summary>
+    /// Plays UI button click feedback sound effect.
+    /// </summary>
+    public void PlayButtonClick()
+    {
+        if (buttonClickClip != null)
+        {
+            Play2D(buttonClickClip, 0.6f, 1.0f);
+        }
     }
 
     /// <summary>
