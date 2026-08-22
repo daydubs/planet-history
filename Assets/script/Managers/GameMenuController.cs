@@ -388,7 +388,12 @@ public class GameMenuController : MonoBehaviour
         VerticalLayoutGroup vLayout = lengthContainer.AddComponent<VerticalLayoutGroup>();
         vLayout.spacing = 10f;
         vLayout.childControlWidth = true;
-        vLayout.childControlHeight = false;
+        vLayout.childControlHeight = true;
+        vLayout.childForceExpandHeight = false;
+
+        ContentSizeFitter csf = lengthContainer.AddComponent<ContentSizeFitter>();
+        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        csf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
 
         // Header + Status text
         GameObject headerObj = new GameObject("GameLengthHeader", typeof(RectTransform));
@@ -407,6 +412,8 @@ public class GameMenuController : MonoBehaviour
         hLayout.childAlignment = TextAnchor.MiddleCenter;
         hLayout.childControlWidth = true;
         hLayout.childControlHeight = true;
+        hLayout.childForceExpandWidth = true;
+        hLayout.childForceExpandHeight = false;
 
         LayoutElement btnRowLayout = btnRow.AddComponent<LayoutElement>();
         btnRowLayout.minHeight = 44f;
@@ -428,9 +435,12 @@ public class GameMenuController : MonoBehaviour
         sliderLayout.childAlignment = TextAnchor.MiddleLeft;
         sliderLayout.childControlWidth = true;
         sliderLayout.childControlHeight = true;
+        sliderLayout.childForceExpandWidth = false;
+        sliderLayout.childForceExpandHeight = false;
 
         LayoutElement sliderRowEl = sliderRow.AddComponent<LayoutElement>();
         sliderRowEl.minHeight = 36f;
+        sliderRowEl.preferredHeight = 36f;
 
         // Label for custom slider
         GameObject labelObj = new GameObject("CustomSliderLabel", typeof(RectTransform));
@@ -489,8 +499,8 @@ public class GameMenuController : MonoBehaviour
         currentPreset = preset;
         if (presetButtons == null) return;
 
-        Color selectedColor = new Color(0.18f, 0.65f, 0.55f, 1f);
-        Color defaultColor = new Color(0.20f, 0.28f, 0.38f, 1f);
+        Color selectedColor = new Color(0.12f, 0.65f, 0.45f, 1f);
+        Color defaultColor = new Color(0.15f, 0.22f, 0.30f, 1f);
 
         for (int i = 0; i < presetButtons.Length; i++)
         {
@@ -500,6 +510,12 @@ public class GameMenuController : MonoBehaviour
             if (img != null)
             {
                 img.color = (btnPreset == preset) ? selectedColor : defaultColor;
+            }
+
+            TMP_Text txt = presetButtons[i].GetComponentInChildren<TMP_Text>();
+            if (txt != null)
+            {
+                txt.color = (btnPreset == preset) ? new Color(1f, 1f, 0.85f, 1f) : new Color(0.85f, 0.90f, 0.95f, 1f);
             }
         }
     }
@@ -512,7 +528,12 @@ public class GameMenuController : MonoBehaviour
         VerticalLayoutGroup vLayout = soundContainer.AddComponent<VerticalLayoutGroup>();
         vLayout.spacing = 10f;
         vLayout.childControlWidth = true;
-        vLayout.childControlHeight = false;
+        vLayout.childControlHeight = true;
+        vLayout.childForceExpandHeight = false;
+
+        ContentSizeFitter csf = soundContainer.AddComponent<ContentSizeFitter>();
+        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        csf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
 
         // Header
         GameObject headerObj = new GameObject("SoundHeader", typeof(RectTransform));
@@ -585,7 +606,12 @@ public class GameMenuController : MonoBehaviour
         VerticalLayoutGroup vLayout = controlsContainer.AddComponent<VerticalLayoutGroup>();
         vLayout.spacing = 8f;
         vLayout.childControlWidth = true;
-        vLayout.childControlHeight = false;
+        vLayout.childControlHeight = true;
+        vLayout.childForceExpandHeight = false;
+
+        ContentSizeFitter csf = controlsContainer.AddComponent<ContentSizeFitter>();
+        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        csf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
 
         // Header
         GameObject headerObj = new GameObject("ControlsHeader", typeof(RectTransform));
@@ -636,7 +662,8 @@ public class GameMenuController : MonoBehaviour
         LayoutElement sliderLayout = sliderObj.AddComponent<LayoutElement>();
         sliderLayout.minWidth = 180f;
         sliderLayout.flexibleWidth = 1f;
-        sliderLayout.minHeight = 24f;
+        sliderLayout.minHeight = 28f;
+        sliderLayout.preferredHeight = 28f;
 
         // Background track (high contrast dark rounded track)
         GameObject bgObj = new GameObject("Background", typeof(RectTransform));
@@ -645,16 +672,16 @@ public class GameMenuController : MonoBehaviour
         bgImg.color = new Color(0.10f, 0.15f, 0.22f, 0.95f);
 
         RectTransform bgRect = bgObj.GetComponent<RectTransform>();
-        bgRect.anchorMin = new Vector2(0f, 0.30f);
-        bgRect.anchorMax = new Vector2(1f, 0.70f);
+        bgRect.anchorMin = new Vector2(0f, 0.35f);
+        bgRect.anchorMax = new Vector2(1f, 0.65f);
         bgRect.sizeDelta = Vector2.zero;
 
         // Fill Area
         GameObject fillArea = new GameObject("Fill Area", typeof(RectTransform));
         fillArea.transform.SetParent(sliderObj.transform, false);
         RectTransform fillAreaRect = fillArea.GetComponent<RectTransform>();
-        fillAreaRect.anchorMin = new Vector2(0f, 0.30f);
-        fillAreaRect.anchorMax = new Vector2(1f, 0.70f);
+        fillAreaRect.anchorMin = new Vector2(0f, 0.35f);
+        fillAreaRect.anchorMax = new Vector2(1f, 0.65f);
         fillAreaRect.sizeDelta = Vector2.zero;
 
         GameObject fill = new GameObject("Fill", typeof(RectTransform));
@@ -663,6 +690,8 @@ public class GameMenuController : MonoBehaviour
         fillImg.color = new Color(0.20f, 0.75f, 0.60f, 1f); // Vibrant teal fill
 
         RectTransform fillRect = fill.GetComponent<RectTransform>();
+        fillRect.anchorMin = Vector2.zero;
+        fillRect.anchorMax = Vector2.one;
         fillRect.sizeDelta = Vector2.zero;
 
         // Handle Area
@@ -679,7 +708,10 @@ public class GameMenuController : MonoBehaviour
         handleImg.color = new Color(0.98f, 0.98f, 1.0f, 1f); // Bright white handle
 
         RectTransform handleRect = handle.GetComponent<RectTransform>();
-        handleRect.sizeDelta = new Vector2(18f, 26f);
+        handleRect.anchorMin = new Vector2(0.5f, 0f);
+        handleRect.anchorMax = new Vector2(0.5f, 1f);
+        handleRect.pivot = new Vector2(0.5f, 0.5f);
+        handleRect.sizeDelta = new Vector2(18f, 0f);
 
         // Slider component
         Slider slider = sliderObj.AddComponent<Slider>();
@@ -714,19 +746,19 @@ public class GameMenuController : MonoBehaviour
         textGo.transform.SetParent(buttonGo.transform, false);
         TextMeshProUGUI text = textGo.AddComponent<TextMeshProUGUI>();
         text.text = labelText;
-        text.fontSize = 17;
+        text.fontSize = 15;
         text.fontStyle = FontStyles.Bold;
         text.color = Color.white;
         text.alignment = TextAlignmentOptions.Center;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 12;
-        text.fontSizeMax = 18;
+        text.enableAutoSizing = false;
+        text.enableWordWrapping = false;
+        text.overflowMode = TextOverflowModes.Overflow;
 
         RectTransform textRect = textGo.GetComponent<RectTransform>();
         textRect.anchorMin = Vector2.zero;
         textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = new Vector2(8f, 4f);
-        textRect.offsetMax = new Vector2(-8f, -4f);
+        textRect.offsetMin = new Vector2(4f, 2f);
+        textRect.offsetMax = new Vector2(-4f, -2f);
 
         LayoutElement buttonLayout = buttonGo.AddComponent<LayoutElement>();
         buttonLayout.minWidth = width;
@@ -734,7 +766,14 @@ public class GameMenuController : MonoBehaviour
         buttonLayout.minHeight = height;
         buttonLayout.preferredHeight = height;
 
-        button.onClick.AddListener(action);
+        button.onClick.AddListener(() =>
+        {
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayButtonClick();
+            }
+            action?.Invoke();
+        });
         return button;
     }
 
@@ -896,6 +935,12 @@ public class GameMenuController : MonoBehaviour
         {
             float hours = GameManager.Instance.SessionDurationHours;
             if (customLengthSlider != null) customLengthSlider.value = hours;
+
+            if (Mathf.Approximately(hours, 1f)) currentPreset = SessionLengthPreset.OneHour;
+            else if (Mathf.Approximately(hours, 3f)) currentPreset = SessionLengthPreset.ThreeHours;
+            else if (Mathf.Approximately(hours, 6f)) currentPreset = SessionLengthPreset.SixHours;
+            else if (Mathf.Approximately(hours, 12f)) currentPreset = SessionLengthPreset.TwelveHours;
+            else currentPreset = SessionLengthPreset.Custom;
 
             SelectPresetUI(currentPreset);
             UpdateSessionLengthText();
