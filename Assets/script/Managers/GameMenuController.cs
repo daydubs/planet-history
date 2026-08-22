@@ -15,6 +15,7 @@ public class GameMenuController : MonoBehaviour
     private GameObject launchScreenPanel;
     private GameObject pauseScreenPanel;
     private GameObject optionsScreenPanel;
+    private ScrollRect optionsScrollRect;
     private bool previousStateIsPause = false;
 
     // UI Controls for sync
@@ -280,9 +281,10 @@ public class GameMenuController : MonoBehaviour
 
         VerticalLayoutGroup layout = contentObj.AddComponent<VerticalLayoutGroup>();
         layout.childAlignment = TextAnchor.UpperCenter;
-        layout.spacing = 16f;
+        layout.spacing = 14f;
         layout.childControlWidth = true;
-        layout.childControlHeight = false;
+        layout.childControlHeight = true;
+        layout.childForceExpandHeight = false;
 
         // Title Header
         GameObject titleObj = new GameObject("OptionsTitleText", typeof(RectTransform));
@@ -295,7 +297,9 @@ public class GameMenuController : MonoBehaviour
         titleText.alignment = TextAlignmentOptions.Center;
 
         LayoutElement titleEl = titleObj.AddComponent<LayoutElement>();
-        titleEl.minHeight = 50f;
+        titleEl.minHeight = 48f;
+        titleEl.preferredHeight = 48f;
+        titleEl.flexibleHeight = 0f;
 
         // Subtitle
         GameObject subTitleObj = new GameObject("OptionsSubtitleText", typeof(RectTransform));
@@ -308,20 +312,63 @@ public class GameMenuController : MonoBehaviour
         subTitleText.alignment = TextAlignmentOptions.Center;
 
         LayoutElement subTitleEl = subTitleObj.AddComponent<LayoutElement>();
-        subTitleEl.minHeight = 30f;
+        subTitleEl.minHeight = 28f;
+        subTitleEl.preferredHeight = 28f;
+        subTitleEl.flexibleHeight = 0f;
 
         // Scroll View Container for settings
         GameObject scrollView = new GameObject("ScrollView", typeof(RectTransform));
         scrollView.transform.SetParent(contentObj.transform, false);
 
+        Image scrollBg = scrollView.AddComponent<Image>();
+        scrollBg.color = new Color(0.06f, 0.10f, 0.17f, 0.95f); // Distinct dark card background panel
+
         LayoutElement scrollLayoutEl = scrollView.AddComponent<LayoutElement>();
-        scrollLayoutEl.minHeight = 400f;
+        scrollLayoutEl.minHeight = 350f;
         scrollLayoutEl.flexibleHeight = 1f;
 
-        ScrollRect scrollRect = scrollView.AddComponent<ScrollRect>();
-        scrollRect.horizontal = false;
-        scrollRect.vertical = true;
-        scrollRect.scrollSensitivity = 25f;
+        optionsScrollRect = scrollView.AddComponent<ScrollRect>();
+        optionsScrollRect.horizontal = false;
+        optionsScrollRect.vertical = true;
+        optionsScrollRect.scrollSensitivity = 35f;
+
+        // Vertical Scrollbar construction
+        GameObject scrollbarObj = new GameObject("Scrollbar Vertical", typeof(RectTransform));
+        scrollbarObj.transform.SetParent(scrollView.transform, false);
+
+        RectTransform scrollbarRect = scrollbarObj.GetComponent<RectTransform>();
+        scrollbarRect.anchorMin = new Vector2(1f, 0f);
+        scrollbarRect.anchorMax = new Vector2(1f, 1f);
+        scrollbarRect.pivot = new Vector2(1f, 1f);
+        scrollbarRect.sizeDelta = new Vector2(16f, 0f);
+
+        Image scrollbarTrack = scrollbarObj.AddComponent<Image>();
+        scrollbarTrack.color = new Color(0.03f, 0.05f, 0.09f, 0.90f);
+
+        GameObject slidingArea = new GameObject("Sliding Area", typeof(RectTransform));
+        slidingArea.transform.SetParent(scrollbarObj.transform, false);
+        RectTransform slidingAreaRect = slidingArea.GetComponent<RectTransform>();
+        slidingAreaRect.anchorMin = Vector2.zero;
+        slidingAreaRect.anchorMax = Vector2.one;
+        slidingAreaRect.sizeDelta = Vector2.zero;
+
+        GameObject handle = new GameObject("Handle", typeof(RectTransform));
+        handle.transform.SetParent(slidingArea.transform, false);
+        Image handleImg = handle.AddComponent<Image>();
+        handleImg.color = new Color(0.20f, 0.70f, 0.85f, 1.0f); // Bright cyan/teal scrollbar handle
+
+        RectTransform handleRect = handle.GetComponent<RectTransform>();
+        handleRect.anchorMin = Vector2.zero;
+        handleRect.anchorMax = Vector2.one;
+        handleRect.sizeDelta = Vector2.zero;
+
+        Scrollbar scrollbarComp = scrollbarObj.AddComponent<Scrollbar>();
+        scrollbarComp.direction = Scrollbar.Direction.BottomToTop;
+        scrollbarComp.targetGraphic = handleImg;
+        scrollbarComp.handleRect = handleRect;
+
+        optionsScrollRect.verticalScrollbar = scrollbarComp;
+        optionsScrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.Permanent;
 
         // Viewport with Mask
         GameObject viewport = new GameObject("Viewport", typeof(RectTransform));
@@ -329,7 +376,7 @@ public class GameMenuController : MonoBehaviour
         RectTransform vpRect = viewport.GetComponent<RectTransform>();
         vpRect.anchorMin = Vector2.zero;
         vpRect.anchorMax = Vector2.one;
-        vpRect.sizeDelta = Vector2.zero;
+        vpRect.sizeDelta = new Vector2(-20f, 0f); // Offset to prevent overlap with right scrollbar
 
         Image vpImg = viewport.AddComponent<Image>();
         vpImg.color = new Color(0, 0, 0, 0.01f); // Raycast target
@@ -345,8 +392,8 @@ public class GameMenuController : MonoBehaviour
         scrollContentRect.sizeDelta = new Vector2(0f, 0f);
 
         VerticalLayoutGroup contentLayout = scrollContent.AddComponent<VerticalLayoutGroup>();
-        contentLayout.spacing = 20f;
-        contentLayout.padding = new RectOffset(24, 24, 20, 20);
+        contentLayout.spacing = 18f;
+        contentLayout.padding = new RectOffset(20, 20, 16, 16);
         contentLayout.childControlWidth = true;
         contentLayout.childControlHeight = false;
 
@@ -354,8 +401,20 @@ public class GameMenuController : MonoBehaviour
         csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         csf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
 
-        scrollRect.viewport = vpRect;
-        scrollRect.content = scrollContentRect;
+        optionsScrollRect.viewport = vpRect;
+        optionsScrollRect.content = scrollContentRect;
+
+        // Scroll Indicator Header Text
+        GameObject scrollIndicatorObj = new GameObject("ScrollIndicatorHeader", typeof(RectTransform));
+        scrollIndicatorObj.transform.SetParent(scrollContent.transform, false);
+        TextMeshProUGUI scrollIndicatorText = scrollIndicatorObj.AddComponent<TextMeshProUGUI>();
+        scrollIndicatorText.text = "📜 <i><b>Options & Réglages</b> (Faites défiler le contenu vers le bas ↕)</i>";
+        scrollIndicatorText.fontSize = 14;
+        scrollIndicatorText.color = new Color(0.40f, 0.80f, 0.95f, 0.90f);
+        scrollIndicatorText.alignment = TextAlignmentOptions.Center;
+
+        LayoutElement indicatorEl = scrollIndicatorObj.AddComponent<LayoutElement>();
+        indicatorEl.minHeight = 24f;
 
         // Add settings sections inside scroll content
         CreateGameLengthControls(scrollContent.transform);
@@ -371,7 +430,9 @@ public class GameMenuController : MonoBehaviour
         bottomLayout.spacing = 20f;
 
         LayoutElement bottomRowEl = bottomRow.AddComponent<LayoutElement>();
-        bottomRowEl.minHeight = 50f;
+        bottomRowEl.minHeight = 52f;
+        bottomRowEl.preferredHeight = 52f;
+        bottomRowEl.flexibleHeight = 0f;
 
         CreateButton(bottomRow.transform, "◀ RETOUR", new Color(0.20f, 0.50f, 0.70f, 1f), 220f, 48f, () => CloseOptions());
 
@@ -385,8 +446,12 @@ public class GameMenuController : MonoBehaviour
         GameObject lengthContainer = new GameObject("GameLengthBlock", typeof(RectTransform));
         lengthContainer.transform.SetParent(parent, false);
 
+        Image blockBg = lengthContainer.AddComponent<Image>();
+        blockBg.color = new Color(0.09f, 0.13f, 0.20f, 0.85f); // Styled section container
+
         VerticalLayoutGroup vLayout = lengthContainer.AddComponent<VerticalLayoutGroup>();
         vLayout.spacing = 10f;
+        vLayout.padding = new RectOffset(16, 16, 14, 14);
         vLayout.childControlWidth = true;
         vLayout.childControlHeight = true;
         vLayout.childForceExpandHeight = false;
@@ -525,8 +590,12 @@ public class GameMenuController : MonoBehaviour
         GameObject soundContainer = new GameObject("SoundBlock", typeof(RectTransform));
         soundContainer.transform.SetParent(parent, false);
 
+        Image blockBg = soundContainer.AddComponent<Image>();
+        blockBg.color = new Color(0.09f, 0.13f, 0.20f, 0.85f); // Styled section container
+
         VerticalLayoutGroup vLayout = soundContainer.AddComponent<VerticalLayoutGroup>();
         vLayout.spacing = 10f;
+        vLayout.padding = new RectOffset(16, 16, 14, 14);
         vLayout.childControlWidth = true;
         vLayout.childControlHeight = true;
         vLayout.childForceExpandHeight = false;
@@ -603,8 +672,12 @@ public class GameMenuController : MonoBehaviour
         GameObject controlsContainer = new GameObject("ControlsReminderBlock", typeof(RectTransform));
         controlsContainer.transform.SetParent(parent, false);
 
+        Image blockBg = controlsContainer.AddComponent<Image>();
+        blockBg.color = new Color(0.09f, 0.13f, 0.20f, 0.85f); // Styled section container
+
         VerticalLayoutGroup vLayout = controlsContainer.AddComponent<VerticalLayoutGroup>();
         vLayout.spacing = 8f;
+        vLayout.padding = new RectOffset(16, 16, 14, 14);
         vLayout.childControlWidth = true;
         vLayout.childControlHeight = true;
         vLayout.childForceExpandHeight = false;
@@ -820,6 +893,11 @@ public class GameMenuController : MonoBehaviour
         if (launchScreenPanel != null) launchScreenPanel.SetActive(false);
         if (pauseScreenPanel != null) pauseScreenPanel.SetActive(false);
         if (optionsScreenPanel != null) optionsScreenPanel.SetActive(true);
+
+        if (optionsScrollRect != null)
+        {
+            optionsScrollRect.verticalNormalizedPosition = 1f;
+        }
 
         if (GameManager.Instance != null)
         {
