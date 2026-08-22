@@ -114,17 +114,17 @@ public class GameMenuController : MonoBehaviour
         panelRect.anchorMax = Vector2.one;
         panelRect.sizeDelta = Vector2.zero;
 
-        // Background dark overlay with subtle blue/amber gradient tint
+        // Background dark semi-transparent overlay to reveal 3D planet
         Image bg = launchScreenPanel.AddComponent<Image>();
-        bg.color = new Color(0.04f, 0.06f, 0.10f, 0.96f);
+        bg.color = new Color(0.02f, 0.04f, 0.08f, 0.45f);
 
         // Main Layout Container
         GameObject contentObj = new GameObject("LaunchContent", typeof(RectTransform));
         contentObj.transform.SetParent(launchScreenPanel.transform, false);
 
         RectTransform contentRect = contentObj.GetComponent<RectTransform>();
-        contentRect.anchorMin = new Vector2(0.15f, 0.05f);
-        contentRect.anchorMax = new Vector2(0.85f, 0.95f);
+        contentRect.anchorMin = new Vector2(0.10f, 0.03f);
+        contentRect.anchorMax = new Vector2(0.90f, 0.97f);
         contentRect.sizeDelta = Vector2.zero;
 
         VerticalLayoutGroup layout = contentObj.AddComponent<VerticalLayoutGroup>();
@@ -168,8 +168,8 @@ public class GameMenuController : MonoBehaviour
         LayoutElement mainActionsLayoutEl = mainActionsRow.AddComponent<LayoutElement>();
         mainActionsLayoutEl.minHeight = 50f;
 
-        CreateButton(mainActionsRow.transform, "▶ JOUER / COMMENCER", new Color(0.18f, 0.65f, 0.38f, 1f), 220f, 48f, () => StartGameFromLaunch());
-        CreateButton(mainActionsRow.transform, "⚙ OPTIONS", new Color(0.20f, 0.50f, 0.70f, 1f), 150f, 48f, () => ToggleLaunchOptions());
+        CreateButton(mainActionsRow.transform, "▶ JOUER", new Color(0.18f, 0.65f, 0.38f, 1f), 160f, 48f, () => StartGameFromLaunch());
+        CreateButton(mainActionsRow.transform, "⚙ OPTIONS", new Color(0.20f, 0.50f, 0.70f, 1f), 160f, 48f, () => ToggleLaunchOptions());
         CreateButton(mainActionsRow.transform, "✖ QUITTER", new Color(0.75f, 0.25f, 0.25f, 1f), 160f, 48f, () => QuitGame());
 
         // Spacer
@@ -235,15 +235,15 @@ public class GameMenuController : MonoBehaviour
         panelRect.sizeDelta = Vector2.zero;
 
         Image bg = pauseScreenPanel.AddComponent<Image>();
-        bg.color = new Color(0.02f, 0.03f, 0.05f, 0.88f); // Dark translucent overlay
+        bg.color = new Color(0.02f, 0.03f, 0.05f, 0.55f); // Dark translucent overlay
 
         // Content
         GameObject contentObj = new GameObject("PauseContent", typeof(RectTransform));
         contentObj.transform.SetParent(pauseScreenPanel.transform, false);
 
         RectTransform contentRect = contentObj.GetComponent<RectTransform>();
-        contentRect.anchorMin = new Vector2(0.20f, 0.05f);
-        contentRect.anchorMax = new Vector2(0.80f, 0.95f);
+        contentRect.anchorMin = new Vector2(0.10f, 0.03f);
+        contentRect.anchorMax = new Vector2(0.90f, 0.97f);
         contentRect.sizeDelta = Vector2.zero;
 
         VerticalLayoutGroup layout = contentObj.AddComponent<VerticalLayoutGroup>();
@@ -274,10 +274,10 @@ public class GameMenuController : MonoBehaviour
         LayoutElement actionsLayoutEl = actionsRow.AddComponent<LayoutElement>();
         actionsLayoutEl.minHeight = 44f;
 
-        CreateButton(actionsRow.transform, "▶ REPRENDRE", new Color(0.18f, 0.65f, 0.38f, 1f), 180f, 44f, () => ResumeGame());
-        CreateButton(actionsRow.transform, "⚙ OPTIONS", new Color(0.20f, 0.50f, 0.70f, 1f), 150f, 44f, () => TogglePauseOptions());
+        CreateButton(actionsRow.transform, "▶ REPRENDRE", new Color(0.18f, 0.65f, 0.38f, 1f), 160f, 44f, () => ResumeGame());
+        CreateButton(actionsRow.transform, "⚙ OPTIONS", new Color(0.20f, 0.50f, 0.70f, 1f), 160f, 44f, () => TogglePauseOptions());
         CreateButton(actionsRow.transform, "🏠 MENU PRINCIPAL", new Color(0.25f, 0.50f, 0.75f, 1f), 200f, 44f, () => ReturnToLaunchScreen());
-        CreateButton(actionsRow.transform, "✖ QUITTER", new Color(0.75f, 0.25f, 0.25f, 1f), 140f, 44f, () => QuitGame());
+        CreateButton(actionsRow.transform, "✖ QUITTER", new Color(0.75f, 0.25f, 0.25f, 1f), 160f, 44f, () => QuitGame());
 
         // Spacer
         CreateSpacer(contentObj.transform, 10f);
@@ -350,14 +350,14 @@ public class GameMenuController : MonoBehaviour
         btnRow.transform.SetParent(lengthContainer.transform, false);
 
         HorizontalLayoutGroup hLayout = btnRow.AddComponent<HorizontalLayoutGroup>();
-        hLayout.spacing = 10f;
-        hLayout.childAlignment = TextAnchor.MiddleLeft;
+        hLayout.spacing = 12f;
+        hLayout.childAlignment = TextAnchor.MiddleCenter;
         hLayout.childControlWidth = true;
         hLayout.childControlHeight = true;
 
         LayoutElement btnRowLayout = btnRow.AddComponent<LayoutElement>();
-        btnRowLayout.minHeight = 36f;
-        btnRowLayout.preferredHeight = 36f;
+        btnRowLayout.minHeight = 40f;
+        btnRowLayout.preferredHeight = 40f;
 
         presetButtons = new Button[5];
         presetButtons[0] = CreatePresetButton(btnRow.transform, "1 Heure", SessionLengthPreset.OneHour);
@@ -416,8 +416,8 @@ public class GameMenuController : MonoBehaviour
 
     private Button CreatePresetButton(Transform parent, string label, SessionLengthPreset preset)
     {
-        Color baseColor = new Color(0.20f, 0.28f, 0.38f, 1f);
-        Button btn = CreateButton(parent, label, baseColor, 90f, 34f, () =>
+        Color baseColor = new Color(0.18f, 0.25f, 0.35f, 1f);
+        Button btn = CreateButton(parent, label, baseColor, 120f, 38f, () =>
         {
             if (GameManager.Instance != null)
             {
@@ -481,7 +481,7 @@ public class GameMenuController : MonoBehaviour
         LayoutElement mRowEl = musicRow.AddComponent<LayoutElement>();
         mRowEl.minHeight = 30f;
 
-        musicVolumeText = CreateLabel(musicRow.transform, "🔊 Volume Musique : 50%", 200f);
+        musicVolumeText = CreateLabel(musicRow.transform, "🔊 Musique : 50%", 180f);
         GameObject mSliderObj = CreateSlider(musicRow.transform, 0f, 1f, 0.5f, (val) =>
         {
             if (AudioManager.Instance != null)
@@ -490,7 +490,7 @@ public class GameMenuController : MonoBehaviour
             }
             if (musicVolumeText != null)
             {
-                musicVolumeText.text = $"🔊 Volume Musique : {Mathf.RoundToInt(val * 100f)}%";
+                musicVolumeText.text = $"🔊 Musique : {Mathf.RoundToInt(val * 100f)}%";
             }
         });
         musicSlider = mSliderObj.GetComponent<Slider>();
@@ -508,7 +508,7 @@ public class GameMenuController : MonoBehaviour
         LayoutElement sRowEl = sfxRow.AddComponent<LayoutElement>();
         sRowEl.minHeight = 30f;
 
-        sfxVolumeText = CreateLabel(sfxRow.transform, "💥 Volume Effets (SFX) : 80%", 200f);
+        sfxVolumeText = CreateLabel(sfxRow.transform, "💥 Effets Sonores : 80%", 180f);
         GameObject sSliderObj = CreateSlider(sfxRow.transform, 0f, 1f, 0.8f, (val) =>
         {
             if (AudioManager.Instance != null)
@@ -517,7 +517,7 @@ public class GameMenuController : MonoBehaviour
             }
             if (sfxVolumeText != null)
             {
-                sfxVolumeText.text = $"💥 Volume Effets (SFX) : {Mathf.RoundToInt(val * 100f)}%";
+                sfxVolumeText.text = $"💥 Effets Sonores : {Mathf.RoundToInt(val * 100f)}%";
             }
         });
         sfxSlider = sSliderObj.GetComponent<Slider>();
@@ -554,29 +554,29 @@ public class GameMenuController : MonoBehaviour
         sliderLayout.flexibleWidth = 1f;
         sliderLayout.minHeight = 24f;
 
-        // Background
+        // Background track (high contrast dark rounded track)
         GameObject bgObj = new GameObject("Background", typeof(RectTransform));
         bgObj.transform.SetParent(sliderObj.transform, false);
         Image bgImg = bgObj.AddComponent<Image>();
-        bgImg.color = new Color(0.15f, 0.20f, 0.28f, 1f);
+        bgImg.color = new Color(0.10f, 0.15f, 0.22f, 0.95f);
 
         RectTransform bgRect = bgObj.GetComponent<RectTransform>();
-        bgRect.anchorMin = new Vector2(0f, 0.25f);
-        bgRect.anchorMax = new Vector2(1f, 0.75f);
+        bgRect.anchorMin = new Vector2(0f, 0.30f);
+        bgRect.anchorMax = new Vector2(1f, 0.70f);
         bgRect.sizeDelta = Vector2.zero;
 
         // Fill Area
         GameObject fillArea = new GameObject("Fill Area", typeof(RectTransform));
         fillArea.transform.SetParent(sliderObj.transform, false);
         RectTransform fillAreaRect = fillArea.GetComponent<RectTransform>();
-        fillAreaRect.anchorMin = new Vector2(0f, 0.25f);
-        fillAreaRect.anchorMax = new Vector2(1f, 0.75f);
+        fillAreaRect.anchorMin = new Vector2(0f, 0.30f);
+        fillAreaRect.anchorMax = new Vector2(1f, 0.70f);
         fillAreaRect.sizeDelta = Vector2.zero;
 
         GameObject fill = new GameObject("Fill", typeof(RectTransform));
         fill.transform.SetParent(fillArea.transform, false);
         Image fillImg = fill.AddComponent<Image>();
-        fillImg.color = new Color(0.25f, 0.75f, 0.65f, 1f);
+        fillImg.color = new Color(0.20f, 0.75f, 0.60f, 1f); // Vibrant teal fill
 
         RectTransform fillRect = fill.GetComponent<RectTransform>();
         fillRect.sizeDelta = Vector2.zero;
@@ -592,10 +592,10 @@ public class GameMenuController : MonoBehaviour
         GameObject handle = new GameObject("Handle", typeof(RectTransform));
         handle.transform.SetParent(handleArea.transform, false);
         Image handleImg = handle.AddComponent<Image>();
-        handleImg.color = Color.white;
+        handleImg.color = new Color(0.98f, 0.98f, 1.0f, 1f); // Bright white handle
 
         RectTransform handleRect = handle.GetComponent<RectTransform>();
-        handleRect.sizeDelta = new Vector2(16f, 0f);
+        handleRect.sizeDelta = new Vector2(18f, 26f);
 
         // Slider component
         Slider slider = sliderObj.AddComponent<Slider>();
@@ -630,15 +630,19 @@ public class GameMenuController : MonoBehaviour
         textGo.transform.SetParent(buttonGo.transform, false);
         TextMeshProUGUI text = textGo.AddComponent<TextMeshProUGUI>();
         text.text = labelText;
-        text.fontSize = 15;
+        text.fontSize = 17;
         text.fontStyle = FontStyles.Bold;
         text.color = Color.white;
         text.alignment = TextAlignmentOptions.Center;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = 12;
+        text.fontSizeMax = 18;
 
         RectTransform textRect = textGo.GetComponent<RectTransform>();
         textRect.anchorMin = Vector2.zero;
         textRect.anchorMax = Vector2.one;
-        textRect.sizeDelta = Vector2.zero;
+        textRect.offsetMin = new Vector2(8f, 4f);
+        textRect.offsetMax = new Vector2(-8f, -4f);
 
         LayoutElement buttonLayout = buttonGo.AddComponent<LayoutElement>();
         buttonLayout.minWidth = width;
