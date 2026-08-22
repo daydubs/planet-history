@@ -124,8 +124,8 @@ public class GameHudController : MonoBehaviour
 
     [Header("Minimap")]
     [SerializeField] private RawImage minimapRawImage;
-    [SerializeField] private int minimapWidth = 256;
-    [SerializeField] private int minimapHeight = 128;
+    [SerializeField] private int minimapWidth = 192;
+    [SerializeField] private int minimapHeight = 96;
     [SerializeField, Min(0.1f)] private float minimapRefreshInterval = 0.5f;
     private float minimapRefreshTimer;
 
@@ -246,9 +246,19 @@ public class GameHudController : MonoBehaviour
 
     private GameObject minimapPanel;
     private Texture2D minimapTexture;
-    private Color[] minimapPixels;
+    private Color32[] minimapPixels32;
     private CubeSphereTerrain cachedTerrain;
     private bool minimapExpanded = true;
+
+    private static readonly Color oceanColor = new Color(0.02f, 0.12f, 0.32f, 1f);
+    private static readonly Color shoreColor = new Color(0.72f, 0.68f, 0.45f, 1f);
+    private static readonly Color landColor = new Color(0.16f, 0.35f, 0.14f, 1f);
+    private static readonly Color mountainColor = new Color(0.38f, 0.33f, 0.29f, 1f);
+    private static readonly Color iceColor = new Color(0.92f, 0.95f, 1.0f, 1f);
+    private static readonly Color dryShore = new Color(0.12f, 0.12f, 0.13f, 1f);
+    private static readonly Color dryLand = new Color(0.18f, 0.18f, 0.20f, 1f);
+    private static readonly Color dryMountain = new Color(0.35f, 0.35f, 0.35f, 1f);
+    private static readonly Color currentLavaColor = new Color(0.875f, 0.15f, 0.0f, 1f);
 
     // Minimap Zoom & Pan State
     private float minimapZoom = 1.0f;
@@ -488,8 +498,11 @@ public class GameHudController : MonoBehaviour
 
         if (!force)
         {
-            minimapRefreshTimer += Time.deltaTime;
             if (minimapRefreshTimer < minimapRefreshInterval) return;
+            minimapRefreshTimer = 0f;
+        }
+        else
+        {
             minimapRefreshTimer = 0f;
         }
 
@@ -511,7 +524,7 @@ public class GameHudController : MonoBehaviour
                 wrapMode = TextureWrapMode.Repeat,
                 filterMode = FilterMode.Bilinear
             };
-            minimapPixels = new Color[width * height];
+            minimapPixels32 = new Color32[width * height];
             minimapRawImage.texture = minimapTexture;
         }
 
@@ -521,87 +534,81 @@ public class GameHudController : MonoBehaviour
         float fieldWidth = field.Width;
         float fieldHeight = field.Height;
 
+        float invHeightMinus1 = 1f / (height - 1);
+        float invWidthMinus1 = 1f / (width - 1);
+        float maxFieldX = fieldWidth - 1;
+        float maxFieldY = fieldHeight - 1;
+
+        bool evaluateLava = surfaceTemp > 500f;
+        float lavaMask = evaluateLava ? SmoothStep(500f, 1400f, surfaceTemp) : 0f;
+        bool evaluateWater = waterRatio > 0.001f;
+        float waterLevel = (0.02f * 1.5f) * waterRatio;
+
         for (int y = 0; y < height; y++)
         {
-            float normY = (float)y / (height - 1);
-            // Map viewport normY through zoom and pan offset
+            float normY = y * invHeightMinus1;
             float v = (normY - 0.5f) / minimapZoom + 0.5f + minimapPanOffset.y;
             v = Mathf.Clamp01(v);
 
-            float lat01 = Mathf.Abs(v - 0.5f) * 2f; // 0 at equator, 1 at pole
-            int fieldY = Mathf.Clamp(Mathf.RoundToInt(v * (fieldHeight - 1)), 0, (int)fieldHeight - 1);
+            float lat01 = Mathf.Abs(v - 0.5f) * 2f;
+            int fieldY = Mathf.Clamp(Mathf.RoundToInt(v * maxFieldY), 0, (int)maxFieldY);
+
+            int rowOffset = y * width;
 
             for (int x = 0; x < width; x++)
             {
-                float normX = (float)x / (width - 1);
-                // Map viewport normX through zoom and pan offset with horizontal repeat
+                float normX = x * invWidthMinus1;
                 float u = (normX - 0.5f) / minimapZoom + 0.5f + minimapPanOffset.x;
                 u = Mathf.Repeat(u, 1.0f);
 
-                int fieldX = Mathf.Clamp(Mathf.RoundToInt(u * (fieldWidth - 1)), 0, (int)fieldWidth - 1);
+                int fieldX = Mathf.Clamp(Mathf.RoundToInt(u * maxFieldX), 0, (int)maxFieldX);
 
                 float h = field.GetCurrent(fieldX, fieldY);
-                Color pixelColor = EvaluateHeightAlbedo(h, lat01, surfaceTemp, waterRatio);
-                minimapPixels[x + y * width] = pixelColor;
+                minimapPixels32[x + rowOffset] = EvaluateHeightAlbedoFast(h, lat01, waterRatio, lavaMask, evaluateLava, evaluateWater, waterLevel);
             }
         }
 
-        minimapTexture.SetPixels(minimapPixels);
-        minimapTexture.Apply();
+        minimapTexture.SetPixelData(minimapPixels32, 0);
+        minimapTexture.Apply(false, false);
     }
 
-    private static Color EvaluateHeightAlbedo(float height, float latitude01, float surfaceTemp, float waterRatio)
+    private static Color32 EvaluateHeightAlbedoFast(float height, float latitude01, float waterRatio, float lavaMask, bool evaluateLava, bool evaluateWater, float waterLevel)
     {
-        // Colors from PlanetReliefShader.shader
-        Color oceanColor = new Color(0.02f, 0.12f, 0.32f, 1f);
-        Color shoreColor = new Color(0.72f, 0.68f, 0.45f, 1f);
-        Color landColor = new Color(0.16f, 0.35f, 0.14f, 1f);
-        Color mountainColor = new Color(0.38f, 0.33f, 0.29f, 1f);
-        Color iceColor = new Color(0.92f, 0.95f, 1.0f, 1f);
+        float tShoreLand = SmoothStep(0.08f, 0.35f, height);
+        float tLandMtn = SmoothStep(0.35f, 0.70f, height);
 
-        // Standard land palette
-        Color standardShore = shoreColor;
-        Color standardLand = Color.Lerp(standardShore, landColor, SmoothStep(0.08f, 0.35f, height));
-        Color standardMountain = Color.Lerp(standardLand, mountainColor, SmoothStep(0.35f, 0.70f, height));
+        Color standardLand = Color.Lerp(shoreColor, landColor, tShoreLand);
+        Color standardMountain = Color.Lerp(standardLand, mountainColor, tLandMtn);
 
-        // Dry volcanic ash palette
-        Color dryShore = new Color(0.12f, 0.12f, 0.13f, 1f);
-        Color dryLand = new Color(0.18f, 0.18f, 0.20f, 1f);
-        Color dryMountain = new Color(0.35f, 0.35f, 0.35f, 1f);
-
-        Color volcanicLand = Color.Lerp(dryShore, dryLand, SmoothStep(0.08f, 0.35f, height));
-        volcanicLand = Color.Lerp(volcanicLand, dryMountain, SmoothStep(0.35f, 0.70f, height));
+        Color volcanicLand = Color.Lerp(dryShore, dryLand, tShoreLand);
+        volcanicLand = Color.Lerp(volcanicLand, dryMountain, tLandMtn);
 
         Color baseLandColor = Color.Lerp(volcanicLand, standardMountain, waterRatio);
 
-        // Ice / poles
-        float ice = SmoothStep(0.82f - 0.08f, 0.82f + 0.08f, latitude01) * waterRatio;
-        baseLandColor = Color.Lerp(baseLandColor, iceColor, ice);
-
-        Color finalColor = baseLandColor;
-
-        // Lava layer above 500 K
-        float lavaMask = SmoothStep(500f, 1400f, surfaceTemp);
-        if (lavaMask > 0.001f)
+        if (latitude01 > 0.74f && waterRatio > 0.001f)
         {
-            float heightLavaBias = SmoothStep(0.5f, 0.1f, height);
-            lavaMask = Mathf.Clamp01(lavaMask * (0.3f + 0.7f * heightLavaBias));
-
-            if (lavaMask > 0.001f)
+            float ice = SmoothStep(0.74f, 0.90f, latitude01) * waterRatio;
+            if (ice > 0.001f)
             {
-                Color lavaBaseColor = new Color(0.75f, 0.02f, 0.0f, 1f);
-                Color lavaHotColor = new Color(1.0f, 0.28f, 0.0f, 1f);
-                Color currentLavaColor = Color.Lerp(lavaBaseColor, lavaHotColor, 0.5f);
-                finalColor = Color.Lerp(finalColor, currentLavaColor, lavaMask);
+                baseLandColor = Color.Lerp(baseLandColor, iceColor, ice);
             }
         }
 
-        // Ocean water flooding layer
-        if (waterRatio > 0.001f)
-        {
-            float maxWaterLevel = 0.02f * 1.5f;
-            float waterLevel = maxWaterLevel * waterRatio;
+        Color finalColor = baseLandColor;
 
+        if (evaluateLava && lavaMask > 0.001f)
+        {
+            float heightLavaBias = SmoothStep(0.5f, 0.1f, height);
+            float effectiveLavaMask = Mathf.Clamp01(lavaMask * (0.3f + 0.7f * heightLavaBias));
+
+            if (effectiveLavaMask > 0.001f)
+            {
+                finalColor = Color.Lerp(finalColor, currentLavaColor, effectiveLavaMask);
+            }
+        }
+
+        if (evaluateWater)
+        {
             if (height < waterLevel + 0.02f)
             {
                 float depth = waterLevel - height;
@@ -613,7 +620,12 @@ public class GameHudController : MonoBehaviour
             }
         }
 
-        return finalColor;
+        return new Color32(
+            (byte)(Mathf.Clamp01(finalColor.r) * 255f),
+            (byte)(Mathf.Clamp01(finalColor.g) * 255f),
+            (byte)(Mathf.Clamp01(finalColor.b) * 255f),
+            255
+        );
     }
 
     private static float SmoothStep(float min, float max, float value)
@@ -1148,7 +1160,10 @@ public class GameHudController : MonoBehaviour
     {
         if (gameManager == null) return;
 
-        refreshTimer += Time.deltaTime;
+        float dt = Time.deltaTime;
+        minimapRefreshTimer += dt;
+
+        refreshTimer += dt;
         if (refreshTimer < refreshIntervalSeconds) return;
 
         refreshTimer = 0f;
