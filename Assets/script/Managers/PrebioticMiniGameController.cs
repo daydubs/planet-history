@@ -154,10 +154,17 @@ public class PrebioticMiniGameController : MonoBehaviour
         }
 
         // Trigger visual and physical meteor event on the planet
-        var meteorCtrl = FindAnyObjectByType<MeteorEventController>();
-        if (meteorCtrl != null)
+        if (MeteorEventController.Instance != null)
         {
-            meteorCtrl.TriggerMeteor();
+            MeteorEventController.Instance.TriggerMeteor();
+        }
+        else
+        {
+            var meteorCtrl = FindAnyObjectByType<MeteorEventController>();
+            if (meteorCtrl != null)
+            {
+                meteorCtrl.TriggerMeteor();
+            }
         }
 
         OnPrebioticProgressUpdated?.Invoke();

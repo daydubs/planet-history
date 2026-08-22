@@ -250,15 +250,15 @@ public class GameHudController : MonoBehaviour
     private CubeSphereTerrain cachedTerrain;
     private bool minimapExpanded = true;
 
-    private static readonly Color oceanColor = new Color(0.02f, 0.12f, 0.32f, 1f);
-    private static readonly Color shoreColor = new Color(0.72f, 0.68f, 0.45f, 1f);
-    private static readonly Color landColor = new Color(0.16f, 0.35f, 0.14f, 1f);
-    private static readonly Color mountainColor = new Color(0.38f, 0.33f, 0.29f, 1f);
-    private static readonly Color iceColor = new Color(0.92f, 0.95f, 1.0f, 1f);
-    private static readonly Color dryShore = new Color(0.12f, 0.12f, 0.13f, 1f);
-    private static readonly Color dryLand = new Color(0.18f, 0.18f, 0.20f, 1f);
-    private static readonly Color dryMountain = new Color(0.35f, 0.35f, 0.35f, 1f);
-    private static readonly Color currentLavaColor = new Color(0.875f, 0.15f, 0.0f, 1f);
+    private static readonly float oceanR = 0.02f, oceanG = 0.12f, oceanB = 0.32f;
+    private static readonly float shoreR = 0.72f, shoreG = 0.68f, shoreB = 0.45f;
+    private static readonly float landR = 0.16f, landG = 0.35f, landB = 0.14f;
+    private static readonly float mtnR = 0.38f, mtnG = 0.33f, mtnB = 0.29f;
+    private static readonly float iceR = 0.92f, iceG = 0.95f, iceB = 1.0f;
+    private static readonly float dryShoreR = 0.12f, dryShoreG = 0.12f, dryShoreB = 0.13f;
+    private static readonly float dryLandR = 0.18f, dryLandG = 0.18f, dryLandB = 0.20f;
+    private static readonly float dryMtnR = 0.35f, dryMtnG = 0.35f, dryMtnB = 0.35f;
+    private static readonly float lavaR = 0.875f, lavaG = 0.15f, lavaB = 0.0f;
 
     // Minimap Zoom & Pan State
     private float minimapZoom = 1.0f;
@@ -577,24 +577,36 @@ public class GameHudController : MonoBehaviour
         float tShoreLand = SmoothStep(0.08f, 0.35f, height);
         float tLandMtn = SmoothStep(0.35f, 0.70f, height);
 
-        Color standardLand = Color.Lerp(shoreColor, landColor, tShoreLand);
-        Color standardMountain = Color.Lerp(standardLand, mountainColor, tLandMtn);
+        float stdLandR = shoreR + (landR - shoreR) * tShoreLand;
+        float stdLandG = shoreG + (landG - shoreG) * tShoreLand;
+        float stdLandB = shoreB + (landB - shoreB) * tShoreLand;
 
-        Color volcanicLand = Color.Lerp(dryShore, dryLand, tShoreLand);
-        volcanicLand = Color.Lerp(volcanicLand, dryMountain, tLandMtn);
+        float stdMtnR = stdLandR + (mtnR - stdLandR) * tLandMtn;
+        float stdMtnG = stdLandG + (mtnG - stdLandG) * tLandMtn;
+        float stdMtnB = stdLandB + (mtnB - stdLandB) * tLandMtn;
 
-        Color baseLandColor = Color.Lerp(volcanicLand, standardMountain, waterRatio);
+        float volLandR = dryShoreR + (dryLandR - dryShoreR) * tShoreLand;
+        float volLandG = dryShoreG + (dryLandG - dryShoreG) * tShoreLand;
+        float volLandB = dryShoreB + (dryLandB - dryShoreB) * tShoreLand;
+
+        float volMtnR = volLandR + (dryMtnR - volLandR) * tLandMtn;
+        float volMtnG = volLandG + (dryMtnG - volLandG) * tLandMtn;
+        float volMtnB = volLandB + (dryMtnB - volLandB) * tLandMtn;
+
+        float finalR = volMtnR + (stdMtnR - volMtnR) * waterRatio;
+        float finalG = volMtnG + (stdMtnG - volMtnG) * waterRatio;
+        float finalB = volMtnB + (stdMtnB - volMtnB) * waterRatio;
 
         if (latitude01 > 0.74f && waterRatio > 0.001f)
         {
             float ice = SmoothStep(0.74f, 0.90f, latitude01) * waterRatio;
             if (ice > 0.001f)
             {
-                baseLandColor = Color.Lerp(baseLandColor, iceColor, ice);
+                finalR += (iceR - finalR) * ice;
+                finalG += (iceG - finalG) * ice;
+                finalB += (iceB - finalB) * ice;
             }
         }
-
-        Color finalColor = baseLandColor;
 
         if (evaluateLava && lavaMask > 0.001f)
         {
@@ -603,27 +615,28 @@ public class GameHudController : MonoBehaviour
 
             if (effectiveLavaMask > 0.001f)
             {
-                finalColor = Color.Lerp(finalColor, currentLavaColor, effectiveLavaMask);
+                finalR += (lavaR - finalR) * effectiveLavaMask;
+                finalG += (lavaG - finalG) * effectiveLavaMask;
+                finalB += (lavaB - finalB) * effectiveLavaMask;
             }
         }
 
-        if (evaluateWater)
+        if (evaluateWater && height < waterLevel + 0.02f)
         {
-            if (height < waterLevel + 0.02f)
+            float depth = waterLevel - height;
+            if (depth > 0f)
             {
-                float depth = waterLevel - height;
-                if (depth > 0f)
-                {
-                    float waterBlend = Mathf.Clamp01(depth * 100f);
-                    finalColor = Color.Lerp(finalColor, oceanColor, waterBlend);
-                }
+                float waterBlend = Mathf.Clamp01(depth * 100f);
+                finalR += (oceanR - finalR) * waterBlend;
+                finalG += (oceanG - finalG) * waterBlend;
+                finalB += (oceanB - finalB) * waterBlend;
             }
         }
 
         return new Color32(
-            (byte)(Mathf.Clamp01(finalColor.r) * 255f),
-            (byte)(Mathf.Clamp01(finalColor.g) * 255f),
-            (byte)(Mathf.Clamp01(finalColor.b) * 255f),
+            (byte)(Mathf.Clamp01(finalR) * 255f),
+            (byte)(Mathf.Clamp01(finalG) * 255f),
+            (byte)(Mathf.Clamp01(finalB) * 255f),
             255
         );
     }
@@ -1161,7 +1174,13 @@ public class GameHudController : MonoBehaviour
         if (gameManager == null) return;
 
         float dt = Time.deltaTime;
+
         minimapRefreshTimer += dt;
+        if (minimapRefreshTimer >= minimapRefreshInterval)
+        {
+            minimapRefreshTimer = 0f;
+            UpdateMinimapTexture(force: true);
+        }
 
         refreshTimer += dt;
         if (refreshTimer < refreshIntervalSeconds) return;
@@ -1173,6 +1192,7 @@ public class GameHudController : MonoBehaviour
     private void HandleEpochChanged(PlanetEpoch _)
     {
         RefreshAll();
+        UpdateMinimapTexture(force: true);
     }
 
     private void RefreshAll()
@@ -1273,7 +1293,6 @@ public class GameHudController : MonoBehaviour
         SetText(epochBadgeHexText, string.Empty);
 
         CheckPrebioticCompletion();
-        UpdateMinimapTexture();
     }
 
     private string GetEpochHex(PlanetEpoch epoch)

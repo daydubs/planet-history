@@ -1051,9 +1051,12 @@ public class CubeSphereTerrain : MonoBehaviour
                     float latDamping = Mathf.Clamp01((50f - currentAbsLat) / 15f);
                     deltaLat *= latDamping;
 
-                    piece.currentLongitude = Mathf.Repeat(piece.currentLongitude + deltaLon, 360f);
-                    piece.currentLatitude = Mathf.Clamp(piece.currentLatitude + deltaLat, -50f, 50f);
-                    needsRebuild = true;
+                    if (Mathf.Abs(deltaLon) > 1e-6f || Mathf.Abs(deltaLat) > 1e-6f)
+                    {
+                        piece.currentLongitude = Mathf.Repeat(piece.currentLongitude + deltaLon, 360f);
+                        piece.currentLatitude = Mathf.Clamp(piece.currentLatitude + deltaLat, -50f, 50f);
+                        needsRebuild = true;
+                    }
 
                     // Update attached craters and volcanoes to remain strictly locked to parent piece crust
                     foreach (var crater in activeCraters)
