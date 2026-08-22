@@ -183,12 +183,30 @@ public class PlanetHeightField : IDisposable
         int startX = WrapX(centerX - spanX);
         int columns = Mathf.Min(width, spanX * 2 + 1);
 
+        float radiusDeg = radiusRad * Mathf.Rad2Deg;
+        float invTwoRadiusDeg = 1f / (2f * radiusDeg);
+
         for (int y = minY; y <= maxY; y++)
         {
             if (IsPoleRow(y)) continue;
 
             float lat = LatitudeOf(y);
             float dLatRad = lat - centerLatRad;
+            float dLatDeg = dLatRad * Mathf.Rad2Deg;
+            float localV = (dLatDeg * invTwoRadiusDeg) + 0.5f;
+
+            if (localV < 0f || localV >= 1f) continue;
+
+            float gy = localV * (localHeight - 1);
+            int y0 = (int)gy;
+            int y1 = Mathf.Min(y0 + 1, localHeight - 1);
+            float ty = gy - y0;
+            float invTy = 1f - ty;
+
+            int rowOffset0 = y0 * localWidth;
+            int rowOffset1 = y1 * localWidth;
+
+            int dstRowOffset = y * width;
 
             for (int c = 0; c < columns; c++)
             {
@@ -196,40 +214,31 @@ public class PlanetHeightField : IDisposable
                 float lon = LongitudeOf(x);
 
                 float dLonRad = lon - centerLonRad;
-                while (dLonRad > Mathf.PI) dLonRad -= 2f * Mathf.PI;
-                while (dLonRad < -Mathf.PI) dLonRad += 2f * Mathf.PI;
+                if (dLonRad > Mathf.PI) dLonRad -= 2f * Mathf.PI;
+                else if (dLonRad < -Mathf.PI) dLonRad += 2f * Mathf.PI;
 
-                float dLatDeg = dLatRad * Mathf.Rad2Deg;
                 float dLonDeg = dLonRad * Mathf.Rad2Deg * cosLat;
+                float localU = (dLonDeg * invTwoRadiusDeg) + 0.5f;
 
-                float radiusDeg = radiusRad * Mathf.Rad2Deg;
-
-                float localU = (dLonDeg / (2f * radiusDeg)) + 0.5f;
-                float localV = (dLatDeg / (2f * radiusDeg)) + 0.5f;
-
-                if (localU < 0f || localU >= 1f || localV < 0f || localV >= 1f) continue;
+                if (localU < 0f || localU >= 1f) continue;
 
                 float gx = localU * (localWidth - 1);
-                float gy = localV * (localHeight - 1);
-
                 int x0 = (int)gx;
-                int y0 = (int)gy;
                 int x1 = Mathf.Min(x0 + 1, localWidth - 1);
-                int y1 = Mathf.Min(y0 + 1, localHeight - 1);
 
                 float tx = gx - x0;
-                float ty = gy - y0;
+                float invTx = 1f - tx;
 
-                float h00 = localHeights[x0 + y0 * localWidth];
-                float h10 = localHeights[x1 + y0 * localWidth];
-                float h01 = localHeights[x0 + y1 * localWidth];
-                float h11 = localHeights[x1 + y1 * localWidth];
+                float h00 = localHeights[x0 + rowOffset0];
+                float h10 = localHeights[x1 + rowOffset0];
+                float h01 = localHeights[x0 + rowOffset1];
+                float h11 = localHeights[x1 + rowOffset1];
 
-                float sampleHeight = (1f - tx) * (1f - ty) * h00 + tx * (1f - ty) * h10 + (1f - tx) * ty * h01 + tx * ty * h11;
+                float sampleHeight = invTx * (invTy * h00 + ty * h01) + tx * (invTy * h10 + ty * h11);
 
                 if (sampleHeight > 0.001f)
                 {
-                    int idx = x + y * width;
+                    int idx = x + dstRowOffset;
                     float pieceVal = sampleHeight * heightMultiplier;
                     float currentVal = targetHeight[idx];
 
