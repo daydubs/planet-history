@@ -175,46 +175,8 @@ public class GameMenuController : MonoBehaviour
         // Spacer
         CreateSpacer(contentObj.transform, 10f);
 
-        // Options Box Panel
-        launchOptionsBox = new GameObject("LaunchOptionsBox", typeof(RectTransform));
-        launchOptionsBox.transform.SetParent(contentObj.transform, false);
-
-        Image optionsBg = launchOptionsBox.AddComponent<Image>();
-        optionsBg.color = new Color(0.08f, 0.12f, 0.18f, 0.92f);
-
-        VerticalLayoutGroup optionsLayout = launchOptionsBox.AddComponent<VerticalLayoutGroup>();
-        optionsLayout.padding = new RectOffset(24, 24, 18, 18);
-        optionsLayout.spacing = 14f;
-        optionsLayout.childControlWidth = true;
-        optionsLayout.childControlHeight = false;
-
-        // Options Title
-        GameObject optTitleObj = new GameObject("OptionsHeader", typeof(RectTransform));
-        optTitleObj.transform.SetParent(launchOptionsBox.transform, false);
-        TextMeshProUGUI optTitle = optTitleObj.AddComponent<TextMeshProUGUI>();
-        optTitle.text = "<b>⚙ OPTIONS DU JEU</b>";
-        optTitle.fontSize = 22;
-        optTitle.color = new Color(0.30f, 0.90f, 0.75f, 1f);
-        optTitle.alignment = TextAlignmentOptions.Center;
-
-        // Game Length Settings Block
-        CreateGameLengthControls(launchOptionsBox.transform);
-
-        // Sound Settings Block
-        CreateSoundControls(launchOptionsBox.transform);
-
-        // Close Options Button
-        GameObject closeBtnRow = new GameObject("CloseOptionsRow", typeof(RectTransform));
-        closeBtnRow.transform.SetParent(launchOptionsBox.transform, false);
-
-        HorizontalLayoutGroup closeBtnLayout = closeBtnRow.AddComponent<HorizontalLayoutGroup>();
-        closeBtnLayout.childAlignment = TextAnchor.MiddleCenter;
-
-        LayoutElement closeRowEl = closeBtnRow.AddComponent<LayoutElement>();
-        closeRowEl.minHeight = 36f;
-
-        CreateButton(closeBtnRow.transform, "✔ FERMER LES OPTIONS", new Color(0.25f, 0.55f, 0.45f, 1f), 220f, 36f, () => ToggleLaunchOptions());
-
+        // Options Box Panel Container (Scrollable)
+        launchOptionsBox = CreateScrollableOptionsBox(contentObj.transform, "LaunchOptionsBox", () => ToggleLaunchOptions());
         launchOptionsBox.SetActive(false);
 
         LayoutRebuilder.ForceRebuildLayoutImmediate(panelRect);
@@ -282,49 +244,111 @@ public class GameMenuController : MonoBehaviour
         // Spacer
         CreateSpacer(contentObj.transform, 10f);
 
-        // Options Box Panel for Pause Screen
-        pauseOptionsBox = new GameObject("PauseOptionsBox", typeof(RectTransform));
-        pauseOptionsBox.transform.SetParent(contentObj.transform, false);
-
-        Image optionsBg = pauseOptionsBox.AddComponent<Image>();
-        optionsBg.color = new Color(0.08f, 0.12f, 0.18f, 0.92f);
-
-        VerticalLayoutGroup optionsLayout = pauseOptionsBox.AddComponent<VerticalLayoutGroup>();
-        optionsLayout.padding = new RectOffset(24, 24, 18, 18);
-        optionsLayout.spacing = 14f;
-        optionsLayout.childControlWidth = true;
-        optionsLayout.childControlHeight = false;
-
-        // Options Title
-        GameObject optTitleObj = new GameObject("OptionsHeader", typeof(RectTransform));
-        optTitleObj.transform.SetParent(pauseOptionsBox.transform, false);
-        TextMeshProUGUI optTitle = optTitleObj.AddComponent<TextMeshProUGUI>();
-        optTitle.text = "<b>⚙ OPTIONS DU JEU</b>";
-        optTitle.fontSize = 20;
-        optTitle.color = new Color(0.30f, 0.90f, 0.75f, 1f);
-        optTitle.alignment = TextAlignmentOptions.Center;
-
-        // Shared Game Length & Sound Controls
-        CreateGameLengthControls(pauseOptionsBox.transform);
-        CreateSoundControls(pauseOptionsBox.transform);
-
-        // Close Options Button
-        GameObject closeBtnRow = new GameObject("ClosePauseOptionsRow", typeof(RectTransform));
-        closeBtnRow.transform.SetParent(pauseOptionsBox.transform, false);
-
-        HorizontalLayoutGroup closeBtnLayout = closeBtnRow.AddComponent<HorizontalLayoutGroup>();
-        closeBtnLayout.childAlignment = TextAnchor.MiddleCenter;
-
-        LayoutElement closeRowEl = closeBtnRow.AddComponent<LayoutElement>();
-        closeRowEl.minHeight = 36f;
-
-        CreateButton(closeBtnRow.transform, "✔ FERMER LES OPTIONS", new Color(0.25f, 0.55f, 0.45f, 1f), 220f, 36f, () => TogglePauseOptions());
-
+        // Options Box Panel for Pause Screen (Scrollable)
+        pauseOptionsBox = CreateScrollableOptionsBox(contentObj.transform, "PauseOptionsBox", () => TogglePauseOptions());
         pauseOptionsBox.SetActive(false);
 
         pauseScreenPanel.SetActive(false);
     }
     #endregion
+
+    private GameObject CreateScrollableOptionsBox(Transform parent, string objectName, UnityEngine.Events.UnityAction onCloseAction)
+    {
+        GameObject optionsBox = new GameObject(objectName, typeof(RectTransform));
+        optionsBox.transform.SetParent(parent, false);
+
+        Image optionsBg = optionsBox.AddComponent<Image>();
+        optionsBg.color = new Color(0.08f, 0.12f, 0.18f, 0.95f);
+
+        VerticalLayoutGroup boxLayout = optionsBox.AddComponent<VerticalLayoutGroup>();
+        boxLayout.padding = new RectOffset(20, 20, 16, 16);
+        boxLayout.spacing = 12f;
+        boxLayout.childControlWidth = true;
+        boxLayout.childControlHeight = false;
+
+        LayoutElement boxLayoutEl = optionsBox.AddComponent<LayoutElement>();
+        boxLayoutEl.preferredWidth = 800f;
+        boxLayoutEl.minHeight = 350f;
+        boxLayoutEl.preferredHeight = 480f;
+
+        // Header Title
+        GameObject optTitleObj = new GameObject("OptionsHeader", typeof(RectTransform));
+        optTitleObj.transform.SetParent(optionsBox.transform, false);
+        TextMeshProUGUI optTitle = optTitleObj.AddComponent<TextMeshProUGUI>();
+        optTitle.text = "<b>⚙ OPTIONS DU JEU</b>";
+        optTitle.fontSize = 22;
+        optTitle.color = new Color(0.30f, 0.90f, 0.75f, 1f);
+        optTitle.alignment = TextAlignmentOptions.Center;
+
+        LayoutElement titleLayoutEl = optTitleObj.AddComponent<LayoutElement>();
+        titleLayoutEl.minHeight = 30f;
+
+        // Scroll View Root Container
+        GameObject scrollView = new GameObject("ScrollView", typeof(RectTransform));
+        scrollView.transform.SetParent(optionsBox.transform, false);
+
+        LayoutElement scrollLayoutEl = scrollView.AddComponent<LayoutElement>();
+        scrollLayoutEl.minHeight = 240f;
+        scrollLayoutEl.preferredHeight = 360f;
+        scrollLayoutEl.flexibleHeight = 1f;
+
+        ScrollRect scrollRect = scrollView.AddComponent<ScrollRect>();
+        scrollRect.horizontal = false;
+        scrollRect.vertical = true;
+        scrollRect.scrollSensitivity = 25f;
+
+        // Viewport with Mask
+        GameObject viewport = new GameObject("Viewport", typeof(RectTransform));
+        viewport.transform.SetParent(scrollView.transform, false);
+        RectTransform vpRect = viewport.GetComponent<RectTransform>();
+        vpRect.anchorMin = Vector2.zero;
+        vpRect.anchorMax = Vector2.one;
+        vpRect.sizeDelta = Vector2.zero;
+
+        Image vpImg = viewport.AddComponent<Image>();
+        vpImg.color = new Color(0, 0, 0, 0.01f); // Transparent image required for Raycasting touch/drag
+        viewport.AddComponent<RectMask2D>();
+
+        // Scroll Content Container
+        GameObject scrollContent = new GameObject("Content", typeof(RectTransform));
+        scrollContent.transform.SetParent(viewport.transform, false);
+        RectTransform contentRect = scrollContent.GetComponent<RectTransform>();
+        contentRect.anchorMin = new Vector2(0f, 1f);
+        contentRect.anchorMax = Vector2.one;
+        contentRect.pivot = new Vector2(0.5f, 1f);
+        contentRect.sizeDelta = new Vector2(0f, 0f);
+
+        VerticalLayoutGroup contentLayout = scrollContent.AddComponent<VerticalLayoutGroup>();
+        contentLayout.spacing = 14f;
+        contentLayout.padding = new RectOffset(10, 10, 10, 10);
+        contentLayout.childControlWidth = true;
+        contentLayout.childControlHeight = false;
+
+        ContentSizeFitter csf = scrollContent.AddComponent<ContentSizeFitter>();
+        csf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        csf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+
+        scrollRect.viewport = vpRect;
+        scrollRect.content = contentRect;
+
+        // Add controls to scrollable content container
+        CreateGameLengthControls(scrollContent.transform);
+        CreateSoundControls(scrollContent.transform);
+
+        // Close Options Button at bottom
+        GameObject closeBtnRow = new GameObject("CloseOptionsRow", typeof(RectTransform));
+        closeBtnRow.transform.SetParent(optionsBox.transform, false);
+
+        HorizontalLayoutGroup closeBtnLayout = closeBtnRow.AddComponent<HorizontalLayoutGroup>();
+        closeBtnLayout.childAlignment = TextAnchor.MiddleCenter;
+
+        LayoutElement closeRowEl = closeBtnRow.AddComponent<LayoutElement>();
+        closeRowEl.minHeight = 38f;
+
+        CreateButton(closeBtnRow.transform, "✔ FERMER LES OPTIONS", new Color(0.25f, 0.55f, 0.45f, 1f), 240f, 38f, onCloseAction);
+
+        return optionsBox;
+    }
 
     #region Reusable Control Builders
     private void CreateGameLengthControls(Transform parent)
@@ -333,7 +357,7 @@ public class GameMenuController : MonoBehaviour
         lengthContainer.transform.SetParent(parent, false);
 
         VerticalLayoutGroup vLayout = lengthContainer.AddComponent<VerticalLayoutGroup>();
-        vLayout.spacing = 8f;
+        vLayout.spacing = 10f;
         vLayout.childControlWidth = true;
         vLayout.childControlHeight = false;
 
@@ -350,14 +374,14 @@ public class GameMenuController : MonoBehaviour
         btnRow.transform.SetParent(lengthContainer.transform, false);
 
         HorizontalLayoutGroup hLayout = btnRow.AddComponent<HorizontalLayoutGroup>();
-        hLayout.spacing = 12f;
+        hLayout.spacing = 10f;
         hLayout.childAlignment = TextAnchor.MiddleCenter;
         hLayout.childControlWidth = true;
         hLayout.childControlHeight = true;
 
         LayoutElement btnRowLayout = btnRow.AddComponent<LayoutElement>();
-        btnRowLayout.minHeight = 40f;
-        btnRowLayout.preferredHeight = 40f;
+        btnRowLayout.minHeight = 44f;
+        btnRowLayout.preferredHeight = 44f;
 
         presetButtons = new Button[5];
         presetButtons[0] = CreatePresetButton(btnRow.transform, "1 Heure", SessionLengthPreset.OneHour);
@@ -377,18 +401,19 @@ public class GameMenuController : MonoBehaviour
         sliderLayout.childControlHeight = true;
 
         LayoutElement sliderRowEl = sliderRow.AddComponent<LayoutElement>();
-        sliderRowEl.minHeight = 30f;
+        sliderRowEl.minHeight = 36f;
 
         // Label for custom slider
         GameObject labelObj = new GameObject("CustomSliderLabel", typeof(RectTransform));
         labelObj.transform.SetParent(sliderRow.transform, false);
         TMP_Text customLabel = labelObj.AddComponent<TextMeshProUGUI>();
         customLabel.text = "Durée personnalisée (heures) :";
-        customLabel.fontSize = 14;
+        customLabel.fontSize = 15;
         customLabel.color = new Color(0.85f, 0.88f, 0.92f, 1f);
 
         LayoutElement labelEl = labelObj.AddComponent<LayoutElement>();
-        labelEl.minWidth = 200f;
+        labelEl.minWidth = 220f;
+        labelEl.preferredWidth = 220f;
 
         // Custom hours slider
         GameObject sliderObj = CreateSlider(sliderRow.transform, 0.25f, 24f, 3f, (val) =>
@@ -417,7 +442,7 @@ public class GameMenuController : MonoBehaviour
     private Button CreatePresetButton(Transform parent, string label, SessionLengthPreset preset)
     {
         Color baseColor = new Color(0.18f, 0.25f, 0.35f, 1f);
-        Button btn = CreateButton(parent, label, baseColor, 120f, 38f, () =>
+        Button btn = CreateButton(parent, label, baseColor, 100f, 38f, () =>
         {
             if (GameManager.Instance != null)
             {
@@ -479,9 +504,9 @@ public class GameMenuController : MonoBehaviour
         mLayout.childControlHeight = true;
 
         LayoutElement mRowEl = musicRow.AddComponent<LayoutElement>();
-        mRowEl.minHeight = 30f;
+        mRowEl.minHeight = 36f;
 
-        musicVolumeText = CreateLabel(musicRow.transform, "🔊 Musique : 50%", 180f);
+        musicVolumeText = CreateLabel(musicRow.transform, "🔊 Volume Musique : 50%", 220f);
         GameObject mSliderObj = CreateSlider(musicRow.transform, 0f, 1f, 0.5f, (val) =>
         {
             if (AudioManager.Instance != null)
@@ -490,7 +515,7 @@ public class GameMenuController : MonoBehaviour
             }
             if (musicVolumeText != null)
             {
-                musicVolumeText.text = $"🔊 Musique : {Mathf.RoundToInt(val * 100f)}%";
+                musicVolumeText.text = $"🔊 Volume Musique : {Mathf.RoundToInt(val * 100f)}%";
             }
         });
         musicSlider = mSliderObj.GetComponent<Slider>();
@@ -506,9 +531,9 @@ public class GameMenuController : MonoBehaviour
         sLayout.childControlHeight = true;
 
         LayoutElement sRowEl = sfxRow.AddComponent<LayoutElement>();
-        sRowEl.minHeight = 30f;
+        sRowEl.minHeight = 36f;
 
-        sfxVolumeText = CreateLabel(sfxRow.transform, "💥 Effets Sonores : 80%", 180f);
+        sfxVolumeText = CreateLabel(sfxRow.transform, "💥 Volume Effets (SFX) : 80%", 220f);
         GameObject sSliderObj = CreateSlider(sfxRow.transform, 0f, 1f, 0.8f, (val) =>
         {
             if (AudioManager.Instance != null)
@@ -517,7 +542,7 @@ public class GameMenuController : MonoBehaviour
             }
             if (sfxVolumeText != null)
             {
-                sfxVolumeText.text = $"💥 Effets Sonores : {Mathf.RoundToInt(val * 100f)}%";
+                sfxVolumeText.text = $"💥 Volume Effets (SFX) : {Mathf.RoundToInt(val * 100f)}%";
             }
         });
         sfxSlider = sSliderObj.GetComponent<Slider>();
@@ -530,7 +555,7 @@ public class GameMenuController : MonoBehaviour
 
         TextMeshProUGUI label = obj.AddComponent<TextMeshProUGUI>();
         label.text = text;
-        label.fontSize = 14;
+        label.fontSize = 15;
         label.color = new Color(0.88f, 0.92f, 0.95f, 1f);
         label.alignment = TextAlignmentOptions.Left;
 
