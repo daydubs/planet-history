@@ -14,8 +14,8 @@ public class GameMenuController : MonoBehaviour
     private GameObject canvasObj;
     private GameObject launchScreenPanel;
     private GameObject pauseScreenPanel;
-    private GameObject launchOptionsBox;
-    private GameObject pauseOptionsBox;
+    private GameObject optionsScreenPanel;
+    private bool previousStateIsPause = false;
 
     // UI Controls for sync
     private TMP_Text musicVolumeText;
@@ -42,6 +42,7 @@ public class GameMenuController : MonoBehaviour
         EnsureCanvasExists();
         CreateLaunchScreenUI();
         CreatePauseScreenUI();
+        CreateOptionsMenuUI();
     }
 
     private void Start()
@@ -63,6 +64,12 @@ public class GameMenuController : MonoBehaviour
         var keyboard = Keyboard.current;
         if (keyboard != null && (keyboard.escapeKey.wasPressedThisFrame || keyboard.pKey.wasPressedThisFrame))
         {
+            if (optionsScreenPanel != null && optionsScreenPanel.activeSelf)
+            {
+                CloseOptions();
+                return;
+            }
+
             if (launchScreenPanel != null && launchScreenPanel.activeSelf)
             {
                 // In launch screen, ignore Escape or stay in launch screen
@@ -175,10 +182,6 @@ public class GameMenuController : MonoBehaviour
         // Spacer
         CreateSpacer(contentObj.transform, 10f);
 
-        // Options Box Panel Container (Scrollable)
-        launchOptionsBox = CreateScrollableOptionsBox(contentObj.transform, "LaunchOptionsBox", () => ToggleLaunchOptions());
-        launchOptionsBox.SetActive(false);
-
         LayoutRebuilder.ForceRebuildLayoutImmediate(panelRect);
     }
     #endregion
@@ -244,52 +247,75 @@ public class GameMenuController : MonoBehaviour
         // Spacer
         CreateSpacer(contentObj.transform, 10f);
 
-        // Options Box Panel for Pause Screen (Scrollable)
-        pauseOptionsBox = CreateScrollableOptionsBox(contentObj.transform, "PauseOptionsBox", () => TogglePauseOptions());
-        pauseOptionsBox.SetActive(false);
-
         pauseScreenPanel.SetActive(false);
     }
     #endregion
 
-    private GameObject CreateScrollableOptionsBox(Transform parent, string objectName, UnityEngine.Events.UnityAction onCloseAction)
+    #region Options Screen Construction
+    private void CreateOptionsMenuUI()
     {
-        GameObject optionsBox = new GameObject(objectName, typeof(RectTransform));
-        optionsBox.transform.SetParent(parent, false);
+        if (canvasObj == null) return;
 
-        Image optionsBg = optionsBox.AddComponent<Image>();
-        optionsBg.color = new Color(0.08f, 0.12f, 0.18f, 0.95f);
+        // Full Screen Overlay Panel masking the screen completely
+        optionsScreenPanel = new GameObject("OptionsScreenPanel", typeof(RectTransform));
+        optionsScreenPanel.transform.SetParent(canvasObj.transform, false);
 
-        VerticalLayoutGroup boxLayout = optionsBox.AddComponent<VerticalLayoutGroup>();
-        boxLayout.padding = new RectOffset(20, 20, 16, 16);
-        boxLayout.spacing = 12f;
-        boxLayout.childControlWidth = true;
-        boxLayout.childControlHeight = false;
+        RectTransform panelRect = optionsScreenPanel.GetComponent<RectTransform>();
+        panelRect.anchorMin = Vector2.zero;
+        panelRect.anchorMax = Vector2.one;
+        panelRect.sizeDelta = Vector2.zero;
 
-        LayoutElement boxLayoutEl = optionsBox.AddComponent<LayoutElement>();
-        boxLayoutEl.preferredWidth = 800f;
-        boxLayoutEl.minHeight = 350f;
-        boxLayoutEl.preferredHeight = 480f;
+        // Opaque dark background overlay to completely mask the scene/planet screen
+        Image bg = optionsScreenPanel.AddComponent<Image>();
+        bg.color = new Color(0.04f, 0.06f, 0.10f, 1.0f); // Opaque dark navy background
 
-        // Header Title
-        GameObject optTitleObj = new GameObject("OptionsHeader", typeof(RectTransform));
-        optTitleObj.transform.SetParent(optionsBox.transform, false);
-        TextMeshProUGUI optTitle = optTitleObj.AddComponent<TextMeshProUGUI>();
-        optTitle.text = "<b>⚙ OPTIONS DU JEU</b>";
-        optTitle.fontSize = 22;
-        optTitle.color = new Color(0.30f, 0.90f, 0.75f, 1f);
-        optTitle.alignment = TextAlignmentOptions.Center;
+        // Main Layout Container
+        GameObject contentObj = new GameObject("OptionsContent", typeof(RectTransform));
+        contentObj.transform.SetParent(optionsScreenPanel.transform, false);
 
-        LayoutElement titleLayoutEl = optTitleObj.AddComponent<LayoutElement>();
-        titleLayoutEl.minHeight = 30f;
+        RectTransform contentRect = contentObj.GetComponent<RectTransform>();
+        contentRect.anchorMin = new Vector2(0.12f, 0.04f);
+        contentRect.anchorMax = new Vector2(0.88f, 0.96f);
+        contentRect.sizeDelta = Vector2.zero;
 
-        // Scroll View Root Container
+        VerticalLayoutGroup layout = contentObj.AddComponent<VerticalLayoutGroup>();
+        layout.childAlignment = TextAnchor.UpperCenter;
+        layout.spacing = 16f;
+        layout.childControlWidth = true;
+        layout.childControlHeight = false;
+
+        // Title Header
+        GameObject titleObj = new GameObject("OptionsTitleText", typeof(RectTransform));
+        titleObj.transform.SetParent(contentObj.transform, false);
+        TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
+        titleText.text = "<b>⚙ OPTIONS & RÉGLAGES</b>";
+        titleText.fontSize = 42;
+        titleText.fontStyle = FontStyles.Bold;
+        titleText.color = new Color(0.98f, 0.85f, 0.35f, 1f);
+        titleText.alignment = TextAlignmentOptions.Center;
+
+        LayoutElement titleEl = titleObj.AddComponent<LayoutElement>();
+        titleEl.minHeight = 50f;
+
+        // Subtitle
+        GameObject subTitleObj = new GameObject("OptionsSubtitleText", typeof(RectTransform));
+        subTitleObj.transform.SetParent(contentObj.transform, false);
+        TextMeshProUGUI subTitleText = subTitleObj.AddComponent<TextMeshProUGUI>();
+        subTitleText.text = "Personnalisez votre expérience de simulation planétaire";
+        subTitleText.fontSize = 20;
+        subTitleText.fontStyle = FontStyles.Italic;
+        subTitleText.color = new Color(0.75f, 0.82f, 0.90f, 1f);
+        subTitleText.alignment = TextAlignmentOptions.Center;
+
+        LayoutElement subTitleEl = subTitleObj.AddComponent<LayoutElement>();
+        subTitleEl.minHeight = 30f;
+
+        // Scroll View Container for settings
         GameObject scrollView = new GameObject("ScrollView", typeof(RectTransform));
-        scrollView.transform.SetParent(optionsBox.transform, false);
+        scrollView.transform.SetParent(contentObj.transform, false);
 
         LayoutElement scrollLayoutEl = scrollView.AddComponent<LayoutElement>();
-        scrollLayoutEl.minHeight = 240f;
-        scrollLayoutEl.preferredHeight = 360f;
+        scrollLayoutEl.minHeight = 400f;
         scrollLayoutEl.flexibleHeight = 1f;
 
         ScrollRect scrollRect = scrollView.AddComponent<ScrollRect>();
@@ -306,21 +332,21 @@ public class GameMenuController : MonoBehaviour
         vpRect.sizeDelta = Vector2.zero;
 
         Image vpImg = viewport.AddComponent<Image>();
-        vpImg.color = new Color(0, 0, 0, 0.01f); // Transparent image required for Raycasting touch/drag
+        vpImg.color = new Color(0, 0, 0, 0.01f); // Raycast target
         viewport.AddComponent<RectMask2D>();
 
-        // Scroll Content Container
+        // Scroll Content
         GameObject scrollContent = new GameObject("Content", typeof(RectTransform));
         scrollContent.transform.SetParent(viewport.transform, false);
-        RectTransform contentRect = scrollContent.GetComponent<RectTransform>();
-        contentRect.anchorMin = new Vector2(0f, 1f);
-        contentRect.anchorMax = Vector2.one;
-        contentRect.pivot = new Vector2(0.5f, 1f);
-        contentRect.sizeDelta = new Vector2(0f, 0f);
+        RectTransform scrollContentRect = scrollContent.GetComponent<RectTransform>();
+        scrollContentRect.anchorMin = new Vector2(0f, 1f);
+        scrollContentRect.anchorMax = Vector2.one;
+        scrollContentRect.pivot = new Vector2(0.5f, 1f);
+        scrollContentRect.sizeDelta = new Vector2(0f, 0f);
 
         VerticalLayoutGroup contentLayout = scrollContent.AddComponent<VerticalLayoutGroup>();
-        contentLayout.spacing = 14f;
-        contentLayout.padding = new RectOffset(10, 10, 10, 10);
+        contentLayout.spacing = 20f;
+        contentLayout.padding = new RectOffset(24, 24, 20, 20);
         contentLayout.childControlWidth = true;
         contentLayout.childControlHeight = false;
 
@@ -329,26 +355,29 @@ public class GameMenuController : MonoBehaviour
         csf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
 
         scrollRect.viewport = vpRect;
-        scrollRect.content = contentRect;
+        scrollRect.content = scrollContentRect;
 
-        // Add controls to scrollable content container
+        // Add settings sections inside scroll content
         CreateGameLengthControls(scrollContent.transform);
         CreateSoundControls(scrollContent.transform);
+        CreateControlsReminder(scrollContent.transform);
 
-        // Close Options Button at bottom
-        GameObject closeBtnRow = new GameObject("CloseOptionsRow", typeof(RectTransform));
-        closeBtnRow.transform.SetParent(optionsBox.transform, false);
+        // Bottom Actions Row (Return Button)
+        GameObject bottomRow = new GameObject("OptionsBottomRow", typeof(RectTransform));
+        bottomRow.transform.SetParent(contentObj.transform, false);
 
-        HorizontalLayoutGroup closeBtnLayout = closeBtnRow.AddComponent<HorizontalLayoutGroup>();
-        closeBtnLayout.childAlignment = TextAnchor.MiddleCenter;
+        HorizontalLayoutGroup bottomLayout = bottomRow.AddComponent<HorizontalLayoutGroup>();
+        bottomLayout.childAlignment = TextAnchor.MiddleCenter;
+        bottomLayout.spacing = 20f;
 
-        LayoutElement closeRowEl = closeBtnRow.AddComponent<LayoutElement>();
-        closeRowEl.minHeight = 38f;
+        LayoutElement bottomRowEl = bottomRow.AddComponent<LayoutElement>();
+        bottomRowEl.minHeight = 50f;
 
-        CreateButton(closeBtnRow.transform, "✔ FERMER LES OPTIONS", new Color(0.25f, 0.55f, 0.45f, 1f), 240f, 38f, onCloseAction);
+        CreateButton(bottomRow.transform, "◀ RETOUR", new Color(0.20f, 0.50f, 0.70f, 1f), 220f, 48f, () => CloseOptions());
 
-        return optionsBox;
+        optionsScreenPanel.SetActive(false);
     }
+    #endregion
 
     #region Reusable Control Builders
     private void CreateGameLengthControls(Transform parent)
@@ -548,6 +577,36 @@ public class GameMenuController : MonoBehaviour
         sfxSlider = sSliderObj.GetComponent<Slider>();
     }
 
+    private void CreateControlsReminder(Transform parent)
+    {
+        GameObject controlsContainer = new GameObject("ControlsReminderBlock", typeof(RectTransform));
+        controlsContainer.transform.SetParent(parent, false);
+
+        VerticalLayoutGroup vLayout = controlsContainer.AddComponent<VerticalLayoutGroup>();
+        vLayout.spacing = 8f;
+        vLayout.childControlWidth = true;
+        vLayout.childControlHeight = false;
+
+        // Header
+        GameObject headerObj = new GameObject("ControlsHeader", typeof(RectTransform));
+        headerObj.transform.SetParent(controlsContainer.transform, false);
+        TextMeshProUGUI headerText = headerObj.AddComponent<TextMeshProUGUI>();
+        headerText.text = "<b>Rappels des Commandes & Contrôles :</b>";
+        headerText.fontSize = 16;
+        headerText.color = Color.white;
+
+        // Content body text
+        GameObject textObj = new GameObject("ControlsBody", typeof(RectTransform));
+        textObj.transform.SetParent(controlsContainer.transform, false);
+        TextMeshProUGUI text = textObj.AddComponent<TextMeshProUGUI>();
+        text.fontSize = 14;
+        text.color = new Color(0.85f, 0.88f, 0.92f, 1f);
+        text.text = " • <b>A / D</b> : Effectuer une rotation de la planète sur son axe\n" +
+                    " • <b>Échap / P</b> : Mettre en pause / Reprendre le jeu ou basculer les menus\n" +
+                    " • <b>Glisser-déposer Souris sur Carte</b> : Naviguer dans la mini-carte\n" +
+                    " • <b>Molette Souris sur Carte</b> : Zoomer / Dézoomer sur la mini-carte";
+    }
+
     private TMP_Text CreateLabel(Transform parent, string text, float width)
     {
         GameObject obj = new GameObject("Label", typeof(RectTransform));
@@ -693,17 +752,55 @@ public class GameMenuController : MonoBehaviour
     #region Menu Actions & Sync
     public void ToggleLaunchOptions()
     {
-        if (launchOptionsBox != null)
+        if (optionsScreenPanel != null && optionsScreenPanel.activeSelf)
         {
-            launchOptionsBox.SetActive(!launchOptionsBox.activeSelf);
+            CloseOptions();
+        }
+        else
+        {
+            ShowOptionsScreen(fromPause: false);
         }
     }
 
     public void TogglePauseOptions()
     {
-        if (pauseOptionsBox != null)
+        if (optionsScreenPanel != null && optionsScreenPanel.activeSelf)
         {
-            pauseOptionsBox.SetActive(!pauseOptionsBox.activeSelf);
+            CloseOptions();
+        }
+        else
+        {
+            ShowOptionsScreen(fromPause: true);
+        }
+    }
+
+    public void ShowOptionsScreen(bool fromPause)
+    {
+        previousStateIsPause = fromPause;
+
+        if (launchScreenPanel != null) launchScreenPanel.SetActive(false);
+        if (pauseScreenPanel != null) pauseScreenPanel.SetActive(false);
+        if (optionsScreenPanel != null) optionsScreenPanel.SetActive(true);
+
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.SetPause(true);
+        }
+
+        SyncUIValuesWithManagers();
+    }
+
+    public void CloseOptions()
+    {
+        if (optionsScreenPanel != null) optionsScreenPanel.SetActive(false);
+
+        if (previousStateIsPause)
+        {
+            ShowPauseMenu();
+        }
+        else
+        {
+            ShowLaunchScreen();
         }
     }
 
@@ -711,8 +808,7 @@ public class GameMenuController : MonoBehaviour
     {
         if (launchScreenPanel != null) launchScreenPanel.SetActive(true);
         if (pauseScreenPanel != null) pauseScreenPanel.SetActive(false);
-        if (launchOptionsBox != null) launchOptionsBox.SetActive(false);
-        if (pauseOptionsBox != null) pauseOptionsBox.SetActive(false);
+        if (optionsScreenPanel != null) optionsScreenPanel.SetActive(false);
 
         if (GameManager.Instance != null)
         {
@@ -727,8 +823,7 @@ public class GameMenuController : MonoBehaviour
         if (launchScreenPanel != null && launchScreenPanel.activeSelf) return;
 
         if (pauseScreenPanel != null) pauseScreenPanel.SetActive(true);
-        if (launchOptionsBox != null) launchOptionsBox.SetActive(false);
-        if (pauseOptionsBox != null) pauseOptionsBox.SetActive(false);
+        if (optionsScreenPanel != null) optionsScreenPanel.SetActive(false);
 
         if (GameManager.Instance != null)
         {
@@ -742,8 +837,7 @@ public class GameMenuController : MonoBehaviour
     {
         if (launchScreenPanel != null) launchScreenPanel.SetActive(false);
         if (pauseScreenPanel != null) pauseScreenPanel.SetActive(false);
-        if (launchOptionsBox != null) launchOptionsBox.SetActive(false);
-        if (pauseOptionsBox != null) pauseOptionsBox.SetActive(false);
+        if (optionsScreenPanel != null) optionsScreenPanel.SetActive(false);
 
         if (GameManager.Instance != null)
         {
@@ -820,8 +914,7 @@ public class GameMenuController : MonoBehaviour
     {
         if (launchScreenPanel != null) launchScreenPanel.SetActive(false);
         if (pauseScreenPanel != null) pauseScreenPanel.SetActive(false);
-        if (launchOptionsBox != null) launchOptionsBox.SetActive(false);
-        if (pauseOptionsBox != null) pauseOptionsBox.SetActive(false);
+        if (optionsScreenPanel != null) optionsScreenPanel.SetActive(false);
     }
     #endregion
 }
