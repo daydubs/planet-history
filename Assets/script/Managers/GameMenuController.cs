@@ -390,6 +390,10 @@ public class GameMenuController : MonoBehaviour
         vLayout.childControlWidth = true;
         vLayout.childControlHeight = false;
 
+        ContentSizeFitter containerCsf = lengthContainer.AddComponent<ContentSizeFitter>();
+        containerCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        containerCsf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+
         // Header + Status text
         GameObject headerObj = new GameObject("GameLengthHeader", typeof(RectTransform));
         headerObj.transform.SetParent(lengthContainer.transform, false);
@@ -427,10 +431,11 @@ public class GameMenuController : MonoBehaviour
         sliderLayout.spacing = 12f;
         sliderLayout.childAlignment = TextAnchor.MiddleLeft;
         sliderLayout.childControlWidth = true;
-        sliderLayout.childControlHeight = true;
+        sliderLayout.childControlHeight = false;
 
         LayoutElement sliderRowEl = sliderRow.AddComponent<LayoutElement>();
         sliderRowEl.minHeight = 36f;
+        sliderRowEl.preferredHeight = 36f;
 
         // Label for custom slider
         GameObject labelObj = new GameObject("CustomSliderLabel", typeof(RectTransform));
@@ -464,6 +469,9 @@ public class GameMenuController : MonoBehaviour
         sessionLengthText.fontSize = 14;
         sessionLengthText.fontStyle = FontStyles.Italic;
         sessionLengthText.color = new Color(0.40f, 0.85f, 0.95f, 1f);
+
+        LayoutElement statusEl = statusObj.AddComponent<LayoutElement>();
+        statusEl.minHeight = 26f;
 
         UpdateSessionLengthText();
     }
@@ -514,6 +522,10 @@ public class GameMenuController : MonoBehaviour
         vLayout.childControlWidth = true;
         vLayout.childControlHeight = false;
 
+        ContentSizeFitter containerCsf = soundContainer.AddComponent<ContentSizeFitter>();
+        containerCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        containerCsf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+
         // Header
         GameObject headerObj = new GameObject("SoundHeader", typeof(RectTransform));
         headerObj.transform.SetParent(soundContainer.transform, false);
@@ -521,6 +533,9 @@ public class GameMenuController : MonoBehaviour
         headerText.text = "<b>Réglages Sonores :</b>";
         headerText.fontSize = 16;
         headerText.color = Color.white;
+
+        LayoutElement headerEl = headerObj.AddComponent<LayoutElement>();
+        headerEl.minHeight = 26f;
 
         // Music Volume Row
         GameObject musicRow = new GameObject("MusicVolumeRow", typeof(RectTransform));
@@ -530,10 +545,11 @@ public class GameMenuController : MonoBehaviour
         mLayout.spacing = 12f;
         mLayout.childAlignment = TextAnchor.MiddleLeft;
         mLayout.childControlWidth = true;
-        mLayout.childControlHeight = true;
+        mLayout.childControlHeight = false;
 
         LayoutElement mRowEl = musicRow.AddComponent<LayoutElement>();
         mRowEl.minHeight = 36f;
+        mRowEl.preferredHeight = 36f;
 
         musicVolumeText = CreateLabel(musicRow.transform, "🔊 Volume Musique : 50%", 220f);
         GameObject mSliderObj = CreateSlider(musicRow.transform, 0f, 1f, 0.5f, (val) =>
@@ -557,10 +573,11 @@ public class GameMenuController : MonoBehaviour
         sLayout.spacing = 12f;
         sLayout.childAlignment = TextAnchor.MiddleLeft;
         sLayout.childControlWidth = true;
-        sLayout.childControlHeight = true;
+        sLayout.childControlHeight = false;
 
         LayoutElement sRowEl = sfxRow.AddComponent<LayoutElement>();
         sRowEl.minHeight = 36f;
+        sRowEl.preferredHeight = 36f;
 
         sfxVolumeText = CreateLabel(sfxRow.transform, "💥 Volume Effets (SFX) : 80%", 220f);
         GameObject sSliderObj = CreateSlider(sfxRow.transform, 0f, 1f, 0.8f, (val) =>
@@ -587,6 +604,10 @@ public class GameMenuController : MonoBehaviour
         vLayout.childControlWidth = true;
         vLayout.childControlHeight = false;
 
+        ContentSizeFitter containerCsf = controlsContainer.AddComponent<ContentSizeFitter>();
+        containerCsf.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        containerCsf.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+
         // Header
         GameObject headerObj = new GameObject("ControlsHeader", typeof(RectTransform));
         headerObj.transform.SetParent(controlsContainer.transform, false);
@@ -594,6 +615,9 @@ public class GameMenuController : MonoBehaviour
         headerText.text = "<b>Rappels des Commandes & Contrôles :</b>";
         headerText.fontSize = 16;
         headerText.color = Color.white;
+
+        LayoutElement headerEl = headerObj.AddComponent<LayoutElement>();
+        headerEl.minHeight = 26f;
 
         // Content body text
         GameObject textObj = new GameObject("ControlsBody", typeof(RectTransform));
@@ -605,6 +629,9 @@ public class GameMenuController : MonoBehaviour
                     " • <b>Échap / P</b> : Mettre en pause / Reprendre le jeu ou basculer les menus\n" +
                     " • <b>Glisser-déposer Souris sur Carte</b> : Naviguer dans la mini-carte\n" +
                     " • <b>Molette Souris sur Carte</b> : Zoomer / Dézoomer sur la mini-carte";
+
+        LayoutElement bodyEl = textObj.AddComponent<LayoutElement>();
+        bodyEl.minHeight = 100f;
     }
 
     private TMP_Text CreateLabel(Transform parent, string text, float width)
@@ -714,13 +741,11 @@ public class GameMenuController : MonoBehaviour
         textGo.transform.SetParent(buttonGo.transform, false);
         TextMeshProUGUI text = textGo.AddComponent<TextMeshProUGUI>();
         text.text = labelText;
-        text.fontSize = 17;
+        text.fontSize = 16;
         text.fontStyle = FontStyles.Bold;
         text.color = Color.white;
         text.alignment = TextAlignmentOptions.Center;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 12;
-        text.fontSizeMax = 18;
+        text.enableAutoSizing = false;
 
         RectTransform textRect = textGo.GetComponent<RectTransform>();
         textRect.anchorMin = Vector2.zero;
