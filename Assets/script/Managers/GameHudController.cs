@@ -1252,7 +1252,16 @@ public class GameHudController : MonoBehaviour
         SetText(surfaceTempText, $"Temp. surface: {gameManager.SurfaceTemperature:0.0} K ({gameManager.SurfaceTemperature - 273.15f:0.0} °C){thermalExtras}");
         SetText(pressureText, $"Pression: {gameManager.Pressure:0.000} atm");
         SetText(waterText, $"Eau liquide: {gameManager.WaterRatio * 100f:0.00}%");
-        SetText(tectonicText, $"Activite tectonique: {gameManager.TectonicActivity * 100f:0.00}%");
+
+        if (tectonicText != null)
+        {
+            tectonicText.enableAutoSizing = true;
+            tectonicText.fontSizeMin = 9f;
+            tectonicText.fontSizeMax = 14f;
+            tectonicText.textWrappingMode = TextWrappingModes.NoWrap;
+            tectonicText.overflowMode = TextOverflowModes.Ellipsis;
+            tectonicText.text = $"Activité tectonique: {gameManager.TectonicActivity * 100f:0.00}%";
+        }
 
         bool isPrebiotic = gameManager != null && gameManager.CurrentEpoch == PlanetEpoch.Prebiotic;
 

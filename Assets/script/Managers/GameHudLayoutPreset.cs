@@ -29,7 +29,7 @@ public class GameHudLayoutPreset : MonoBehaviour
 
     [Header("Typography")]
     [SerializeField, Min(10)] private int titleFontSize = 22;
-    [SerializeField, Min(10)] private int bodyFontSize = 16;
+    [SerializeField, Min(10)] private int bodyFontSize = 15;
     [SerializeField] private FontStyles titleStyle = FontStyles.Bold;
     [SerializeField] private FontStyles bodyStyle = FontStyles.Normal;
 
@@ -283,8 +283,8 @@ public class GameHudLayoutPreset : MonoBehaviour
 
         if (child.name.Contains("Slider"))
         {
-            layout.minWidth = 140f;
-            layout.preferredWidth = 220f;
+            layout.minWidth = 120f;
+            layout.preferredWidth = 180f;
             layout.flexibleWidth = 1f;
             layout.minHeight = sliderHeight;
             layout.preferredHeight = sliderHeight;
@@ -311,7 +311,7 @@ public class GameHudLayoutPreset : MonoBehaviour
             return;
         }
 
-        layout.minWidth = 120f;
+        layout.minWidth = 140f;
         layout.preferredWidth = -1f;
         layout.flexibleWidth = 1f;
         layout.minHeight = 24f;
@@ -343,12 +343,14 @@ public class GameHudLayoutPreset : MonoBehaviour
         foreach (TMP_Text text in texts)
         {
             bool isTitle = text.name.Contains("Epoch") || text.name.Contains("Title");
+            bool isMultiLine = text.name.Contains("CompAtm") || text.name.Contains("Atmosphere") || text.name.Contains("Prebiotic");
+
             text.enableAutoSizing = true;
-            text.fontSizeMin = 11;
-            text.fontSizeMax = isTitle ? titleFontSize : bodyFontSize;
+            text.fontSizeMin = 9;
+            text.fontSizeMax = isTitle ? titleFontSize : (text.name.Contains("Tectonic") ? 14 : bodyFontSize);
             text.fontStyle = isTitle ? titleStyle : bodyStyle;
-            text.textWrappingMode = TextWrappingModes.Normal;
-            text.overflowMode = text.name.Contains("CompAtm") || text.name.Contains("Atmosphere") ? TextOverflowModes.Overflow : TextOverflowModes.Ellipsis;
+            text.textWrappingMode = isMultiLine ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
+            text.overflowMode = isMultiLine ? TextOverflowModes.Overflow : TextOverflowModes.Ellipsis;
         }
     }
 
