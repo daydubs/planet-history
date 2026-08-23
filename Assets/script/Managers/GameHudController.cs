@@ -126,8 +126,13 @@ public class GameHudController : MonoBehaviour
     [SerializeField] private RawImage minimapRawImage;
     [SerializeField] private int minimapWidth = 192;
     [SerializeField] private int minimapHeight = 96;
-    [SerializeField, Min(0.1f)] private float minimapRefreshInterval = 0.5f;
+    [SerializeField, Min(0.1f)] private float minimapRefreshInterval = 0.75f;
     private float minimapRefreshTimer;
+    private bool isMinimapDirty = true;
+    private float lastMinimapSurfaceTemp = -1f;
+    private float lastMinimapWaterRatio = -1f;
+    private float lastMinimapZoom = -1f;
+    private Vector2 lastMinimapPanOffset = new Vector2(-999f, -999f);
 
     [Header("Palette (Hex)")]
     [SerializeField] private string hadeanHex = "#D1495B";
@@ -399,7 +404,7 @@ public class GameHudController : MonoBehaviour
         if (minimapZoom <= MinMinimapZoom)
         {
             minimapPanOffset = Vector2.zero;
-            UpdateMinimapTexture(force: true);
+            isMinimapDirty = true;
             return;
         }
 
@@ -414,7 +419,7 @@ public class GameHudController : MonoBehaviour
         minimapPanOffset.y = vPivotPrev - vPivotNew;
 
         ClampMinimapPanOffset();
-        UpdateMinimapTexture(force: true);
+        isMinimapDirty = true;
     }
 
     public void PanMinimap(Vector2 deltaNormalized)
@@ -425,13 +430,14 @@ public class GameHudController : MonoBehaviour
         minimapPanOffset.y -= deltaNormalized.y / minimapZoom;
 
         ClampMinimapPanOffset();
-        UpdateMinimapTexture(force: true);
+        isMinimapDirty = true;
     }
 
     public void ResetMinimapView()
     {
         minimapZoom = 1.0f;
         minimapPanOffset = Vector2.zero;
+        isMinimapDirty = true;
         UpdateMinimapTexture(force: true);
     }
 
@@ -496,15 +502,26 @@ public class GameHudController : MonoBehaviour
     {
         if (minimapRawImage == null || !minimapRawImage.gameObject.activeInHierarchy || !minimapExpanded) return;
 
-        if (!force)
+        if (!force && !isMinimapDirty)
         {
             if (minimapRefreshTimer < minimapRefreshInterval) return;
-            minimapRefreshTimer = 0f;
         }
-        else
+
+        float surfaceTemp = gameManager != null ? gameManager.SurfaceTemperature : 1800f;
+        float waterRatio = gameManager != null ? gameManager.WaterRatio : 0f;
+
+        // Skip regeneration if parameters haven't changed and not forced
+        if (!force && !isMinimapDirty &&
+            Mathf.Approximately(surfaceTemp, lastMinimapSurfaceTemp) &&
+            Mathf.Approximately(waterRatio, lastMinimapWaterRatio) &&
+            Mathf.Approximately(minimapZoom, lastMinimapZoom) &&
+            Vector2.Distance(minimapPanOffset, lastMinimapPanOffset) < 1e-4f)
         {
-            minimapRefreshTimer = 0f;
+            return;
         }
+
+        minimapRefreshTimer = 0f;
+        isMinimapDirty = false;
 
         if (cachedTerrain == null)
         {
@@ -528,8 +545,10 @@ public class GameHudController : MonoBehaviour
             minimapRawImage.texture = minimapTexture;
         }
 
-        float surfaceTemp = gameManager != null ? gameManager.SurfaceTemperature : 1800f;
-        float waterRatio = gameManager != null ? gameManager.WaterRatio : 0f;
+        lastMinimapSurfaceTemp = surfaceTemp;
+        lastMinimapWaterRatio = waterRatio;
+        lastMinimapZoom = minimapZoom;
+        lastMinimapPanOffset = minimapPanOffset;
 
         float fieldWidth = field.Width;
         float fieldHeight = field.Height;
@@ -1192,6 +1211,7 @@ public class GameHudController : MonoBehaviour
     private void HandleEpochChanged(PlanetEpoch _)
     {
         RefreshAll();
+        isMinimapDirty = true;
         UpdateMinimapTexture(force: true);
     }
 

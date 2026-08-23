@@ -130,6 +130,10 @@ public class GameManager : MonoBehaviour
         // Optionnel: si tu veux garder entre scènes
         // DontDestroyOnLoad(gameObject);
 
+        // Débloquer le plafond de 30 FPS lié au VSync ou à la configuration de la plateforme par défaut
+        QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = 60;
+
         EnsureDefaultCurves();
         EnsureAudioManager();
         InitializeCsvLogger();
