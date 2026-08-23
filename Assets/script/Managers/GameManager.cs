@@ -297,9 +297,9 @@ public class GameManager : MonoBehaviour
 
         if (surfaceTemperature < condenseThreshold && pressure > 0.2f)
         {
-            // Taux de condensation réduit (de 0.00001f à 0.000001f) pour permettre une progression plus lente et réaliste,
-            // garantissant que l'époque ProtoOcean (eau entre 5% et 30%) soit pleinement vécue par le joueur.
-            waterRatio += 0.000001f * dt;
+            // Taux de condensation réduit à 0.00000033333333f (~1/3 000 000) pour allonger la durée du rush initial
+            // de la dérive tectonique rapide (époque TectonicDrift) d'un facteur 3 avant le ralentissement prébiotique.
+            waterRatio += 0.00000033333333f * dt;
         }
         else
         {
