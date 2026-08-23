@@ -162,6 +162,8 @@ public class GameHudController : MonoBehaviour
             gameManager = GameManager.Instance;
         }
 
+        BindFromHierarchy(transform);
+
         // Dynamically add the MeteorEventController to handle programmatic meteor button creation and impact logic
         if (gameObject.GetComponent<MeteorEventController>() == null)
         {
@@ -772,8 +774,10 @@ public class GameHudController : MonoBehaviour
         GameObject labelGo = new GameObject("VolcanoLabel", typeof(RectTransform));
         labelGo.transform.SetParent(rowRect, false);
         TextMeshProUGUI labelText = labelGo.AddComponent<TextMeshProUGUI>();
-        labelText.text = "Volcano Event :";
-        labelText.fontSize = 22;
+        labelText.text = "Événement Volcan :";
+        labelText.enableAutoSizing = true;
+        labelText.fontSizeMin = 12;
+        labelText.fontSizeMax = 18;
         labelText.fontStyle = FontStyles.Normal;
         labelText.color = new Color(0.83f, 0.86f, 0.90f, 1f);
         labelText.alignment = TextAlignmentOptions.Left;
@@ -1223,7 +1227,7 @@ public class GameHudController : MonoBehaviour
     {
         if (gameManager == null) return;
 
-        SetText(epochText, $"Epoch: {gameManager.CurrentEpoch}");
+        SetText(epochText, $"Époque : {GetEpochDisplayName(gameManager.CurrentEpoch)}");
         SetText(sessionText, $"Progression: {gameManager.SessionProgress * 100f:0.0}%");
 
         float remainingHours = gameManager.SessionRemainingHoursAtCurrentSpeed;
@@ -1308,15 +1312,33 @@ public class GameHudController : MonoBehaviour
         }
 
         string hex = GetEpochHex(gameManager.CurrentEpoch);
-        if (epochBadgeImage != null && ColorUtility.TryParseHtmlString(hex, out Color c))
+        if (ColorUtility.TryParseHtmlString(hex, out Color c))
         {
-            epochBadgeImage.color = c;
+            if (epochBadgeImage != null) epochBadgeImage.color = c;
+            if (epochText != null) epochText.color = c;
         }
 
-        // Clear hex badge text to avoid displaying raw hex string on HUD
-        SetText(epochBadgeHexText, string.Empty);
+        // Clear hex badge text to avoid displaying raw hex string on HUD (only if distinct from epochText)
+        if (epochBadgeHexText != null && epochBadgeHexText != epochText)
+        {
+            SetText(epochBadgeHexText, string.Empty);
+        }
 
         CheckPrebioticCompletion();
+    }
+
+    private string GetEpochDisplayName(PlanetEpoch epoch)
+    {
+        return epoch switch
+        {
+            PlanetEpoch.Hadean => "Hadéen",
+            PlanetEpoch.CrustFormation => "Formation de la Croûte",
+            PlanetEpoch.VolcanicAge => "Âge Volcanique",
+            PlanetEpoch.ProtoOcean => "Proto-Océan",
+            PlanetEpoch.TectonicDrift => "Dérive Tectonique",
+            PlanetEpoch.Prebiotic => "Prébiotique",
+            _ => epoch.ToString()
+        };
     }
 
     private string GetEpochHex(PlanetEpoch epoch)
