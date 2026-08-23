@@ -154,9 +154,9 @@ public class PrebioticMiniGameController : MonoBehaviour
         }
 
         // Trigger visual and physical meteor event on the planet
-        if (MeteorEventController.Instance != null)
+        if (MeteorEventController.instance != null)
         {
-            MeteorEventController.Instance.TriggerMeteor();
+            MeteorEventController.instance.TriggerMeteor();
         }
         else
         {

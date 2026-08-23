@@ -25,6 +25,7 @@ public struct MeteorSizeData
 
 public class MeteorEventController : MonoBehaviour
 {
+    public static MeteorEventController instance { get; private set; }
     [Header("Meteor Settings")]
     [SerializeField] private GameObject meteorPrefab;
     [SerializeField] private float flightDuration = 2.0f;
@@ -34,6 +35,8 @@ public class MeteorEventController : MonoBehaviour
     [SerializeField] private GameObject bigExplosionPrefab;
     [SerializeField] private GameObject smallExplosionPrefab;
     [SerializeField] private GameObject tinyExplosionPrefab;
+
+    
 
     public Button MeteorButton { get; private set; }
 
