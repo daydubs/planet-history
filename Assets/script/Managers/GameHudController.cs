@@ -391,6 +391,10 @@ public class GameHudController : MonoBehaviour
             rawImageGo.SetActive(minimapExpanded);
             panelRect.sizeDelta = new Vector2(380f, minimapExpanded ? 230f : 32f);
             toggleText.text = minimapExpanded ? "▼" : "▲";
+            if (minimapExpanded)
+            {
+                UpdateMinimapTexture(force: true);
+            }
         });
     }
 
@@ -531,8 +535,8 @@ public class GameHudController : MonoBehaviour
         if (cachedTerrain == null || cachedTerrain.Field == null) return;
 
         PlanetHeightField field = cachedTerrain.Field;
-        int width = minimapWidth;
-        int height = minimapHeight;
+        int width = Mathf.Clamp(minimapWidth, 32, 256);
+        int height = Mathf.Clamp(minimapHeight, 16, 128);
 
         if (minimapTexture == null || minimapTexture.width != width || minimapTexture.height != height)
         {
@@ -1198,7 +1202,7 @@ public class GameHudController : MonoBehaviour
         if (minimapRefreshTimer >= minimapRefreshInterval)
         {
             minimapRefreshTimer = 0f;
-            UpdateMinimapTexture(force: true);
+            UpdateMinimapTexture(force: false);
         }
 
         refreshTimer += dt;

@@ -3369,8 +3369,8 @@ MonoBehaviour:
   prebioticProgressText: {fileID: 0}
   prebioticCompletionSprite: {fileID: 21300000, guid: e6f23d565a5fc84479ed68108e4c5267, type: 3}
   minimapRawImage: {fileID: 0}
-  minimapWidth: 2048
-  minimapHeight: 1024
+  minimapWidth: 192
+  minimapHeight: 96
   hadeanHex: '#D1495B'
   crustFormationHex: '#F79256'
   volcanicAgeHex: '#F9C74F'
