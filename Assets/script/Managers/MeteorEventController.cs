@@ -124,8 +124,10 @@ public class MeteorEventController : MonoBehaviour
         GameObject labelGo = new GameObject("MeteorLabel", typeof(RectTransform));
         labelGo.transform.SetParent(rowRect, false);
         TextMeshProUGUI labelText = labelGo.AddComponent<TextMeshProUGUI>();
-        labelText.text = "Meteor Event :";
-        labelText.fontSize = 22;
+        labelText.text = "Événement Météore :";
+        labelText.enableAutoSizing = true;
+        labelText.fontSizeMin = 12;
+        labelText.fontSizeMax = 18;
         labelText.fontStyle = FontStyles.Normal;
         labelText.color = new Color(0.83f, 0.86f, 0.90f, 1f); // Subtle color
         labelText.alignment = TextAlignmentOptions.Left;

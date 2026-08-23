@@ -271,6 +271,16 @@ public class GameHudLayoutPreset : MonoBehaviour
 
         layout.flexibleHeight = 0f;
 
+        if (child.name.Contains("CompAtm") || child.name.Contains("Atmosphere"))
+        {
+            layout.minWidth = 180f;
+            layout.preferredWidth = -1f;
+            layout.flexibleWidth = 1f;
+            layout.minHeight = 110f;
+            layout.preferredHeight = 130f;
+            return;
+        }
+
         if (child.name.Contains("Slider"))
         {
             layout.minWidth = 140f;
@@ -333,7 +343,9 @@ public class GameHudLayoutPreset : MonoBehaviour
         foreach (TMP_Text text in texts)
         {
             bool isTitle = text.name.Contains("Epoch") || text.name.Contains("Title");
-            text.fontSize = isTitle ? titleFontSize : bodyFontSize;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 11;
+            text.fontSizeMax = isTitle ? titleFontSize : bodyFontSize;
             text.fontStyle = isTitle ? titleStyle : bodyStyle;
             text.textWrappingMode = TextWrappingModes.Normal;
             text.overflowMode = text.name.Contains("CompAtm") || text.name.Contains("Atmosphere") ? TextOverflowModes.Overflow : TextOverflowModes.Ellipsis;
