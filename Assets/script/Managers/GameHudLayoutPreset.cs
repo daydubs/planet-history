@@ -236,6 +236,14 @@ public class GameHudLayoutPreset : MonoBehaviour
     {
         PrepareRowForVerticalLayout(row, height);
 
+        // Remove or disable any standalone Image background attached directly to individual rows
+        // to prevent Unity's default UI panel sprite (grey rounded rectangle) from showing behind rows.
+        Image rowBg = row.GetComponent<Image>();
+        if (rowBg != null && row != panelRoot)
+        {
+            rowBg.enabled = false;
+        }
+
         LayoutElement rowLayout = row.GetComponent<LayoutElement>();
         if (rowLayout == null) rowLayout = row.gameObject.AddComponent<LayoutElement>();
         rowLayout.minHeight = height;
