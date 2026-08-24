@@ -539,7 +539,7 @@ public class MeteorEventController : MonoBehaviour
                 terrain.AddTemporaryVolcanoDegrees(volLon, volLat, volRad, volHeight, fadeSpeedVal: 0.008f);
             }
         }
-        else if (epoch == PlanetEpoch.ProtoOcean || epoch == PlanetEpoch.TectonicDrift)
+        else if (epoch >= PlanetEpoch.ProtoOcean)
         {
             if (isOceanic)
             {
@@ -554,6 +554,40 @@ public class MeteorEventController : MonoBehaviour
 
                 terrain.AddCraterDegrees(lon, lat, radius, depth, rim, targetFadeVal: targetFade, fadeSpeedVal: 0.015f);
             }
+        }
+
+        // 3. Impact Earthquake & Seismic Fault Line Deformation (Mounts, Crevasses & Rifts)
+        int numImpactFaults = sizeData.tier switch
+        {
+            MeteorSizeTier.Small => 1,
+            MeteorSizeTier.Medium => Random.Range(2, 4),
+            MeteorSizeTier.Large => Random.Range(3, 5),
+            MeteorSizeTier.Massive => Random.Range(5, 8),
+            _ => 2
+        };
+
+        for (int i = 0; i < numImpactFaults; i++)
+        {
+            float faultAngle = Random.Range(0f, 360f);
+            float distOffset = Random.Range(0.2f, 1.0f) * sizeData.radiusDegrees;
+            float faultLon = Mathf.Repeat(lon + distOffset * Mathf.Cos(faultAngle * Mathf.Deg2Rad), 360f);
+            float faultLat = Mathf.Clamp(lat + distOffset * Mathf.Sin(faultAngle * Mathf.Deg2Rad), -85f, 85f);
+
+            float faultLength = sizeData.radiusDegrees * Random.Range(2.0f, 4.0f);
+            float upliftHeight = sizeData.rimHeight * Random.Range(0.4f, 0.8f);
+            float crevasseDepth = sizeData.depth * Random.Range(0.3f, 0.6f);
+
+            terrain.AddEarthquakeDeformationDegrees(faultLon, faultLat, faultLength, faultAngle, upliftHeight, crevasseDepth, 1.0f);
+        }
+
+        // Trigger Earthquake Rumble sound
+        Vector3 localDir = DegreesToLocalDirection(lon, lat);
+        float currentH = terrain.GetHeightAtDegrees(lon, lat);
+        Vector3 impactWorldPos = terrain.transform.TransformPoint(localDir * (terrain.BaseRadius + currentH * terrain.HeightScale));
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayEarthquakeRumble(impactWorldPos, sizeData.scaleFactor);
         }
 
         terrain.RebuildHeightField();
