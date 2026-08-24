@@ -273,6 +273,29 @@ public class VolcanoManager : MonoBehaviour
 
         volcanoes.Add(volcano);
 
+        if (terrain != null)
+        {
+            // Stamp volcanic mountain massif / mountain uplift ridge
+            terrain.AddContinentDegrees(lonDeg, latDeg, targetRadius * 1.5f, targetHeight * 0.4f, 0.5f);
+
+            // Stamp localized volcanic fault line and rift crevasse
+            float faultLength = targetRadius * UnityEngine.Random.Range(1.8f, 2.5f);
+            float faultAngle = UnityEngine.Random.Range(0f, 360f);
+            float uplift = targetHeight * UnityEngine.Random.Range(0.15f, 0.30f);
+            float riftDepth = targetHeight * UnityEngine.Random.Range(0.08f, 0.18f);
+
+            terrain.AddEarthquakeDeformationDegrees(lonDeg, latDeg, faultLength, faultAngle, uplift, riftDepth, 0.8f);
+
+            Vector3 localDir = MeteorEventController.DegreesToLocalDirection(lonDeg, latDeg);
+            float h = terrain.GetHeightAtDegrees(lonDeg, latDeg);
+            Vector3 worldPos = terrain.transform.TransformPoint(localDir * (terrain.BaseRadius + h * terrain.HeightScale));
+
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlayEarthquakeRumble(worldPos, 0.8f);
+            }
+        }
+
         if (GameManager.Instance != null)
         {
             GameManager.Instance.LogEvent("Volcano Created", $"Volcano [{volcano.id}] at ({lonDeg:F1} deg E, {latDeg:F1} deg N) with radius {targetRadius:F2} deg.");

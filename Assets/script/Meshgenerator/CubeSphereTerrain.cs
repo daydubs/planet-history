@@ -57,6 +57,23 @@ public class CubeSphereTerrain : MonoBehaviour
     }
 
     [System.Serializable]
+    public class EarthquakeStamp
+    {
+        public string name;
+        public float longitudeDegrees;
+        public float latitudeDegrees;
+        public float lengthDegrees;
+        public float angleDegrees;
+        public float upliftHeight;
+        public float crevasseDepth;
+
+        // Tectonic drift attachment
+        public ContinentalPiece parentPiece;
+        public float offsetLonFromParent;
+        public float offsetLatFromParent;
+    }
+
+    [System.Serializable]
     public class CraterStamp
     {
         public string name;
@@ -110,6 +127,7 @@ public class CubeSphereTerrain : MonoBehaviour
 
     private System.Collections.Generic.List<VolcanoStamp> activeVolcanoes = new System.Collections.Generic.List<VolcanoStamp>();
     private System.Collections.Generic.List<CraterStamp> activeCraters = new System.Collections.Generic.List<CraterStamp>();
+    private System.Collections.Generic.List<EarthquakeStamp> activeEarthquakes = new System.Collections.Generic.List<EarthquakeStamp>();
     private float lastSimTime;
     private float lastRebuildTime;
     private bool pendingRebuild;
@@ -440,6 +458,34 @@ public class CubeSphereTerrain : MonoBehaviour
             radiusDegrees * Mathf.Deg2Rad,
             depth,
             rimHeight);
+    }
+
+    /// <summary>Ajoute une ligne de faille sismique (tremblement de terre) avec relief de montagne et crevasse en degrés.</summary>
+    public void AddEarthquakeDeformationDegrees(float longitudeDegrees, float latitudeDegrees, float lengthDegrees, float angleDegrees, float upliftHeight, float crevasseDepth, float rate = 1f)
+    {
+        var parent = FindParentPiece(longitudeDegrees, latitudeDegrees);
+        activeEarthquakes.Add(new EarthquakeStamp
+        {
+            name = $"Earthquake Fault at ({longitudeDegrees:F1}, {latitudeDegrees:F1})",
+            longitudeDegrees = longitudeDegrees,
+            latitudeDegrees = latitudeDegrees,
+            lengthDegrees = lengthDegrees,
+            angleDegrees = angleDegrees,
+            upliftHeight = upliftHeight,
+            crevasseDepth = crevasseDepth,
+            parentPiece = parent,
+            offsetLonFromParent = parent != null ? DeltaLongitudeDegrees(longitudeDegrees, parent.currentLongitude) : 0f,
+            offsetLatFromParent = parent != null ? latitudeDegrees - parent.currentLatitude : 0f
+        });
+
+        field?.AddEarthquakeDeformation(
+            longitudeDegrees * Mathf.Deg2Rad,
+            latitudeDegrees * Mathf.Deg2Rad,
+            lengthDegrees * Mathf.Deg2Rad,
+            angleDegrees * Mathf.Deg2Rad,
+            upliftHeight,
+            crevasseDepth,
+            rate);
     }
 
     /// <summary>Retourne la hauteur actuelle du terrain aux coordonnées de degrés données.</summary>
@@ -819,6 +865,20 @@ public class CubeSphereTerrain : MonoBehaviour
             }
         }
 
+        // 4. Stamp earthquakes / fault lines
+        foreach (var eq in activeEarthquakes)
+        {
+            field.AddEarthquakeDeformation(
+                eq.longitudeDegrees * Mathf.Deg2Rad,
+                eq.latitudeDegrees * Mathf.Deg2Rad,
+                eq.lengthDegrees * Mathf.Deg2Rad,
+                eq.angleDegrees * Mathf.Deg2Rad,
+                eq.upliftHeight,
+                eq.crevasseDepth,
+                1.0f
+            );
+        }
+
         field.SnapToTarget();
     }
 
@@ -826,6 +886,7 @@ public class CubeSphereTerrain : MonoBehaviour
     {
         activeVolcanoes.Clear();
         activeCraters.Clear();
+        activeEarthquakes.Clear();
     }
 
     private void HandleSimulationStep()
@@ -1074,6 +1135,15 @@ public class CubeSphereTerrain : MonoBehaviour
                         {
                             vol.longitudeDegrees = Mathf.Repeat(vol.parentPiece.currentLongitude + vol.offsetLonFromParent, 360f);
                             vol.latitudeDegrees = Mathf.Clamp(vol.parentPiece.currentLatitude + vol.offsetLatFromParent, -85f, 85f);
+                        }
+                    }
+
+                    foreach (var eq in activeEarthquakes)
+                    {
+                        if (eq.parentPiece != null)
+                        {
+                            eq.longitudeDegrees = Mathf.Repeat(eq.parentPiece.currentLongitude + eq.offsetLonFromParent, 360f);
+                            eq.latitudeDegrees = Mathf.Clamp(eq.parentPiece.currentLatitude + eq.offsetLatFromParent, -85f, 85f);
                         }
                     }
                 }

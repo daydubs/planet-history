@@ -151,6 +151,115 @@ public class PlanetHeightField : IDisposable
     }
 
     /// <summary>
+    /// Tremblement de terre / Déformation tectonique : génère une ligne de faille sismique
+    /// bordée de chaînes de montagnes surélevées (plissement tectonique) et d'une crevasse/rift centrale étroite.
+    /// </summary>
+    /// <param name="centerLon">Longitude centrale en radians.</param>
+    /// <param name="centerLat">Latitude centrale en radians.</param>
+    /// <param name="lengthRad">Longueur de la faille en radians.</param>
+    /// <param name="angleRad">Orientation/azimut de la faille en radians.</param>
+    /// <param name="upliftHeight">Hauteur des montagnes surélevées de chaque côté.</param>
+    /// <param name="crevasseDepth">Profondeur de la crevasse/rift le long de la faille.</param>
+    /// <param name="rate">Vitesse de croissance/stamping.</param>
+    public void AddEarthquakeDeformation(float centerLon, float centerLat, float lengthRad, float angleRad, float upliftHeight, float crevasseDepth, float rate = 1f)
+    {
+        rate = Mathf.Max(1e-4f, rate);
+        centerLat = Mathf.Clamp(centerLat, -Mathf.PI * 0.5f, Mathf.PI * 0.5f);
+        lengthRad = Mathf.Max(1e-4f, lengthRad);
+
+        float halfLen = lengthRad * 0.5f;
+        float faultWidth = Mathf.Max(lengthRad * 0.45f, 0.05f); // Emprise de la zone de déformation
+
+        float cosLat = Mathf.Cos(centerLat);
+        float sinLat = Mathf.Sin(centerLat);
+
+        Vector3 centerDir = new Vector3(
+            cosLat * Mathf.Cos(centerLon),
+            sinLat,
+            cosLat * Mathf.Sin(centerLon)
+        );
+
+        Vector3 east = new Vector3(-Mathf.Sin(centerLon), 0f, Mathf.Cos(centerLon));
+        Vector3 north = Vector3.Cross(centerDir, east).normalized;
+
+        // Direction de la ligne de faille orientée par angleRad dans la zone tangente
+        Vector3 faultDir = (Mathf.Cos(angleRad) * east + Mathf.Sin(angleRad) * north).normalized;
+        Vector3 perpDir = Vector3.Cross(centerDir, faultDir).normalized;
+
+        float uCenter = Mathf.Repeat(centerLon / (2f * Mathf.PI) + 0.5f, 1f);
+        int centerX = Mathf.RoundToInt(uCenter * width);
+        int centerY = Mathf.RoundToInt((centerLat / Mathf.PI + 0.5f) * height);
+
+        float searchRadius = Mathf.Sqrt(halfLen * halfLen + faultWidth * faultWidth);
+        int spanY = Mathf.CeilToInt(searchRadius / Mathf.PI * height) + 1;
+        int minY = Mathf.Clamp(centerY - spanY, 0, height - 1);
+        int maxY = Mathf.Clamp(centerY + spanY, 0, height - 1);
+
+        float cosClamped = Mathf.Max(cosLat, 1e-3f);
+        int spanX = Mathf.CeilToInt((searchRadius / cosClamped) / (2f * Mathf.PI) * width) + 1;
+        int startX = WrapX(centerX - spanX);
+        int columns = Mathf.Min(width, spanX * 2 + 1);
+
+        for (int y = minY; y <= maxY; y++)
+        {
+            if (IsPoleRow(y)) continue;
+
+            float lat = LatitudeOf(y);
+            float cosRowLat = Mathf.Cos(lat);
+            float sinRowLat = Mathf.Sin(lat);
+
+            for (int c = 0; c < columns; c++)
+            {
+                int x = WrapX(startX + c);
+                float lon = LongitudeOf(x);
+
+                Vector3 pos = new Vector3(cosRowLat * Mathf.Cos(lon), sinRowLat, cosRowLat * Mathf.Sin(lon));
+                Vector3 delta = pos - centerDir;
+
+                // Projection le long de la faille et perpendiculairement à la faille
+                float distAlong = Vector3.Dot(delta, faultDir);
+                float distPerp = Vector3.Dot(delta, perpDir);
+
+                if (Mathf.Abs(distAlong) > halfLen + faultWidth * 0.3f) continue;
+                if (Mathf.Abs(distPerp) > faultWidth) continue;
+
+                // Atténuation aux extrémités de la faille
+                float alongFade = Mathf.SmoothStep(1f, 0f, Mathf.Clamp01((Mathf.Abs(distAlong) - halfLen * 0.7f) / (halfLen * 0.4f)));
+                if (alongFade <= 0f) continue;
+
+                float normPerp = Mathf.Abs(distPerp) / faultWidth;
+
+                // 1. Crevasse / Rift étroite au centre de la faille
+                float riftWidthNorm = 0.22f;
+                float riftDepthVal = 0f;
+                if (normPerp < riftWidthNorm)
+                {
+                    float uRift = normPerp / riftWidthNorm;
+                    riftDepthVal = -crevasseDepth * (1f - uRift * uRift);
+                }
+
+                // 2. Chaînes de montagnes / Plissements surélevés de chaque côté de la faille
+                float ridgeVal = 0f;
+                if (normPerp >= 0.12f && normPerp <= 0.95f)
+                {
+                    float uRidge = (normPerp - 0.12f) / (0.95f - 0.12f);
+                    ridgeVal = upliftHeight * Mathf.Sin(uRidge * Mathf.PI);
+                }
+
+                // Bruit Fbm3D pour rendre les crevasses et montagnes naturelles et découpées
+                float noise = Fbm3D((pos.x + NoiseOffset.x + 17.8f) * 16.0f, (pos.y + NoiseOffset.y + 31.4f) * 16.0f, (pos.z + NoiseOffset.z + 55.2f) * 16.0f, 3);
+                float finalDeform = (ridgeVal + riftDepthVal) * (1f + noise * 0.35f) * alongFade;
+
+                int i = x + y * width;
+                targetHeight[i] += finalDeform;
+                growthRate[i] = Mathf.Max(growthRate[i], rate);
+            }
+        }
+
+        MarkActive(startX, columns, minY, maxY);
+    }
+
+    /// <summary>
     /// Tamponne une grille de hauteur pré-calculée (morceau de continent) sur targetHeight.
     /// </summary>
     public void StampPrebakedPiece(float centerLonRad, float centerLatRad, float radiusRad, float[] localHeights, int localWidth, int localHeight, float heightMultiplier)
