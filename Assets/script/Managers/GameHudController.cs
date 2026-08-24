@@ -744,14 +744,19 @@ public class GameHudController : MonoBehaviour
         }
     }
 
-    private void CreateVolcanoUI()
+    public static Transform GetOrCreateEventsRow(RectTransform hudRoot)
     {
-        RectTransform hudRoot = transform as RectTransform;
-        if (hudRoot == null) return;
+        Transform eventsRow = hudRoot.Find("EventsRow");
+        if (eventsRow != null) return eventsRow;
 
-        // Create a new Row GameObject for Volcano Trigger
-        GameObject rowGo = new GameObject("VolcanoRow", typeof(RectTransform));
+        GameObject rowGo = new GameObject("EventsRow", typeof(RectTransform));
         rowGo.transform.SetParent(hudRoot, false);
+
+        Transform prebioticPanel = hudRoot.Find("PrebioticPanel");
+        if (prebioticPanel != null)
+        {
+            rowGo.transform.SetSiblingIndex(prebioticPanel.GetSiblingIndex());
+        }
 
         RectTransform rowRect = rowGo.GetComponent<RectTransform>();
         rowRect.localScale = Vector3.one;
@@ -766,32 +771,65 @@ public class GameHudController : MonoBehaviour
         horizontal.childAlignment = TextAnchor.MiddleLeft;
         horizontal.childControlWidth = true;
         horizontal.childControlHeight = true;
+        horizontal.childForceExpandWidth = true;
+        horizontal.childForceExpandHeight = true;
+        horizontal.spacing = 12f;
+
+        return rowGo.transform;
+    }
+
+    private void CreateVolcanoUI()
+    {
+        RectTransform hudRoot = transform as RectTransform;
+        if (hudRoot == null) return;
+
+        Transform eventsRow = GetOrCreateEventsRow(hudRoot);
+
+        Transform oldRow = hudRoot.Find("VolcanoRow");
+        if (oldRow != null && oldRow != eventsRow) Destroy(oldRow.gameObject);
+
+        Transform existingItem = eventsRow.Find("VolcanoItem");
+        if (existingItem != null) Destroy(existingItem.gameObject);
+
+        GameObject volContainer = new GameObject("VolcanoItem", typeof(RectTransform));
+        volContainer.transform.SetParent(eventsRow, false);
+
+        LayoutElement itemLayout = volContainer.AddComponent<LayoutElement>();
+        itemLayout.minHeight = 44f;
+        itemLayout.preferredHeight = 44f;
+        itemLayout.flexibleWidth = 1f;
+
+        HorizontalLayoutGroup horizontal = volContainer.AddComponent<HorizontalLayoutGroup>();
+        horizontal.childAlignment = TextAnchor.MiddleLeft;
+        horizontal.childControlWidth = true;
+        horizontal.childControlHeight = true;
         horizontal.childForceExpandWidth = false;
         horizontal.childForceExpandHeight = true;
-        horizontal.spacing = 10f;
+        horizontal.spacing = 6f;
 
         // Label
         GameObject labelGo = new GameObject("VolcanoLabel", typeof(RectTransform));
-        labelGo.transform.SetParent(rowRect, false);
+        labelGo.transform.SetParent(volContainer.transform, false);
         TextMeshProUGUI labelText = labelGo.AddComponent<TextMeshProUGUI>();
-        labelText.text = "Événement Volcan :";
+        labelText.text = "🌋 Volcan :";
         labelText.enableAutoSizing = true;
         labelText.fontSizeMin = 12;
-        labelText.fontSizeMax = 18;
-        labelText.fontStyle = FontStyles.Normal;
-        labelText.color = new Color(0.83f, 0.86f, 0.90f, 1f);
+        labelText.fontSizeMax = 15;
+        labelText.fontStyle = FontStyles.Bold;
+        labelText.color = new Color(0.88f, 0.90f, 0.94f, 1f);
         labelText.alignment = TextAlignmentOptions.Left;
 
         LayoutElement labelLayout = labelGo.AddComponent<LayoutElement>();
-        labelLayout.minWidth = 120f;
-        labelLayout.flexibleWidth = 1f;
+        labelLayout.minWidth = 75f;
+        labelLayout.preferredWidth = 85f;
+        labelLayout.flexibleWidth = 0f;
 
         // Button
         GameObject buttonGo = new GameObject("VolcanoButton", typeof(RectTransform));
-        buttonGo.transform.SetParent(rowRect, false);
+        buttonGo.transform.SetParent(volContainer.transform, false);
 
         Image buttonImage = buttonGo.AddComponent<Image>();
-        buttonImage.color = new Color(0.92f, 0.45f, 0.15f, 1f); // Vibrant orange button
+        buttonImage.color = new Color(0.92f, 0.45f, 0.15f, 1f);
 
         Button button = buttonGo.AddComponent<Button>();
         button.targetGraphic = buttonImage;
@@ -810,7 +848,7 @@ public class GameHudController : MonoBehaviour
         buttonText.text = "Créer Volcan";
         buttonText.enableAutoSizing = true;
         buttonText.fontSizeMin = 12;
-        buttonText.fontSizeMax = 18;
+        buttonText.fontSizeMax = 15;
         buttonText.fontStyle = FontStyles.Bold;
         buttonText.color = Color.white;
         buttonText.alignment = TextAlignmentOptions.Center;
@@ -821,11 +859,11 @@ public class GameHudController : MonoBehaviour
         textRect.sizeDelta = Vector2.zero;
 
         LayoutElement buttonLayout = buttonGo.AddComponent<LayoutElement>();
-        buttonLayout.minWidth = 140f;
-        buttonLayout.preferredWidth = 160f;
-        buttonLayout.flexibleWidth = 0f;
+        buttonLayout.minWidth = 110f;
+        buttonLayout.preferredWidth = 140f;
+        buttonLayout.flexibleWidth = 1f;
         buttonLayout.minHeight = 32f;
-        buttonLayout.preferredHeight = 32f;
+        buttonLayout.preferredHeight = 34f;
 
         button.onClick.AddListener(() =>
         {
@@ -1256,8 +1294,8 @@ public class GameHudController : MonoBehaviour
         if (tectonicText != null)
         {
             tectonicText.enableAutoSizing = true;
-            tectonicText.fontSizeMin = 9f;
-            tectonicText.fontSizeMax = 14f;
+            tectonicText.fontSizeMin = 14f;
+            tectonicText.fontSizeMax = 16f;
             tectonicText.textWrappingMode = TextWrappingModes.NoWrap;
             tectonicText.overflowMode = TextOverflowModes.Ellipsis;
             tectonicText.text = $"Activité tectonique: {gameManager.TectonicActivity * 100f:0.00}%";

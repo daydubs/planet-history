@@ -97,52 +97,54 @@ public class MeteorEventController : MonoBehaviour
             return;
         }
 
-        // Create a new Row GameObject
-        GameObject rowGo = new GameObject("MeteorRow", typeof(RectTransform));
-        rowGo.transform.SetParent(hudRoot, false);
+        Transform eventsRow = GameHudController.GetOrCreateEventsRow(hudRoot);
 
-        RectTransform rowRect = rowGo.GetComponent<RectTransform>();
-        rowRect.localScale = Vector3.one;
+        Transform oldRow = hudRoot.Find("MeteorRow");
+        if (oldRow != null && oldRow != eventsRow) Destroy(oldRow.gameObject);
 
-        // Add LayoutElement to row
-        LayoutElement rowLayout = rowGo.AddComponent<LayoutElement>();
-        rowLayout.minHeight = 44f;
-        rowLayout.preferredHeight = 44f;
-        rowLayout.flexibleHeight = 0f;
-        rowLayout.flexibleWidth = 1f;
+        Transform existingItem = eventsRow.Find("MeteorItem");
+        if (existingItem != null) Destroy(existingItem.gameObject);
 
-        // Add HorizontalLayoutGroup to row
-        HorizontalLayoutGroup horizontal = rowGo.AddComponent<HorizontalLayoutGroup>();
+        GameObject meteorContainer = new GameObject("MeteorItem", typeof(RectTransform));
+        meteorContainer.transform.SetParent(eventsRow, false);
+
+        LayoutElement itemLayout = meteorContainer.AddComponent<LayoutElement>();
+        itemLayout.minHeight = 44f;
+        itemLayout.preferredHeight = 44f;
+        itemLayout.flexibleWidth = 1f;
+
+        HorizontalLayoutGroup horizontal = meteorContainer.AddComponent<HorizontalLayoutGroup>();
         horizontal.childAlignment = TextAnchor.MiddleLeft;
         horizontal.childControlWidth = true;
         horizontal.childControlHeight = true;
         horizontal.childForceExpandWidth = false;
         horizontal.childForceExpandHeight = true;
-        horizontal.spacing = 10f;
+        horizontal.spacing = 6f;
 
         // Create Label
         GameObject labelGo = new GameObject("MeteorLabel", typeof(RectTransform));
-        labelGo.transform.SetParent(rowRect, false);
+        labelGo.transform.SetParent(meteorContainer.transform, false);
         TextMeshProUGUI labelText = labelGo.AddComponent<TextMeshProUGUI>();
-        labelText.text = "Événement Météore :";
+        labelText.text = "☄️ Météore :";
         labelText.enableAutoSizing = true;
         labelText.fontSizeMin = 12;
-        labelText.fontSizeMax = 18;
-        labelText.fontStyle = FontStyles.Normal;
-        labelText.color = new Color(0.83f, 0.86f, 0.90f, 1f); // Subtle color
+        labelText.fontSizeMax = 15;
+        labelText.fontStyle = FontStyles.Bold;
+        labelText.color = new Color(0.88f, 0.90f, 0.94f, 1f);
         labelText.alignment = TextAlignmentOptions.Left;
 
         LayoutElement labelLayout = labelGo.AddComponent<LayoutElement>();
-        labelLayout.minWidth = 120f;
-        labelLayout.flexibleWidth = 1f;
+        labelLayout.minWidth = 75f;
+        labelLayout.preferredWidth = 85f;
+        labelLayout.flexibleWidth = 0f;
 
         // Create Button
         GameObject buttonGo = new GameObject("MeteorButton", typeof(RectTransform));
-        buttonGo.transform.SetParent(rowRect, false);
+        buttonGo.transform.SetParent(meteorContainer.transform, false);
 
         // Add Image for button background
         Image buttonImage = buttonGo.AddComponent<Image>();
-        buttonImage.color = new Color(0.82f, 0.28f, 0.35f, 1f); // Nice red/crimson button
+        buttonImage.color = new Color(0.82f, 0.28f, 0.35f, 1f);
 
         // Add Button component
         Button button = buttonGo.AddComponent<Button>();
@@ -164,7 +166,7 @@ public class MeteorEventController : MonoBehaviour
         buttonText.text = "Déclencher";
         buttonText.enableAutoSizing = true;
         buttonText.fontSizeMin = 12;
-        buttonText.fontSizeMax = 18;
+        buttonText.fontSizeMax = 15;
         buttonText.fontStyle = FontStyles.Bold;
         buttonText.color = Color.white;
         buttonText.alignment = TextAlignmentOptions.Center;
@@ -176,11 +178,11 @@ public class MeteorEventController : MonoBehaviour
         textRect.sizeDelta = Vector2.zero;
 
         LayoutElement buttonLayout = buttonGo.AddComponent<LayoutElement>();
-        buttonLayout.minWidth = 140f;
-        buttonLayout.preferredWidth = 160f;
-        buttonLayout.flexibleWidth = 0f;
+        buttonLayout.minWidth = 110f;
+        buttonLayout.preferredWidth = 140f;
+        buttonLayout.flexibleWidth = 1f;
         buttonLayout.minHeight = 32f;
-        buttonLayout.preferredHeight = 32f;
+        buttonLayout.preferredHeight = 34f;
 
         // Bind click event
         button.onClick.AddListener(TriggerMeteor);
