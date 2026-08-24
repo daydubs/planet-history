@@ -205,8 +205,8 @@ public class GameHudLayoutPreset : MonoBehaviour
 
         foreach (RectTransform row in rows)
         {
-            float targetHeight = (row == atmosphereRow || row.name == "compositionAtmpan" || row.name == "atmosphereRow") ? rowHeight * 4.2f : rowHeight;
-            SetupRow(row, targetHeight);
+            float minH = (row == atmosphereRow || row.name == "compositionAtmpan" || row.name == "atmosphereRow") ? 80f : 24f;
+            SetupRow(row, minH);
         }
     }
 
@@ -239,7 +239,7 @@ public class GameHudLayoutPreset : MonoBehaviour
         LayoutElement rowLayout = row.GetComponent<LayoutElement>();
         if (rowLayout == null) rowLayout = row.gameObject.AddComponent<LayoutElement>();
         rowLayout.minHeight = height;
-        rowLayout.preferredHeight = height;
+        rowLayout.preferredHeight = -1f;
         rowLayout.flexibleHeight = 0f;
         rowLayout.flexibleWidth = 1f;
 
@@ -248,9 +248,9 @@ public class GameHudLayoutPreset : MonoBehaviour
 
         horizontal.childAlignment = TextAnchor.MiddleLeft;
         horizontal.childControlWidth = true;
-        horizontal.childControlHeight = true;
+        horizontal.childControlHeight = false;
         horizontal.childForceExpandWidth = false;
-        horizontal.childForceExpandHeight = true;
+        horizontal.childForceExpandHeight = false;
         horizontal.spacing = 10f;
         horizontal.padding = new RectOffset(0, 0, 0, 0);
 
@@ -276,15 +276,15 @@ public class GameHudLayoutPreset : MonoBehaviour
             layout.minWidth = 180f;
             layout.preferredWidth = -1f;
             layout.flexibleWidth = 1f;
-            layout.minHeight = 110f;
-            layout.preferredHeight = 130f;
+            layout.minHeight = 60f;
+            layout.preferredHeight = -1f;
             return;
         }
 
         if (child.name.Contains("Slider"))
         {
-            layout.minWidth = 120f;
-            layout.preferredWidth = 180f;
+            layout.minWidth = 100f;
+            layout.preferredWidth = 160f;
             layout.flexibleWidth = 1f;
             layout.minHeight = sliderHeight;
             layout.preferredHeight = sliderHeight;
@@ -311,11 +311,21 @@ public class GameHudLayoutPreset : MonoBehaviour
             return;
         }
 
-        layout.minWidth = 140f;
+        if (child.name.Contains("Tectonic") && child.name.Contains("Label"))
+        {
+            layout.minWidth = 180f;
+            layout.preferredWidth = 260f;
+            layout.flexibleWidth = 0f;
+            layout.minHeight = 24f;
+            layout.preferredHeight = -1f;
+            return;
+        }
+
+        layout.minWidth = 120f;
         layout.preferredWidth = -1f;
         layout.flexibleWidth = 1f;
         layout.minHeight = 24f;
-        layout.preferredHeight = 24f;
+        layout.preferredHeight = -1f;
     }
 
     private void SetupSliders()
@@ -343,14 +353,14 @@ public class GameHudLayoutPreset : MonoBehaviour
         foreach (TMP_Text text in texts)
         {
             bool isTitle = text.name.Contains("Epoch") || text.name.Contains("Title");
-            bool isMultiLine = text.name.Contains("CompAtm") || text.name.Contains("atmosphere") || text.name.Contains("Prebiotic");
+            bool isMultiLine = text.name.Contains("CompAtm") || text.name.Contains("atmosphere") || text.name.Contains("Prebiotic") || text.name.Contains("SurfaceTemp") || text.name.Contains("Tectonic") || text.name.Contains("Epoch");
 
             text.enableAutoSizing = true;
-            text.fontSizeMin = 9;
-            text.fontSizeMax = isTitle ? titleFontSize : (text.name.Contains("Tectonic") ? 28 : bodyFontSize);
+            text.fontSizeMin = 11;
+            text.fontSizeMax = isTitle ? titleFontSize : bodyFontSize;
             text.fontStyle = isTitle ? titleStyle : bodyStyle;
-            text.textWrappingMode = isMultiLine ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
-            text.overflowMode = isMultiLine ? TextOverflowModes.Overflow : TextOverflowModes.Ellipsis;
+            text.textWrappingMode = TextWrappingModes.Normal;
+            text.overflowMode = TextOverflowModes.Overflow;
         }
     }
 
