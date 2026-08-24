@@ -343,11 +343,11 @@ public class GameHudLayoutPreset : MonoBehaviour
         foreach (TMP_Text text in texts)
         {
             bool isTitle = text.name.Contains("Epoch") || text.name.Contains("Title");
-            bool isMultiLine = text.name.Contains("CompAtm") || text.name.Contains("Atmosphere") || text.name.Contains("Prebiotic");
+            bool isMultiLine = text.name.Contains("CompAtm") || text.name.Contains("atmosphere") || text.name.Contains("Prebiotic");
 
             text.enableAutoSizing = true;
             text.fontSizeMin = 9;
-            text.fontSizeMax = isTitle ? titleFontSize : (text.name.Contains("Tectonic") ? 14 : bodyFontSize);
+            text.fontSizeMax = isTitle ? titleFontSize : (text.name.Contains("Tectonic") ? 28 : bodyFontSize);
             text.fontStyle = isTitle ? titleStyle : bodyStyle;
             text.textWrappingMode = isMultiLine ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
             text.overflowMode = isMultiLine ? TextOverflowModes.Overflow : TextOverflowModes.Ellipsis;
