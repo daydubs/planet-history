@@ -892,8 +892,8 @@ public class GameHudController : MonoBehaviour
         containerGo.transform.SetParent(hudRoot, false);
 
         LayoutElement containerLayout = containerGo.AddComponent<LayoutElement>();
-        containerLayout.minHeight = 150f;
-        containerLayout.preferredHeight = 150f;
+        containerLayout.minHeight = 100f;
+        containerLayout.preferredHeight = -1f;
         containerLayout.flexibleWidth = 1f;
 
         VerticalLayoutGroup vertical = containerGo.AddComponent<VerticalLayoutGroup>();
@@ -907,8 +907,8 @@ public class GameHudController : MonoBehaviour
         labelGo.transform.SetParent(containerGo.transform, false);
 
         LayoutElement labelLayout = labelGo.AddComponent<LayoutElement>();
-        labelLayout.minHeight = 85f;
-        labelLayout.preferredHeight = 85f;
+        labelLayout.minHeight = 50f;
+        labelLayout.preferredHeight = -1f;
         labelLayout.flexibleWidth = 1f;
 
         prebioticProgressText = labelGo.AddComponent<TextMeshProUGUI>();
@@ -1265,7 +1265,13 @@ public class GameHudController : MonoBehaviour
     {
         if (gameManager == null) return;
 
-        SetText(epochText, $"Époque : {GetEpochDisplayName(gameManager.CurrentEpoch)}");
+        if (epochText != null)
+        {
+            epochText.enableWordWrapping = true;
+            epochText.overflowMode = TextOverflowModes.Overflow;
+            epochText.text = $"Époque : {GetEpochDisplayName(gameManager.CurrentEpoch)}";
+        }
+
         SetText(sessionText, $"Progression: {gameManager.SessionProgress * 100f:0.0}%");
 
         float remainingHours = gameManager.SessionRemainingHoursAtCurrentSpeed;
@@ -1287,17 +1293,23 @@ public class GameHudController : MonoBehaviour
             thermalExtras += $" [Choc Météore: +{gameManager.ImpactThermalPulse:0.0} K]";
         }
 
-        SetText(surfaceTempText, $"Temp. surface: {gameManager.SurfaceTemperature:0.0} K ({gameManager.SurfaceTemperature - 273.15f:0.0} °C){thermalExtras}");
+        if (surfaceTempText != null)
+        {
+            surfaceTempText.enableWordWrapping = true;
+            surfaceTempText.overflowMode = TextOverflowModes.Overflow;
+            surfaceTempText.text = $"Temp. surface: {gameManager.SurfaceTemperature:0.0} K ({gameManager.SurfaceTemperature - 273.15f:0.0} °C){thermalExtras}";
+        }
+
         SetText(pressureText, $"Pression: {gameManager.Pressure:0.000} atm");
         SetText(waterText, $"Eau liquide: {gameManager.WaterRatio * 100f:0.00}%");
 
         if (tectonicText != null)
         {
             tectonicText.enableAutoSizing = true;
-            tectonicText.fontSizeMin = 14f;
-            tectonicText.fontSizeMax = 16f;
-            tectonicText.textWrappingMode = TextWrappingModes.NoWrap;
-            tectonicText.overflowMode = TextOverflowModes.Ellipsis;
+            tectonicText.fontSizeMin = 11f;
+            tectonicText.fontSizeMax = 15f;
+            tectonicText.textWrappingMode = TextWrappingModes.Normal;
+            tectonicText.overflowMode = TextOverflowModes.Overflow;
             tectonicText.text = $"Activité tectonique: {gameManager.TectonicActivity * 100f:0.00}%";
         }
 
