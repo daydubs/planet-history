@@ -34,16 +34,16 @@ public class GameHudLayoutPreset : MonoBehaviour
     [SerializeField] private FontStyles bodyStyle = FontStyles.Normal;
 
     [Header("Panel Style (Hex)")]
-    [SerializeField] private string panelBackgroundHex = "#121417CC";
+    [SerializeField] private string panelBackgroundHex = "#0D111DE6";
     [SerializeField] private string textColorHex = "#F5F7FA";
     [SerializeField] private string subtleTextHex = "#D3D7DE";
 
     [Header("Spacing")]
-    [SerializeField] private float panelWidth = 520f;
-    [SerializeField] private float panelPadding = 20f;
-    [SerializeField] private float rowHeight = 44f;
-    [SerializeField] private float rowSpacing = 8f;
-    [SerializeField] private float sliderHeight = 22f;
+    [SerializeField] private float panelWidth = 540f;
+    [SerializeField] private float panelPadding = 16f;
+    [SerializeField] private float rowHeight = 28f;
+    [SerializeField] private float rowSpacing = 6f;
+    [SerializeField] private float sliderHeight = 14f;
     [SerializeField] private bool applyOnStart = true;
 
     private void Reset()
@@ -256,10 +256,10 @@ public class GameHudLayoutPreset : MonoBehaviour
 
         horizontal.childAlignment = TextAnchor.MiddleLeft;
         horizontal.childControlWidth = true;
-        horizontal.childControlHeight = false;
+        horizontal.childControlHeight = true;
         horizontal.childForceExpandWidth = false;
         horizontal.childForceExpandHeight = false;
-        horizontal.spacing = 10f;
+        horizontal.spacing = 8f;
         horizontal.padding = new RectOffset(0, 0, 0, 0);
 
         for (int i = 0; i < row.childCount; i++)
@@ -281,19 +281,19 @@ public class GameHudLayoutPreset : MonoBehaviour
 
         if (child.name.Contains("CompAtm") || child.name.Contains("Atmosphere"))
         {
-            layout.minWidth = 180f;
+            layout.minWidth = 200f;
             layout.preferredWidth = -1f;
             layout.flexibleWidth = 1f;
-            layout.minHeight = 60f;
+            layout.minHeight = 70f;
             layout.preferredHeight = -1f;
             return;
         }
 
         if (child.name.Contains("Slider"))
         {
-            layout.minWidth = 100f;
-            layout.preferredWidth = 160f;
-            layout.flexibleWidth = 1f;
+            layout.minWidth = 110f;
+            layout.preferredWidth = 150f;
+            layout.flexibleWidth = 0f;
             layout.minHeight = sliderHeight;
             layout.preferredHeight = sliderHeight;
             return;
@@ -301,49 +301,39 @@ public class GameHudLayoutPreset : MonoBehaviour
 
         if (child.name.Contains("Badge"))
         {
-            layout.minWidth = 28f;
-            layout.preferredWidth = 28f;
+            layout.minWidth = 24f;
+            layout.preferredWidth = 24f;
             layout.flexibleWidth = 0f;
-            layout.minHeight = 28f;
-            layout.preferredHeight = 28f;
+            layout.minHeight = 24f;
+            layout.preferredHeight = 24f;
             return;
         }
 
         if (child.name.Contains("Hex"))
         {
-            layout.minWidth = 90f;
-            layout.preferredWidth = 90f;
+            layout.minWidth = 80f;
+            layout.preferredWidth = 80f;
             layout.flexibleWidth = 0f;
             layout.minHeight = 20f;
             layout.preferredHeight = 20f;
             return;
         }
 
-        if (child.name.Contains("Tectonic") && child.name.Contains("Label"))
-        {
-            layout.minWidth = 180f;
-            layout.preferredWidth = 260f;
-            layout.flexibleWidth = 0f;
-            layout.minHeight = 24f;
-            layout.preferredHeight = -1f;
-            return;
-        }
-
-        layout.minWidth = 120f;
+        layout.minWidth = 140f;
         layout.preferredWidth = -1f;
         layout.flexibleWidth = 1f;
-        layout.minHeight = 24f;
+        layout.minHeight = 22f;
         layout.preferredHeight = -1f;
     }
 
     private void SetupSliders()
     {
-        SetupSlider(sessionSlider);
-        SetupSlider(waterSlider);
-        SetupSlider(tectonicSlider);
+        SetupSlider(sessionSlider, new Color(0.23f, 0.53f, 1.0f, 1f));   // Blue / Cyan
+        SetupSlider(waterSlider, new Color(0.0f, 0.71f, 0.85f, 1f));     // Ocean Teal
+        SetupSlider(tectonicSlider, new Color(0.97f, 0.57f, 0.34f, 1f)); // Lava Amber
     }
 
-    private void SetupSlider(Slider slider)
+    private void SetupSlider(Slider slider, Color fillColor)
     {
         if (slider == null) return;
 
@@ -351,6 +341,36 @@ public class GameHudLayoutPreset : MonoBehaviour
         slider.maxValue = 1f;
         slider.wholeNumbers = false;
         slider.interactable = false;
+
+        // Hide handle slide area so the slider renders purely as a sleek progress gauge
+        Transform handleArea = slider.transform.Find("Handle Slide Area");
+        if (handleArea != null)
+        {
+            handleArea.gameObject.SetActive(false);
+        }
+
+        // Style Track Background
+        Transform bgTrans = slider.transform.Find("Background");
+        if (bgTrans != null)
+        {
+            Image bgImg = bgTrans.GetComponent<Image>();
+            if (bgImg != null)
+            {
+                bgImg.color = new Color(0.12f, 0.15f, 0.20f, 0.85f);
+            }
+        }
+
+        // Style Fill Area and Fill
+        Transform fillTrans = slider.transform.Find("Fill Area/Fill");
+        if (fillTrans == null) fillTrans = slider.transform.Find("Fill");
+        if (fillTrans != null)
+        {
+            Image fillImg = fillTrans.GetComponent<Image>();
+            if (fillImg != null)
+            {
+                fillImg.color = fillColor;
+            }
+        }
     }
 
     private void SetupTypography()
@@ -361,14 +381,38 @@ public class GameHudLayoutPreset : MonoBehaviour
         foreach (TMP_Text text in texts)
         {
             bool isTitle = text.name.Contains("Epoch") || text.name.Contains("Title");
-            bool isMultiLine = text.name.Contains("CompAtm") || text.name.Contains("atmosphere") || text.name.Contains("Prebiotic") || text.name.Contains("SurfaceTemp") || text.name.Contains("Tectonic") || text.name.Contains("Epoch");
+            bool isAtmosphere = text.name.Contains("CompAtm") || text.name.Contains("atmosphere");
+            bool isPrebiotic = text.name.Contains("Prebiotic");
 
-            text.enableAutoSizing = true;
-            text.fontSizeMin = 11;
-            text.fontSizeMax = isTitle ? titleFontSize : bodyFontSize;
-            text.fontStyle = isTitle ? titleStyle : bodyStyle;
+            // Disable auto-sizing to prevent TMP from shrinking multiline text into unreadable micro-text
+            text.enableAutoSizing = false;
+
+            if (isTitle)
+            {
+                text.fontSize = titleFontSize;
+                text.fontStyle = titleStyle;
+            }
+            else if (isAtmosphere)
+            {
+                text.fontSize = 12.5f;
+                text.fontStyle = FontStyles.Normal;
+                text.lineSpacing = 2f;
+            }
+            else if (isPrebiotic)
+            {
+                text.fontSize = 13f;
+                text.fontStyle = FontStyles.Normal;
+                text.lineSpacing = 2f;
+            }
+            else
+            {
+                text.fontSize = bodyFontSize;
+                text.fontStyle = bodyStyle;
+            }
+
             text.textWrappingMode = TextWrappingModes.Normal;
             text.overflowMode = TextOverflowModes.Overflow;
+            text.margin = Vector4.zero;
         }
     }
 
