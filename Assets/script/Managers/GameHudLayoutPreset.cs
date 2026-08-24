@@ -39,7 +39,7 @@ public class GameHudLayoutPreset : MonoBehaviour
     [SerializeField] private string subtleTextHex = "#D3D7DE";
 
     [Header("Spacing")]
-    [SerializeField] private float panelWidth = 520f;
+    [SerializeField] private float panelWidth = 580f;
     [SerializeField] private float panelPadding = 20f;
     [SerializeField] private float rowHeight = 44f;
     [SerializeField] private float rowSpacing = 8f;
@@ -205,7 +205,7 @@ public class GameHudLayoutPreset : MonoBehaviour
 
         foreach (RectTransform row in rows)
         {
-            float targetHeight = (row == atmosphereRow || row.name == "compositionAtmpan" || row.name == "atmosphereRow") ? rowHeight * 4.2f : rowHeight;
+            float targetHeight = (row == atmosphereRow || row.name == "compositionAtmpan" || row.name == "atmosphereRow") ? rowHeight * 4.8f : rowHeight;
             SetupRow(row, targetHeight);
         }
     }
@@ -276,8 +276,18 @@ public class GameHudLayoutPreset : MonoBehaviour
             layout.minWidth = 180f;
             layout.preferredWidth = -1f;
             layout.flexibleWidth = 1f;
-            layout.minHeight = 110f;
-            layout.preferredHeight = 130f;
+            layout.minHeight = 130f;
+            layout.preferredHeight = 150f;
+            return;
+        }
+
+        if (child.name.Contains("Item") || child.name.Contains("Volcano") || child.name.Contains("Meteor"))
+        {
+            layout.minWidth = 180f;
+            layout.preferredWidth = -1f;
+            layout.flexibleWidth = 1f;
+            layout.minHeight = 36f;
+            layout.preferredHeight = 44f;
             return;
         }
 
@@ -346,8 +356,8 @@ public class GameHudLayoutPreset : MonoBehaviour
             bool isMultiLine = text.name.Contains("CompAtm") || text.name.Contains("Atmosphere") || text.name.Contains("Prebiotic");
 
             text.enableAutoSizing = true;
-            text.fontSizeMin = 9;
-            text.fontSizeMax = isTitle ? titleFontSize : (text.name.Contains("Tectonic") ? 14 : bodyFontSize);
+            text.fontSizeMin = 14;
+            text.fontSizeMax = isTitle ? titleFontSize : (text.name.Contains("Tectonic") ? 16 : bodyFontSize);
             text.fontStyle = isTitle ? titleStyle : bodyStyle;
             text.textWrappingMode = isMultiLine ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
             text.overflowMode = isMultiLine ? TextOverflowModes.Overflow : TextOverflowModes.Ellipsis;
