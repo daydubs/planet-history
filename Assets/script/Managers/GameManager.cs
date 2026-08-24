@@ -303,6 +303,8 @@ public class GameManager : MonoBehaviour
         {
             // Taux de condensation réduit (de 0.000001f à 0.00000033333333f, soit 3x plus lent) pour prolonger le rush de la dérive tectonique
             // et permettre aux continents de dériver 3 fois plus longtemps avant le ralentissement de la phase Prébiotique.
+            // Taux de condensation réduit à 0.00000033333333f (~1/3 000 000) pour allonger la durée du rush initial
+            // de la dérive tectonique rapide (époque TectonicDrift) d'un facteur 3 avant le ralentissement prébiotique.
             waterRatio += 0.00000033333333f * dt;
         }
         else
