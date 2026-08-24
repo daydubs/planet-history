@@ -762,8 +762,8 @@ public class GameHudController : MonoBehaviour
         rowRect.localScale = Vector3.one;
 
         LayoutElement rowLayout = rowGo.AddComponent<LayoutElement>();
-        rowLayout.minHeight = 44f;
-        rowLayout.preferredHeight = 44f;
+        rowLayout.minHeight = 36f;
+        rowLayout.preferredHeight = 36f;
         rowLayout.flexibleHeight = 0f;
         rowLayout.flexibleWidth = 1f;
 
@@ -772,8 +772,8 @@ public class GameHudController : MonoBehaviour
         horizontal.childControlWidth = true;
         horizontal.childControlHeight = true;
         horizontal.childForceExpandWidth = true;
-        horizontal.childForceExpandHeight = true;
-        horizontal.spacing = 12f;
+        horizontal.childForceExpandHeight = false;
+        horizontal.spacing = 10f;
 
         return rowGo.transform;
     }
@@ -795,8 +795,8 @@ public class GameHudController : MonoBehaviour
         volContainer.transform.SetParent(eventsRow, false);
 
         LayoutElement itemLayout = volContainer.AddComponent<LayoutElement>();
-        itemLayout.minHeight = 44f;
-        itemLayout.preferredHeight = 44f;
+        itemLayout.minHeight = 36f;
+        itemLayout.preferredHeight = 36f;
         itemLayout.flexibleWidth = 1f;
 
         HorizontalLayoutGroup horizontal = volContainer.AddComponent<HorizontalLayoutGroup>();
@@ -804,7 +804,7 @@ public class GameHudController : MonoBehaviour
         horizontal.childControlWidth = true;
         horizontal.childControlHeight = true;
         horizontal.childForceExpandWidth = false;
-        horizontal.childForceExpandHeight = true;
+        horizontal.childForceExpandHeight = false;
         horizontal.spacing = 6f;
 
         // Label
@@ -812,16 +812,15 @@ public class GameHudController : MonoBehaviour
         labelGo.transform.SetParent(volContainer.transform, false);
         TextMeshProUGUI labelText = labelGo.AddComponent<TextMeshProUGUI>();
         labelText.text = "🌋 Volcan :";
-        labelText.enableAutoSizing = true;
-        labelText.fontSizeMin = 12;
-        labelText.fontSizeMax = 15;
+        labelText.enableAutoSizing = false;
+        labelText.fontSize = 13.5f;
         labelText.fontStyle = FontStyles.Bold;
         labelText.color = new Color(0.88f, 0.90f, 0.94f, 1f);
         labelText.alignment = TextAlignmentOptions.Left;
 
         LayoutElement labelLayout = labelGo.AddComponent<LayoutElement>();
-        labelLayout.minWidth = 75f;
-        labelLayout.preferredWidth = 85f;
+        labelLayout.minWidth = 70f;
+        labelLayout.preferredWidth = 78f;
         labelLayout.flexibleWidth = 0f;
 
         // Button
@@ -829,16 +828,16 @@ public class GameHudController : MonoBehaviour
         buttonGo.transform.SetParent(volContainer.transform, false);
 
         Image buttonImage = buttonGo.AddComponent<Image>();
-        buttonImage.color = new Color(0.92f, 0.45f, 0.15f, 1f);
+        buttonImage.color = new Color(0.88f, 0.38f, 0.12f, 1f);
 
         Button button = buttonGo.AddComponent<Button>();
         button.targetGraphic = buttonImage;
         volcanoButton = button;
 
         ColorBlock cb = button.colors;
-        cb.normalColor = new Color(0.92f, 0.45f, 0.15f, 1f);
-        cb.highlightedColor = new Color(1.0f, 0.55f, 0.25f, 1f);
-        cb.pressedColor = new Color(0.72f, 0.35f, 0.05f, 1f);
+        cb.normalColor = new Color(0.88f, 0.38f, 0.12f, 1f);
+        cb.highlightedColor = new Color(0.98f, 0.48f, 0.22f, 1f);
+        cb.pressedColor = new Color(0.68f, 0.28f, 0.05f, 1f);
         cb.disabledColor = new Color(0.35f, 0.35f, 0.35f, 0.5f);
         button.colors = cb;
 
@@ -846,9 +845,8 @@ public class GameHudController : MonoBehaviour
         buttonTextGo.transform.SetParent(buttonGo.transform, false);
         TextMeshProUGUI buttonText = buttonTextGo.AddComponent<TextMeshProUGUI>();
         buttonText.text = "Créer Volcan";
-        buttonText.enableAutoSizing = true;
-        buttonText.fontSizeMin = 12;
-        buttonText.fontSizeMax = 15;
+        buttonText.enableAutoSizing = false;
+        buttonText.fontSize = 13f;
         buttonText.fontStyle = FontStyles.Bold;
         buttonText.color = Color.white;
         buttonText.alignment = TextAlignmentOptions.Center;
@@ -859,8 +857,8 @@ public class GameHudController : MonoBehaviour
         textRect.sizeDelta = Vector2.zero;
 
         LayoutElement buttonLayout = buttonGo.AddComponent<LayoutElement>();
-        buttonLayout.minWidth = 110f;
-        buttonLayout.preferredWidth = 140f;
+        buttonLayout.minWidth = 100f;
+        buttonLayout.preferredWidth = 130f;
         buttonLayout.flexibleWidth = 1f;
         buttonLayout.minHeight = 32f;
         buttonLayout.preferredHeight = 34f;
@@ -892,27 +890,31 @@ public class GameHudController : MonoBehaviour
         containerGo.transform.SetParent(hudRoot, false);
 
         LayoutElement containerLayout = containerGo.AddComponent<LayoutElement>();
-        containerLayout.minHeight = 100f;
+        containerLayout.minHeight = 80f;
         containerLayout.preferredHeight = -1f;
         containerLayout.flexibleWidth = 1f;
 
         VerticalLayoutGroup vertical = containerGo.AddComponent<VerticalLayoutGroup>();
         vertical.childAlignment = TextAnchor.UpperLeft;
         vertical.childControlWidth = true;
-        vertical.childControlHeight = false;
-        vertical.spacing = 8f;
+        vertical.childControlHeight = true;
+        vertical.childForceExpandWidth = true;
+        vertical.childForceExpandHeight = false;
+        vertical.spacing = 6f;
 
         // Header + Progress Label
         GameObject labelGo = new GameObject("PrebioticProgressLabel", typeof(RectTransform));
         labelGo.transform.SetParent(containerGo.transform, false);
 
         LayoutElement labelLayout = labelGo.AddComponent<LayoutElement>();
-        labelLayout.minHeight = 50f;
+        labelLayout.minHeight = 40f;
         labelLayout.preferredHeight = -1f;
         labelLayout.flexibleWidth = 1f;
 
         prebioticProgressText = labelGo.AddComponent<TextMeshProUGUI>();
-        prebioticProgressText.fontSize = 15;
+        prebioticProgressText.enableAutoSizing = false;
+        prebioticProgressText.fontSize = 13f;
+        prebioticProgressText.lineSpacing = 2f;
         prebioticProgressText.fontStyle = FontStyles.Bold;
         prebioticProgressText.color = new Color(0.26f, 0.82f, 0.72f, 1f);
         prebioticProgressText.alignment = TextAlignmentOptions.Left;
@@ -924,15 +926,17 @@ public class GameHudController : MonoBehaviour
         btnRowGo.transform.SetParent(containerGo.transform, false);
 
         LayoutElement btnRowLayout = btnRowGo.AddComponent<LayoutElement>();
-        btnRowLayout.minHeight = 40f;
-        btnRowLayout.preferredHeight = 40f;
+        btnRowLayout.minHeight = 34f;
+        btnRowLayout.preferredHeight = 36f;
         btnRowLayout.flexibleWidth = 1f;
 
         HorizontalLayoutGroup btnLayout = btnRowGo.AddComponent<HorizontalLayoutGroup>();
         btnLayout.childAlignment = TextAnchor.MiddleLeft;
         btnLayout.childControlWidth = true;
         btnLayout.childControlHeight = true;
-        btnLayout.spacing = 8f;
+        btnLayout.childForceExpandWidth = true;
+        btnLayout.childForceExpandHeight = false;
+        btnLayout.spacing = 6f;
 
         CreatePrebioticActionButton(
             btnRowGo.transform,
@@ -1005,16 +1009,17 @@ public class GameHudController : MonoBehaviour
 
         ColorBlock cb = button.colors;
         cb.normalColor = btnColor;
-        cb.highlightedColor = btnColor * 1.2f;
+        cb.highlightedColor = btnColor * 1.15f;
         cb.pressedColor = btnColor * 0.8f;
-        cb.disabledColor = new Color(btnColor.r * 0.35f, btnColor.g * 0.35f, btnColor.b * 0.35f, 0.5f);
+        cb.disabledColor = new Color(btnColor.r * 0.3f, btnColor.g * 0.3f, btnColor.b * 0.3f, 0.4f);
         button.colors = cb;
 
         GameObject buttonTextGo = new GameObject("Text", typeof(RectTransform));
         buttonTextGo.transform.SetParent(buttonGo.transform, false);
         TextMeshProUGUI buttonText = buttonTextGo.AddComponent<TextMeshProUGUI>();
         buttonText.text = title;
-        buttonText.fontSize = 14;
+        buttonText.enableAutoSizing = false;
+        buttonText.fontSize = 12.5f;
         buttonText.fontStyle = FontStyles.Bold;
         buttonText.color = Color.white;
         buttonText.alignment = TextAlignmentOptions.Center;
@@ -1026,8 +1031,8 @@ public class GameHudController : MonoBehaviour
         textRect.sizeDelta = Vector2.zero;
 
         LayoutElement buttonLayout = buttonGo.AddComponent<LayoutElement>();
-        buttonLayout.minWidth = 90f;
-        buttonLayout.preferredWidth = 115f;
+        buttonLayout.minWidth = 80f;
+        buttonLayout.preferredWidth = 110f;
         buttonLayout.flexibleWidth = 1f;
         buttonLayout.minHeight = 32f;
         buttonLayout.preferredHeight = 34f;
@@ -1267,8 +1272,9 @@ public class GameHudController : MonoBehaviour
 
         if (epochText != null)
         {
-            epochText.enableWordWrapping = true;
-            epochText.overflowMode = TextOverflowModes.Overflow;
+            epochText.enableAutoSizing = false;
+            epochText.fontSize = 18f;
+            epochText.fontStyle = FontStyles.Bold;
             epochText.text = $"Époque : {GetEpochDisplayName(gameManager.CurrentEpoch)}";
         }
 
@@ -1295,6 +1301,8 @@ public class GameHudController : MonoBehaviour
 
         if (surfaceTempText != null)
         {
+            surfaceTempText.enableAutoSizing = false;
+            surfaceTempText.fontSize = 13.5f;
             surfaceTempText.enableWordWrapping = true;
             surfaceTempText.overflowMode = TextOverflowModes.Overflow;
             surfaceTempText.text = $"Temp. surface: {gameManager.SurfaceTemperature:0.0} K ({gameManager.SurfaceTemperature - 273.15f:0.0} °C){thermalExtras}";
@@ -1305,9 +1313,8 @@ public class GameHudController : MonoBehaviour
 
         if (tectonicText != null)
         {
-            tectonicText.enableAutoSizing = true;
-            tectonicText.fontSizeMin = 11f;
-            tectonicText.fontSizeMax = 15f;
+            tectonicText.enableAutoSizing = false;
+            tectonicText.fontSize = 13.5f;
             tectonicText.textWrappingMode = TextWrappingModes.Normal;
             tectonicText.overflowMode = TextOverflowModes.Overflow;
             tectonicText.text = $"Activité tectonique: {gameManager.TectonicActivity * 100f:0.00}%";
@@ -1317,9 +1324,11 @@ public class GameHudController : MonoBehaviour
 
         if (atmosphereCompositionText != null)
         {
+            atmosphereCompositionText.enableAutoSizing = false;
+            atmosphereCompositionText.fontSize = 12.5f;
+            atmosphereCompositionText.lineSpacing = 2f;
             atmosphereCompositionText.enableWordWrapping = true;
             atmosphereCompositionText.overflowMode = TextOverflowModes.Overflow;
-            atmosphereCompositionText.fontSize = 15f;
 
             float total = gameManager.Pressure;
             float h2oPct = total > 0 ? (gameManager.WaterVaporPressure / total) * 100f : 0f;
@@ -1327,11 +1336,11 @@ public class GameHudController : MonoBehaviour
             float n2Pct = total > 0 ? (gameManager.NitrogenPressure / total) * 100f : 0f;
             float otherPct = total > 0 ? (gameManager.OtherGasesPressure / total) * 100f : 0f;
 
-            atmosphereCompositionText.text = $"Composition Atmosphérique ({gameManager.CurrentEpoch}) - Total: {total:0.00} atm :\n" +
+            atmosphereCompositionText.text = $"Composition Atmosphérique ({GetEpochDisplayName(gameManager.CurrentEpoch)}) - Total: {total:0.00} atm :\n" +
                 $" • H2O (Vapeur d'eau) : {gameManager.WaterVaporPressure:0.00} atm ({h2oPct:0.1}%)\n" +
                 $" • CO2 (Dioxyde de carbone) : {gameManager.Co2Pressure:0.00} atm ({co2Pct:0.1}%)\n" +
                 $" • N2 (Azote) : {gameManager.NitrogenPressure:0.00} atm ({n2Pct:0.1}%)\n" +
-                $" • Gaz réduits / volcaniques (CH4, NH3, SO2) : {gameManager.OtherGasesPressure:0.00} atm ({otherPct:0.1}%)";
+                $" • Gaz réduits (CH4, NH3, SO2) : {gameManager.OtherGasesPressure:0.00} atm ({otherPct:0.1}%)";
         }
 
         if (sessionSlider != null) sessionSlider.value = gameManager.SessionProgress;

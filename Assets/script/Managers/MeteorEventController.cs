@@ -109,8 +109,8 @@ public class MeteorEventController : MonoBehaviour
         meteorContainer.transform.SetParent(eventsRow, false);
 
         LayoutElement itemLayout = meteorContainer.AddComponent<LayoutElement>();
-        itemLayout.minHeight = 44f;
-        itemLayout.preferredHeight = 44f;
+        itemLayout.minHeight = 36f;
+        itemLayout.preferredHeight = 36f;
         itemLayout.flexibleWidth = 1f;
 
         HorizontalLayoutGroup horizontal = meteorContainer.AddComponent<HorizontalLayoutGroup>();
@@ -118,7 +118,7 @@ public class MeteorEventController : MonoBehaviour
         horizontal.childControlWidth = true;
         horizontal.childControlHeight = true;
         horizontal.childForceExpandWidth = false;
-        horizontal.childForceExpandHeight = true;
+        horizontal.childForceExpandHeight = false;
         horizontal.spacing = 6f;
 
         // Create Label
@@ -126,9 +126,8 @@ public class MeteorEventController : MonoBehaviour
         labelGo.transform.SetParent(meteorContainer.transform, false);
         TextMeshProUGUI labelText = labelGo.AddComponent<TextMeshProUGUI>();
         labelText.text = "☄️ Météore :";
-        labelText.enableAutoSizing = true;
-        labelText.fontSizeMin = 12;
-        labelText.fontSizeMax = 15;
+        labelText.enableAutoSizing = false;
+        labelText.fontSize = 13.5f;
         labelText.fontStyle = FontStyles.Bold;
         labelText.color = new Color(0.88f, 0.90f, 0.94f, 1f);
         labelText.alignment = TextAlignmentOptions.Left;
@@ -144,7 +143,7 @@ public class MeteorEventController : MonoBehaviour
 
         // Add Image for button background
         Image buttonImage = buttonGo.AddComponent<Image>();
-        buttonImage.color = new Color(0.82f, 0.28f, 0.35f, 1f);
+        buttonImage.color = new Color(0.82f, 0.22f, 0.30f, 1f);
 
         // Add Button component
         Button button = buttonGo.AddComponent<Button>();
@@ -153,9 +152,9 @@ public class MeteorEventController : MonoBehaviour
 
         // Color block for button states
         ColorBlock cb = button.colors;
-        cb.normalColor = new Color(0.82f, 0.28f, 0.35f, 1f);
-        cb.highlightedColor = new Color(0.92f, 0.38f, 0.45f, 1f);
-        cb.pressedColor = new Color(0.62f, 0.18f, 0.25f, 1f);
+        cb.normalColor = new Color(0.82f, 0.22f, 0.30f, 1f);
+        cb.highlightedColor = new Color(0.92f, 0.32f, 0.40f, 1f);
+        cb.pressedColor = new Color(0.62f, 0.12f, 0.20f, 1f);
         cb.disabledColor = new Color(0.35f, 0.35f, 0.35f, 0.5f);
         button.colors = cb;
 
@@ -164,9 +163,8 @@ public class MeteorEventController : MonoBehaviour
         buttonTextGo.transform.SetParent(buttonGo.transform, false);
         TextMeshProUGUI buttonText = buttonTextGo.AddComponent<TextMeshProUGUI>();
         buttonText.text = "Déclencher";
-        buttonText.enableAutoSizing = true;
-        buttonText.fontSizeMin = 12;
-        buttonText.fontSizeMax = 15;
+        buttonText.enableAutoSizing = false;
+        buttonText.fontSize = 13f;
         buttonText.fontStyle = FontStyles.Bold;
         buttonText.color = Color.white;
         buttonText.alignment = TextAlignmentOptions.Center;
@@ -178,8 +176,8 @@ public class MeteorEventController : MonoBehaviour
         textRect.sizeDelta = Vector2.zero;
 
         LayoutElement buttonLayout = buttonGo.AddComponent<LayoutElement>();
-        buttonLayout.minWidth = 110f;
-        buttonLayout.preferredWidth = 140f;
+        buttonLayout.minWidth = 100f;
+        buttonLayout.preferredWidth = 130f;
         buttonLayout.flexibleWidth = 1f;
         buttonLayout.minHeight = 32f;
         buttonLayout.preferredHeight = 34f;
