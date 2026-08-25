@@ -81,32 +81,14 @@ public class ProtocellMicroViewUI : MonoBehaviour
 
         zoneTitleText = headerGo.AddComponent<TextMeshProUGUI>();
         zoneTitleText.text = "🔬 VUE MICRO-BIOTIQUE : Auto-Assemblage & Protocellules";
-        zoneTitleText.fontSize = 22;
+        zoneTitleText.fontSize = 20;
         zoneTitleText.fontStyle = FontStyles.Bold;
+        zoneTitleText.alignment = TextAlignmentOptions.Center;
         zoneTitleText.color = new Color(0.3f, 0.85f, 0.75f, 1f);
 
-        // Close Button
-        GameObject closeGo = new GameObject("CloseBtn", typeof(RectTransform));
-        closeGo.transform.SetParent(headerGo.transform, false);
-        Image closeImg = closeGo.AddComponent<Image>();
-        closeImg.color = new Color(0.7f, 0.2f, 0.2f, 0.9f);
-        closeButton = closeGo.AddComponent<Button>();
-        closeButton.targetGraphic = closeImg;
-        closeButton.onClick.AddListener(HideMicroView);
-
-        GameObject closeTxtGo = new GameObject("Text", typeof(RectTransform));
-        closeTxtGo.transform.SetParent(closeGo.transform, false);
-        TextMeshProUGUI closeTxt = closeTxtGo.AddComponent<TextMeshProUGUI>();
-        closeTxt.text = "✕ Fermer";
-        closeTxt.fontSize = 14;
-        closeTxt.fontStyle = FontStyles.Bold;
-        closeTxt.alignment = TextAlignmentOptions.Center;
-        closeTxt.color = Color.white;
-        RectTransform cRect = closeTxtGo.GetComponent<RectTransform>();
-        cRect.anchorMin = Vector2.zero; cRect.anchorMax = Vector2.one; cRect.sizeDelta = Vector2.zero;
-
-        LayoutElement closeLayout = closeGo.AddComponent<LayoutElement>();
-        closeLayout.minWidth = 100f; closeLayout.preferredWidth = 110f; closeLayout.minHeight = 34f;
+        LayoutElement headerLayoutElem = headerGo.AddComponent<LayoutElement>();
+        headerLayoutElem.minHeight = 32f;
+        headerLayoutElem.preferredHeight = 32f;
 
         // Content Row
         GameObject contentRow = new GameObject("ContentRow", typeof(RectTransform));
@@ -118,8 +100,8 @@ public class ProtocellMicroViewUI : MonoBehaviour
         contentLayout.childControlHeight = true;
 
         LayoutElement contentRowLayout = contentRow.AddComponent<LayoutElement>();
-        contentRowLayout.minHeight = 580f;
-        contentRowLayout.preferredHeight = 600f;
+        contentRowLayout.minHeight = 520f;
+        contentRowLayout.preferredHeight = 540f;
 
         // Left Container: Viewport RawImage (Vesicle 2D rendering)
         GameObject leftCol = new GameObject("LeftColumn", typeof(RectTransform));
@@ -129,10 +111,11 @@ public class ProtocellMicroViewUI : MonoBehaviour
         leftLayout.spacing = 12f;
         leftLayout.childControlWidth = true;
         leftLayout.childControlHeight = false;
+        leftLayout.childAlignment = TextAnchor.UpperCenter;
 
         LayoutElement leftColLayout = leftCol.AddComponent<LayoutElement>();
-        leftColLayout.minWidth = 400f;
-        leftColLayout.preferredWidth = 410f;
+        leftColLayout.minWidth = 390f;
+        leftColLayout.preferredWidth = 390f;
 
         GameObject rawImgGo = new GameObject("VesicleViewport", typeof(RectTransform));
         rawImgGo.transform.SetParent(leftCol.transform, false);
@@ -157,44 +140,68 @@ public class ProtocellMicroViewUI : MonoBehaviour
         nextZoneButton = CreateStyledButton(zoneSelRow.transform, "Zone Suiv. ▶", () => SwitchZone(1), new Color(0.2f, 0.35f, 0.45f, 1f));
 
         LayoutElement prevLayout = prevZoneButton.gameObject.AddComponent<LayoutElement>();
-        prevLayout.minHeight = 40f;
+        prevLayout.minHeight = 38f;
         LayoutElement nextLayout = nextZoneButton.gameObject.AddComponent<LayoutElement>();
-        nextLayout.minHeight = 40f;
+        nextLayout.minHeight = 38f;
+
+        // Bottom-Left Close Button Row
+        GameObject closeRow = new GameObject("CloseRow", typeof(RectTransform));
+        closeRow.transform.SetParent(leftCol.transform, false);
+
+        HorizontalLayoutGroup closeRowLayout = closeRow.AddComponent<HorizontalLayoutGroup>();
+        closeRowLayout.childControlWidth = false;
+        closeRowLayout.childControlHeight = true;
+        closeRowLayout.childAlignment = TextAnchor.LowerLeft;
+
+        closeButton = CreateStyledButton(closeRow.transform, "✕ Fermer", HideMicroView, new Color(0.75f, 0.22f, 0.22f, 1f));
+        LayoutElement closeBtnLayout = closeButton.gameObject.AddComponent<LayoutElement>();
+        closeBtnLayout.minWidth = 130f;
+        closeBtnLayout.preferredWidth = 130f;
+        closeBtnLayout.minHeight = 36f;
+        closeBtnLayout.preferredHeight = 36f;
 
         // Right Container: Telemetries & Environmental Control Sliders/Buttons
         GameObject rightCol = new GameObject("RightColumn", typeof(RectTransform));
         rightCol.transform.SetParent(contentRow.transform, false);
 
         VerticalLayoutGroup rightLayout = rightCol.AddComponent<VerticalLayoutGroup>();
-        rightLayout.spacing = 14f;
+        rightLayout.spacing = 12f;
         rightLayout.childControlWidth = true;
-        rightLayout.childControlHeight = false;
+        rightLayout.childControlHeight = true;
+        rightLayout.childForceExpandWidth = true;
+        rightLayout.childForceExpandHeight = false;
 
         LayoutElement rightColLayout = rightCol.AddComponent<LayoutElement>();
         rightColLayout.flexibleWidth = 1f;
 
-        // Env Stats Label
+        // Env Stats Label (Conditions Locales)
         GameObject envStatsGo = new GameObject("EnvStatsLabel", typeof(RectTransform));
         envStatsGo.transform.SetParent(rightCol.transform, false);
         envStatsText = envStatsGo.AddComponent<TextMeshProUGUI>();
-        envStatsText.fontSize = 15f;
-        envStatsText.lineSpacing = 6f;
-        envStatsText.color = new Color(0.9f, 0.92f, 0.95f, 1f);
+        envStatsText.fontSize = 14f;
+        envStatsText.lineSpacing = 4f;
+        envStatsText.color = new Color(0.92f, 0.94f, 0.96f, 1f);
+        ContentSizeFitter envFitter = envStatsGo.AddComponent<ContentSizeFitter>();
+        envFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        envFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
-        // Population Stats Label
+        // Population Stats Label (Télémétrie de Population & Réplication ARN)
         GameObject popStatsGo = new GameObject("PopStatsLabel", typeof(RectTransform));
         popStatsGo.transform.SetParent(rightCol.transform, false);
         populationStatsText = popStatsGo.AddComponent<TextMeshProUGUI>();
-        populationStatsText.fontSize = 14.5f;
-        populationStatsText.lineSpacing = 6f;
-        populationStatsText.color = new Color(0.3f, 0.9f, 0.6f, 1f);
+        populationStatsText.fontSize = 14f;
+        populationStatsText.lineSpacing = 4f;
+        populationStatsText.color = new Color(0.35f, 0.92f, 0.65f, 1f);
+        ContentSizeFitter popFitter = popStatsGo.AddComponent<ContentSizeFitter>();
+        popFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        popFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
 
         // Env Control Buttons Grid
         GameObject ctrlGrid = new GameObject("ControlGrid", typeof(RectTransform));
         ctrlGrid.transform.SetParent(rightCol.transform, false);
 
         GridLayoutGroup grid = ctrlGrid.AddComponent<GridLayoutGroup>();
-        grid.cellSize = new Vector2(230f, 44f);
+        grid.cellSize = new Vector2(220f, 42f);
         grid.spacing = new Vector2(10f, 10f);
         grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         grid.constraintCount = 2;
@@ -206,8 +213,8 @@ public class ProtocellMicroViewUI : MonoBehaviour
 
         feedNutrientsButton = CreateStyledButton(rightCol.transform, "🧪 Injecter Acides Aminés & Lipides", () => FeedNutrients(20f), new Color(0.2f, 0.7f, 0.6f, 1f));
         LayoutElement feedLayout = feedNutrientsButton.gameObject.AddComponent<LayoutElement>();
-        feedLayout.minHeight = 46f;
-        feedLayout.preferredHeight = 46f;
+        feedLayout.minHeight = 44f;
+        feedLayout.preferredHeight = 44f;
 
         InitializeViewportTexture();
         microViewPanel.SetActive(false);
