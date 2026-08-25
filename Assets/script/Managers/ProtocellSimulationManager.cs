@@ -305,22 +305,28 @@ public class ProtocellSimulationManager : MonoBehaviour
         List<Protocell> newOffspring = new List<Protocell>();
         List<Protocell> deadCells = new List<Protocell>();
 
-        float availableNutrients = (zone.aminoAcidConcentration / 100f) * 1.5f;
-
         foreach (var cell in zone.protocells)
         {
             cell.age += dt;
 
+            float availableNutrients = (zone.aminoAcidConcentration / 100f) * 1.5f;
+
             // Permeability challenge: must be optimal (around 0.4 - 0.6)
             // Too low: cannot absorb nutrients. Too high: leaks internal RNA & energy.
             float nutrientAbsorption = Mathf.Sin(cell.permeability * Mathf.PI) * availableNutrients * 12f * dt;
+
+            // Consommer les nutriments de la zone (Compétition)
+            // On s'assure que la consommation est dépendante de dt pour ne pas être liée au framerate.
+            float consumedPercentage = nutrientAbsorption * 0.1f;
+            zone.aminoAcidConcentration = Mathf.Max(0f, zone.aminoAcidConcentration - consumedPercentage);
+
             float energyLeak = Mathf.Max(0f, cell.permeability - 0.65f) * 18f * dt;
 
             // Primitive Chemiosmotic Metabolism (Gradient consumption vs passive diffusion)
             float gradientHarvest = zone.chemicalGradientStrength * cell.energyEfficiency * 15f * dt;
 
             // Energy balance
-            cell.energy += nutrientAbsorption + gradientHarvest - energyLeak - (5f * dt);
+            cell.energy += nutrientAbsorption + gradientHarvest - energyLeak - (8f * dt);
 
             // Radiation damage (if tide pool and low radiation resistance)
             if (zone.zoneType == PrebioticZoneType.ChemicalTidePool)
@@ -348,6 +354,18 @@ public class ProtocellSimulationManager : MonoBehaviour
             if (cell.energy <= 0f || cell.membraneStability < 0.15f || (stabilityFactor < 0.2f && UnityEngine.Random.value < 0.25f))
             {
                 deadCells.Add(cell);
+            }
+
+            // Émergence de la complexité: débloquer la Photosynthèse
+            if (GameManager.Instance != null &&
+                GameManager.Instance.CurrentEpoch == PlanetEpoch.Prebiotic &&
+                !GameManager.Instance.IsPhotosynthesisUnlocked)
+            {
+                if (cell.energyEfficiency >= 1.5f && cell.radiationResistance >= 0.7f && cell.permeability >= 0.5f)
+                {
+                    GameManager.Instance.UnlockPhotosynthesis();
+                    GameManager.Instance.LogEvent("Photosynthesis Unlocked", "Une protocellule a atteint un niveau métabolique élevé !");
+                }
             }
         }
 
