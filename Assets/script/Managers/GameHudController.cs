@@ -1351,16 +1351,31 @@ public class GameHudController : MonoBehaviour
             epochText.text = $"Époque : {GetEpochDisplayName(gameManager.CurrentEpoch)}";
         }
 
-        SetText(sessionText, $"Progression: {gameManager.SessionProgress * 100f:0.0}%");
+        if (sessionText != null)
+        {
+            sessionText.enableAutoSizing = false;
+            sessionText.fontSize = 15f;
+            sessionText.text = $"Progression: {gameManager.SessionProgress * 100f:0.0}%";
+        }
 
         float remainingHours = gameManager.SessionRemainingHoursAtCurrentSpeed;
-        SetText(
-            remainingTimeText,
-            float.IsInfinity(remainingHours)
+        if (remainingTimeText != null)
+        {
+            remainingTimeText.enableAutoSizing = false;
+            remainingTimeText.fontSize = 15f;
+            remainingTimeText.text = float.IsInfinity(remainingHours)
                 ? "Temps restant: infini (pause vitesse)"
-                : $"Temps restant: {remainingHours:0.00} h");
+                : $"Temps restant: {remainingHours:0.00} h";
+        }
 
-        SetText(internalTempText, $"Temp. interne: {gameManager.InternalTemperature:0.0} K ({gameManager.InternalTemperature - 273.15f:0.0} °C)");
+        if (internalTempText != null)
+        {
+            internalTempText.enableAutoSizing = false;
+            internalTempText.fontSize = 15f;
+            internalTempText.enableWordWrapping = false;
+            internalTempText.overflowMode = TextOverflowModes.Overflow;
+            internalTempText.text = $"Temp. interne: {gameManager.InternalTemperature:0.0} K ({gameManager.InternalTemperature - 273.15f:0.0} °C)";
+        }
 
         string thermalExtras = "";
         if (gameManager.GreenhouseDeltaTemp > 0.1f)
@@ -1375,19 +1390,30 @@ public class GameHudController : MonoBehaviour
         if (surfaceTempText != null)
         {
             surfaceTempText.enableAutoSizing = false;
-            surfaceTempText.fontSize = 13.5f;
+            surfaceTempText.fontSize = 15f;
             surfaceTempText.enableWordWrapping = true;
             surfaceTempText.overflowMode = TextOverflowModes.Overflow;
             surfaceTempText.text = $"Temp. surface: {gameManager.SurfaceTemperature:0.0} K ({gameManager.SurfaceTemperature - 273.15f:0.0} °C){thermalExtras}";
         }
 
-        SetText(pressureText, $"Pression: {gameManager.Pressure:0.000} atm");
-        SetText(waterText, $"Eau liquide: {gameManager.WaterRatio * 100f:0.00}%");
+        if (pressureText != null)
+        {
+            pressureText.enableAutoSizing = false;
+            pressureText.fontSize = 15f;
+            pressureText.text = $"Pression: {gameManager.Pressure:0.000} atm";
+        }
+
+        if (waterText != null)
+        {
+            waterText.enableAutoSizing = false;
+            waterText.fontSize = 15f;
+            waterText.text = $"Eau liquide: {gameManager.WaterRatio * 100f:0.00}%";
+        }
 
         if (tectonicText != null)
         {
             tectonicText.enableAutoSizing = false;
-            tectonicText.fontSize = 13.5f;
+            tectonicText.fontSize = 15f;
             tectonicText.textWrappingMode = TextWrappingModes.Normal;
             tectonicText.overflowMode = TextOverflowModes.Overflow;
             tectonicText.text = $"Activité tectonique: {gameManager.TectonicActivity * 100f:0.00}%";
