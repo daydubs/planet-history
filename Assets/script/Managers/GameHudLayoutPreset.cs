@@ -39,7 +39,7 @@ public class GameHudLayoutPreset : MonoBehaviour
     [SerializeField] private string subtleTextHex = "#D3D7DE";
 
     [Header("Spacing")]
-    [SerializeField] private float panelWidth = 540f;
+    [SerializeField] private float panelWidth = 680f;
     [SerializeField] private float panelPadding = 16f;
     [SerializeField] private float rowHeight = 28f;
     [SerializeField] private float rowSpacing = 6f;
@@ -252,6 +252,13 @@ public class GameHudLayoutPreset : MonoBehaviour
         rowLayout.preferredHeight = -1f;
         rowLayout.flexibleHeight = 0f;
         rowLayout.flexibleWidth = 1f;
+
+        VerticalLayoutGroup vert = row.GetComponent<VerticalLayoutGroup>();
+        if (vert != null && row != panelRoot)
+        {
+            if (Application.isPlaying) Destroy(vert);
+            else DestroyImmediate(vert);
+        }
 
         HorizontalLayoutGroup horizontal = row.GetComponent<HorizontalLayoutGroup>();
         if (horizontal == null) horizontal = row.gameObject.AddComponent<HorizontalLayoutGroup>();
