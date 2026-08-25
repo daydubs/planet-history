@@ -143,10 +143,13 @@ public class GameManager : MonoBehaviour
         Application.targetFrameRate = 60;
 
         // Initial gas state (approximation of Hadean earth initial state before drift simulation starts)
-        waterVaporPressure = 400f;
-        co2Pressure = 2f; // will increase through tectonics
-        nitrogenPressure = 8f;
+        waterVaporPressure = 250f;
+        co2Pressure = 50f;
+        nitrogenPressure = 2f;
         otherGasesPressure = 0f;
+
+        // Ensure initial total pressure is set before first simulation update
+        pressure = waterVaporPressure + co2Pressure + nitrogenPressure + otherGasesPressure;
 
         EnsureDefaultCurves();
         EnsureAudioManager();
@@ -295,9 +298,10 @@ public class GameManager : MonoBehaviour
         if (tectonicActivity > 0f)
         {
             float outgassingRate = tectonicActivity * dt;
-            co2Pressure += 0.05f * outgassingRate;
-            waterVaporPressure += 0.1f * outgassingRate;
-            otherGasesPressure += 0.02f * outgassingRate;
+            co2Pressure += 0.00005f * outgassingRate;
+            waterVaporPressure += 0.0001f * outgassingRate;
+            nitrogenPressure += 0.00001f * outgassingRate;
+            otherGasesPressure += 0.00002f * outgassingRate;
         }
 
         // 2. Add temporary meteor gases (already handled in simulate core step via meteorGasesPressure decay)
@@ -306,10 +310,10 @@ public class GameManager : MonoBehaviour
 
         // 3. Environmental Sinks
         // Les océans absorbent le CO2 (Carbonate-silicate cycle)
-        if (waterRatio > 0.05f)
+        if (waterRatio > 0.01f && co2Pressure > 0.5f)
         {
-            float co2Absorption = (waterRatio * 0.005f) * dt;
-            co2Pressure = Mathf.Max(0f, co2Pressure - co2Absorption);
+            float co2Absorption = (waterRatio * 0.00005f) * dt;
+            co2Pressure = Mathf.Max(0.5f, co2Pressure - co2Absorption);
         }
 
         // Les autres gaz (SO2, NH3, CH4) se dégradent lentement par photolyse/réactions chimiques
@@ -320,12 +324,15 @@ public class GameManager : MonoBehaviour
 
         // La condensation massive de la vapeur d'eau est liée au waterRatio
         // La vapeur diminue quand l'eau liquide augmente, mais on garde un plancher résiduel (0.8 atm)
-        float targetWaterVapor = 0.8f + 399.2f * (1f - waterRatio);
-        waterVaporPressure = Mathf.Lerp(waterVaporPressure, targetWaterVapor, 0.1f * dt);
+        float condenseThreshold = 373.15f * Mathf.Pow(pressure, 0.1f);
+        if (surfaceTemperature < condenseThreshold)
+        {
+            float targetWaterVapor = 0.8f;
+            waterVaporPressure = Mathf.MoveTowards(waterVaporPressure, targetWaterVapor, 0.01f * dt);
+        }
 
         // La pression totale est la somme de toutes les pressions partielles.
         pressure = waterVaporPressure + co2Pressure + nitrogenPressure + dynamicOtherGases;
-        pressure = Mathf.Clamp(pressure, 0.01f, 500f);
     }
 
     private void SimulateWater(float dt)
