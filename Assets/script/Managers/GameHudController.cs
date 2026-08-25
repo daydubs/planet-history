@@ -144,6 +144,7 @@ public class GameHudController : MonoBehaviour
     [SerializeField] private string protoOceanHex = "#43AA8B";
     [SerializeField] private string tectonicDriftHex = "#4D96FF";
     [SerializeField] private string prebioticHex = "#2A9D8F";
+    [SerializeField] private string photosynthesisHex = "#228B22";
     [SerializeField] private string fallbackHex = "#9AA0A6";
 
     private Button volcanoButton;
@@ -1549,6 +1550,7 @@ public class GameHudController : MonoBehaviour
             PlanetEpoch.ProtoOcean => "Proto-Océan",
             PlanetEpoch.TectonicDrift => "Dérive Tectonique",
             PlanetEpoch.Prebiotic => "Prébiotique",
+            PlanetEpoch.Photosynthesis => "Photosynthèse",
             _ => epoch.ToString()
         };
     }
@@ -1563,6 +1565,7 @@ public class GameHudController : MonoBehaviour
             PlanetEpoch.ProtoOcean => protoOceanHex,
             PlanetEpoch.TectonicDrift => tectonicDriftHex,
             PlanetEpoch.Prebiotic => prebioticHex,
+            PlanetEpoch.Photosynthesis => photosynthesisHex,
             _ => fallbackHex
         };
     }

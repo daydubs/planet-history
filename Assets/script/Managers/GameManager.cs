@@ -11,7 +11,8 @@ public enum PlanetEpoch
     VolcanicAge,    // Activité volcanique intense
     ProtoOcean,     // Eau liquide commence à apparaître
     TectonicDrift,  // Dérive continentale active
-    Prebiotic       // Phase pré-biotique: synthèse des acides aminés
+    Prebiotic,      // Phase pré-biotique: synthèse des acides aminés
+    Photosynthesis  // Emergence de la photosynthèse, nouvelle époque
 }
 
 public enum SessionLengthPreset
@@ -72,6 +73,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Etat global")]
     [SerializeField] private PlanetEpoch currentEpoch = PlanetEpoch.Hadean;
+    [SerializeField] private bool isPhotosynthesisUnlocked = false;
 
     [Header("Baseline CSV Logger")]
     [SerializeField] private bool enableCsvLogger = true;
@@ -99,7 +101,13 @@ public class GameManager : MonoBehaviour
     public float ImpactThermalPulse => impactThermalPulse;
     public float GreenhouseDeltaTemp => greenhouseDeltaTemp;
     public PlanetEpoch CurrentEpoch => currentEpoch;
+    public bool IsPhotosynthesisUnlocked => isPhotosynthesisUnlocked;
     public bool IsPaused => isPaused;
+
+    public void UnlockPhotosynthesis()
+    {
+        isPhotosynthesisUnlocked = true;
+    }
     public bool NoPlayerBaseline => noPlayerBaseline;
     public float SessionDurationHours => GetSessionDurationHours();
     public float SessionProgress => Mathf.Clamp01(simulationTimeSeconds / baselineSimulationUnits);
@@ -338,6 +346,8 @@ public class GameManager : MonoBehaviour
             newEpoch = PlanetEpoch.ProtoOcean;
         else if (waterRatio < 1.00f)
             newEpoch = PlanetEpoch.TectonicDrift;
+        else if (isPhotosynthesisUnlocked)
+            newEpoch = PlanetEpoch.Photosynthesis;
         else
             newEpoch = PlanetEpoch.Prebiotic;
 
