@@ -526,6 +526,11 @@ public class ProtocellMicroViewUI : MonoBehaviour
                 $" • Perméabilité Membranaire : <b>{zone.MeanPermeability:F2}</b> <color=#A0B0C0>(cible: 0.40-0.60)</color>\n" +
                 $" • Efficacité Métabolique : <b>{zone.MeanEnergyEfficiency:F2}</b>";
         }
+
+        if (feedNutrientsButton != null && PrebioticMiniGameController.Instance != null)
+        {
+            feedNutrientsButton.interactable = PrebioticMiniGameController.Instance.TotalProgress > 0f;
+        }
     }
 
     private void RenderViewport2D()

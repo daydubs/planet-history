@@ -493,6 +493,16 @@ public class MeteorEventController : MonoBehaviour
         };
         GameManager.Instance?.AddImpactThermalPulse(thermalPulse);
 
+        float tectonicSpike = sizeData.tier switch
+        {
+            MeteorSizeTier.Small => Random.Range(0.01f, 0.02f),
+            MeteorSizeTier.Medium => Random.Range(0.04f, 0.08f),
+            MeteorSizeTier.Large => Random.Range(0.12f, 0.18f),
+            MeteorSizeTier.Massive => Random.Range(0.25f, 0.4f),
+            _ => 0.05f
+        };
+        GameManager.Instance?.AddTectonicActivity(tectonicSpike);
+
         // 2. Epoch-tailored terrain deformation and aquatic effects
         float radius = sizeData.radiusDegrees;
         float depth = sizeData.depth;
