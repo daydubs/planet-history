@@ -153,6 +153,7 @@ public class GameManager : MonoBehaviour
 
         EnsureDefaultCurves();
         EnsureAudioManager();
+        EnsureAtmosphereManager();
         InitializeCsvLogger();
     }
 
@@ -188,6 +189,15 @@ public class GameManager : MonoBehaviour
         {
             GameObject audioMgrObj = new GameObject("AudioManager");
             audioMgrObj.AddComponent<AudioManager>();
+        }
+    }
+
+    private void EnsureAtmosphereManager()
+    {
+        if (FindAnyObjectByType<AtmosphereManager>() == null)
+        {
+            GameObject atmosphereMgrObj = new GameObject("AtmosphereManager");
+            atmosphereMgrObj.AddComponent<AtmosphereManager>();
         }
     }
 
