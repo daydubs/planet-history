@@ -205,7 +205,9 @@ public class GameHudLayoutPreset : MonoBehaviour
 
         foreach (RectTransform row in rows)
         {
-            float minH = (row == atmosphereRow || row.name == "compositionAtmpan" || row.name == "atmosphereRow") ? 80f : 24f;
+            bool isAtmosphere = (row == atmosphereRow || row.name == "compositionAtmpan" || row.name == "atmosphereRow" || row.name == "AtmosphereRow");
+            bool isSurfaceTemp = (row == surfaceTempRow || row.name == "SurfaceTempRow" || row.name == "surfaceTempRow");
+            float minH = isAtmosphere ? 90f : (isSurfaceTemp ? 32f : 24f);
             SetupRow(row, minH);
         }
     }
@@ -284,7 +286,17 @@ public class GameHudLayoutPreset : MonoBehaviour
             layout.minWidth = 200f;
             layout.preferredWidth = -1f;
             layout.flexibleWidth = 1f;
-            layout.minHeight = 70f;
+            layout.minHeight = 90f;
+            layout.preferredHeight = -1f;
+            return;
+        }
+
+        if (child.name.Contains("SurfaceTemp") || child.name.Contains("surfaceTemp"))
+        {
+            layout.minWidth = 140f;
+            layout.preferredWidth = -1f;
+            layout.flexibleWidth = 1f;
+            layout.minHeight = 32f;
             layout.preferredHeight = -1f;
             return;
         }

@@ -874,8 +874,8 @@ public class GameHudController : MonoBehaviour
         labelText.alignment = TextAlignmentOptions.Left;
 
         LayoutElement labelLayout = labelGo.AddComponent<LayoutElement>();
-        labelLayout.minWidth = 70f;
-        labelLayout.preferredWidth = 78f;
+        labelLayout.minWidth = 75f;
+        labelLayout.preferredWidth = 85f;
         labelLayout.flexibleWidth = 0f;
 
         // Button
@@ -1088,11 +1088,12 @@ public class GameHudController : MonoBehaviour
         TextMeshProUGUI buttonText = buttonTextGo.AddComponent<TextMeshProUGUI>();
         buttonText.text = title;
         buttonText.enableAutoSizing = false;
-        buttonText.fontSize = 12.5f;
+        buttonText.fontSize = 11.5f;
         buttonText.fontStyle = FontStyles.Bold;
         buttonText.color = Color.white;
         buttonText.alignment = TextAlignmentOptions.Center;
         buttonText.textWrappingMode = TextWrappingModes.Normal;
+        buttonText.overflowMode = TextOverflowModes.Overflow;
 
         RectTransform textRect = buttonTextGo.GetComponent<RectTransform>();
         textRect.anchorMin = Vector2.zero;
@@ -1100,11 +1101,11 @@ public class GameHudController : MonoBehaviour
         textRect.sizeDelta = Vector2.zero;
 
         LayoutElement buttonLayout = buttonGo.AddComponent<LayoutElement>();
-        buttonLayout.minWidth = 80f;
-        buttonLayout.preferredWidth = 110f;
+        buttonLayout.minWidth = 72f;
+        buttonLayout.preferredWidth = 96f;
         buttonLayout.flexibleWidth = 1f;
         buttonLayout.minHeight = 32f;
-        buttonLayout.preferredHeight = 34f;
+        buttonLayout.preferredHeight = 36f;
 
         button.onClick.AddListener(action);
     }
