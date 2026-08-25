@@ -27,8 +27,8 @@ public class ProtocellMicroViewUI : MonoBehaviour
     // Viewport Texture & 2D Simulation Rendering
     private Texture2D viewportTexture;
     private Color32[] viewportPixels;
-    private const int ViewportWidth = 240;
-    private const int ViewportHeight = 240;
+    private const int ViewportWidth = 380;
+    private const int ViewportHeight = 380;
 
     private readonly List<Vector2> bubblePositions = new List<Vector2>();
     private readonly List<Vector2> bubbleVelocities = new List<Vector2>();
@@ -59,15 +59,15 @@ public class ProtocellMicroViewUI : MonoBehaviour
         panelRect.anchorMax = new Vector2(0.5f, 0.5f);
         panelRect.pivot = new Vector2(0.5f, 0.5f);
         panelRect.anchoredPosition = Vector2.zero;
-        panelRect.sizeDelta = new Vector2(620f, 440f);
+        panelRect.sizeDelta = new Vector2(1050f, 680f);
 
         Image bg = microViewPanel.AddComponent<Image>();
         bg.color = new Color(0.05f, 0.08f, 0.12f, 0.96f); // Deep dark blue background
 
         // Main Layout: Header, Content Row (Viewport Left, Telemetry & Controls Right)
         VerticalLayoutGroup mainLayout = microViewPanel.AddComponent<VerticalLayoutGroup>();
-        mainLayout.padding = new RectOffset(16, 16, 14, 14);
-        mainLayout.spacing = 10f;
+        mainLayout.padding = new RectOffset(20, 20, 18, 18);
+        mainLayout.spacing = 14f;
         mainLayout.childControlWidth = true;
         mainLayout.childControlHeight = false;
 
@@ -81,7 +81,7 @@ public class ProtocellMicroViewUI : MonoBehaviour
 
         zoneTitleText = headerGo.AddComponent<TextMeshProUGUI>();
         zoneTitleText.text = "🔬 VUE MICRO-BIOTIQUE : Auto-Assemblage & Protocellules";
-        zoneTitleText.fontSize = 18;
+        zoneTitleText.fontSize = 22;
         zoneTitleText.fontStyle = FontStyles.Bold;
         zoneTitleText.color = new Color(0.3f, 0.85f, 0.75f, 1f);
 
@@ -98,69 +98,75 @@ public class ProtocellMicroViewUI : MonoBehaviour
         closeTxtGo.transform.SetParent(closeGo.transform, false);
         TextMeshProUGUI closeTxt = closeTxtGo.AddComponent<TextMeshProUGUI>();
         closeTxt.text = "✕ Fermer";
-        closeTxt.fontSize = 13;
+        closeTxt.fontSize = 14;
+        closeTxt.fontStyle = FontStyles.Bold;
         closeTxt.alignment = TextAlignmentOptions.Center;
         closeTxt.color = Color.white;
         RectTransform cRect = closeTxtGo.GetComponent<RectTransform>();
         cRect.anchorMin = Vector2.zero; cRect.anchorMax = Vector2.one; cRect.sizeDelta = Vector2.zero;
 
         LayoutElement closeLayout = closeGo.AddComponent<LayoutElement>();
-        closeLayout.minWidth = 80f; closeLayout.preferredWidth = 90f; closeLayout.minHeight = 28f;
+        closeLayout.minWidth = 100f; closeLayout.preferredWidth = 110f; closeLayout.minHeight = 34f;
 
         // Content Row
         GameObject contentRow = new GameObject("ContentRow", typeof(RectTransform));
         contentRow.transform.SetParent(microViewPanel.transform, false);
 
         HorizontalLayoutGroup contentLayout = contentRow.AddComponent<HorizontalLayoutGroup>();
-        contentLayout.spacing = 14f;
+        contentLayout.spacing = 20f;
         contentLayout.childControlWidth = true;
         contentLayout.childControlHeight = true;
 
         LayoutElement contentRowLayout = contentRow.AddComponent<LayoutElement>();
-        contentRowLayout.minHeight = 350f;
-        contentRowLayout.preferredHeight = 360f;
+        contentRowLayout.minHeight = 580f;
+        contentRowLayout.preferredHeight = 600f;
 
         // Left Container: Viewport RawImage (Vesicle 2D rendering)
         GameObject leftCol = new GameObject("LeftColumn", typeof(RectTransform));
         leftCol.transform.SetParent(contentRow.transform, false);
 
         VerticalLayoutGroup leftLayout = leftCol.AddComponent<VerticalLayoutGroup>();
-        leftLayout.spacing = 8f;
+        leftLayout.spacing = 12f;
         leftLayout.childControlWidth = true;
         leftLayout.childControlHeight = false;
 
         LayoutElement leftColLayout = leftCol.AddComponent<LayoutElement>();
-        leftColLayout.minWidth = 260f;
-        leftColLayout.preferredWidth = 270f;
+        leftColLayout.minWidth = 400f;
+        leftColLayout.preferredWidth = 410f;
 
         GameObject rawImgGo = new GameObject("VesicleViewport", typeof(RectTransform));
         rawImgGo.transform.SetParent(leftCol.transform, false);
         vesicleViewportRawImage = rawImgGo.AddComponent<RawImage>();
 
         LayoutElement viewportLayout = rawImgGo.AddComponent<LayoutElement>();
-        viewportLayout.minWidth = 250f;
-        viewportLayout.preferredWidth = 250f;
-        viewportLayout.minHeight = 250f;
-        viewportLayout.preferredHeight = 250f;
+        viewportLayout.minWidth = 380f;
+        viewportLayout.preferredWidth = 380f;
+        viewportLayout.minHeight = 380f;
+        viewportLayout.preferredHeight = 380f;
 
         // Zone Selector Row below Viewport
         GameObject zoneSelRow = new GameObject("ZoneSelectorRow", typeof(RectTransform));
         zoneSelRow.transform.SetParent(leftCol.transform, false);
 
         HorizontalLayoutGroup zoneSelLayout = zoneSelRow.AddComponent<HorizontalLayoutGroup>();
-        zoneSelLayout.spacing = 6f;
+        zoneSelLayout.spacing = 10f;
         zoneSelLayout.childControlWidth = true;
         zoneSelLayout.childControlHeight = true;
 
         prevZoneButton = CreateStyledButton(zoneSelRow.transform, "◀ Zone Préc.", () => SwitchZone(-1), new Color(0.2f, 0.35f, 0.45f, 1f));
         nextZoneButton = CreateStyledButton(zoneSelRow.transform, "Zone Suiv. ▶", () => SwitchZone(1), new Color(0.2f, 0.35f, 0.45f, 1f));
 
+        LayoutElement prevLayout = prevZoneButton.gameObject.AddComponent<LayoutElement>();
+        prevLayout.minHeight = 40f;
+        LayoutElement nextLayout = nextZoneButton.gameObject.AddComponent<LayoutElement>();
+        nextLayout.minHeight = 40f;
+
         // Right Container: Telemetries & Environmental Control Sliders/Buttons
         GameObject rightCol = new GameObject("RightColumn", typeof(RectTransform));
         rightCol.transform.SetParent(contentRow.transform, false);
 
         VerticalLayoutGroup rightLayout = rightCol.AddComponent<VerticalLayoutGroup>();
-        rightLayout.spacing = 8f;
+        rightLayout.spacing = 14f;
         rightLayout.childControlWidth = true;
         rightLayout.childControlHeight = false;
 
@@ -171,14 +177,16 @@ public class ProtocellMicroViewUI : MonoBehaviour
         GameObject envStatsGo = new GameObject("EnvStatsLabel", typeof(RectTransform));
         envStatsGo.transform.SetParent(rightCol.transform, false);
         envStatsText = envStatsGo.AddComponent<TextMeshProUGUI>();
-        envStatsText.fontSize = 12.5f;
+        envStatsText.fontSize = 15f;
+        envStatsText.lineSpacing = 6f;
         envStatsText.color = new Color(0.9f, 0.92f, 0.95f, 1f);
 
         // Population Stats Label
         GameObject popStatsGo = new GameObject("PopStatsLabel", typeof(RectTransform));
         popStatsGo.transform.SetParent(rightCol.transform, false);
         populationStatsText = popStatsGo.AddComponent<TextMeshProUGUI>();
-        populationStatsText.fontSize = 12f;
+        populationStatsText.fontSize = 14.5f;
+        populationStatsText.lineSpacing = 6f;
         populationStatsText.color = new Color(0.3f, 0.9f, 0.6f, 1f);
 
         // Env Control Buttons Grid
@@ -186,8 +194,8 @@ public class ProtocellMicroViewUI : MonoBehaviour
         ctrlGrid.transform.SetParent(rightCol.transform, false);
 
         GridLayoutGroup grid = ctrlGrid.AddComponent<GridLayoutGroup>();
-        grid.cellSize = new Vector2(135f, 30f);
-        grid.spacing = new Vector2(6f, 6f);
+        grid.cellSize = new Vector2(230f, 44f);
+        grid.spacing = new Vector2(10f, 10f);
         grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         grid.constraintCount = 2;
 
@@ -197,6 +205,9 @@ public class ProtocellMicroViewUI : MonoBehaviour
         phMinusButton = CreateStyledButton(ctrlGrid.transform, "pH -0.5", () => ChangeEnv(0f, -0.5f), new Color(0.3f, 0.7f, 0.4f, 1f));
 
         feedNutrientsButton = CreateStyledButton(rightCol.transform, "🧪 Injecter Acides Aminés & Lipides", () => FeedNutrients(20f), new Color(0.2f, 0.7f, 0.6f, 1f));
+        LayoutElement feedLayout = feedNutrientsButton.gameObject.AddComponent<LayoutElement>();
+        feedLayout.minHeight = 46f;
+        feedLayout.preferredHeight = 46f;
 
         InitializeViewportTexture();
         microViewPanel.SetActive(false);
@@ -224,7 +235,7 @@ public class ProtocellMicroViewUI : MonoBehaviour
 
         TextMeshProUGUI txt = txtGo.AddComponent<TextMeshProUGUI>();
         txt.text = label;
-        txt.fontSize = 12f;
+        txt.fontSize = 13.5f;
         txt.fontStyle = FontStyles.Bold;
         txt.color = Color.white;
         txt.alignment = TextAlignmentOptions.Center;
@@ -378,14 +389,14 @@ public class ProtocellMicroViewUI : MonoBehaviour
         int count = zone.protocells.Count;
         while (bubblePositions.Count < count)
         {
-            bubblePositions.Add(new Vector2(Random.Range(20, ViewportWidth - 20), Random.Range(20, ViewportHeight - 20)));
+            bubblePositions.Add(new Vector2(Random.Range(25, ViewportWidth - 25), Random.Range(25, ViewportHeight - 25)));
             bubbleVelocities.Add(new Vector2(Random.Range(-0.8f, 0.8f), Random.Range(-0.8f, 0.8f)));
         }
 
         float dt = Time.deltaTime;
 
         // Draw Micelles background dots
-        int micelleCount = Mathf.Clamp((int)zone.totalLipidMicelles / 10, 0, 80);
+        int micelleCount = Mathf.Clamp((int)zone.totalLipidMicelles / 10, 0, 120);
         for (int m = 0; m < micelleCount; m++)
         {
             int mx = (int)Mathf.Repeat((m * 37 + Time.time * 15f), ViewportWidth);
@@ -406,11 +417,11 @@ public class ProtocellMicroViewUI : MonoBehaviour
 
             // Gentle brownian motion drift
             pos += vel * (10f * dt);
-            pos.x = Mathf.PingPong(pos.x, ViewportWidth - 20) + 10;
-            pos.y = Mathf.PingPong(pos.y, ViewportHeight - 20) + 10;
+            pos.x = Mathf.PingPong(pos.x, ViewportWidth - 30) + 15;
+            pos.y = Mathf.PingPong(pos.y, ViewportHeight - 30) + 15;
             bubblePositions[i] = pos;
 
-            int radiusPx = Mathf.Clamp((int)(cell.radius * 9f), 4, 22);
+            int radiusPx = Mathf.Clamp((int)(cell.radius * 14f), 6, 32);
             Color32 cellCol = cell.mutationColor;
             Color32 membraneCol = new Color32(255, 255, 255, 220);
 
