@@ -5,9 +5,12 @@ using UnityEngine.UI;
 
 public class UIHoverTooltipTrigger : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
+    [SerializeField] private float grandeur = 5f; // multiplicateur de grandeur.
     public string title;
     public string body;
     public GameHudController hudController;
+
+    public float Grandeur { get => grandeur; set => grandeur = value; }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
@@ -341,7 +344,7 @@ public class GameHudController : MonoBehaviour
         controlsRect.anchorMax = new Vector2(1f, 0.5f);
         controlsRect.pivot = new Vector2(1f, 0.5f);
         controlsRect.anchoredPosition = new Vector2(-5f, 0f);
-        controlsRect.sizeDelta = new Vector2(115f, 24f);
+        controlsRect.sizeDelta = new Vector2(115f * 10f , 24f * 10f);  // minijeux grandeur
 
         HorizontalLayoutGroup controlsLayout = controlsGo.AddComponent<HorizontalLayoutGroup>();
         controlsLayout.spacing = 4f;
