@@ -165,46 +165,90 @@ public class ProtocellMicroViewUI : MonoBehaviour
         rightCol.transform.SetParent(contentRow.transform, false);
 
         VerticalLayoutGroup rightLayout = rightCol.AddComponent<VerticalLayoutGroup>();
-        rightLayout.spacing = 12f;
+        rightLayout.spacing = 10f;
         rightLayout.childControlWidth = true;
-        rightLayout.childControlHeight = true;
+        rightLayout.childControlHeight = false;
         rightLayout.childForceExpandWidth = true;
         rightLayout.childForceExpandHeight = false;
 
         LayoutElement rightColLayout = rightCol.AddComponent<LayoutElement>();
         rightColLayout.flexibleWidth = 1f;
 
-        // Env Stats Label (Conditions Locales)
-        GameObject envStatsGo = new GameObject("EnvStatsLabel", typeof(RectTransform));
-        envStatsGo.transform.SetParent(rightCol.transform, false);
-        envStatsText = envStatsGo.AddComponent<TextMeshProUGUI>();
-        envStatsText.fontSize = 14f;
-        envStatsText.lineSpacing = 4f;
-        envStatsText.color = new Color(0.92f, 0.94f, 0.96f, 1f);
-        ContentSizeFitter envFitter = envStatsGo.AddComponent<ContentSizeFitter>();
-        envFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-        envFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+        // Card 1: Conditions Locales
+        GameObject envCardGo = new GameObject("EnvStatsCard", typeof(RectTransform));
+        envCardGo.transform.SetParent(rightCol.transform, false);
+        Image envBg = envCardGo.AddComponent<Image>();
+        envBg.color = new Color(0.08f, 0.14f, 0.22f, 0.85f);
 
-        // Population Stats Label (Télémétrie de Population & Réplication ARN)
+        VerticalLayoutGroup envCardLayout = envCardGo.AddComponent<VerticalLayoutGroup>();
+        envCardLayout.padding = new RectOffset(14, 14, 10, 10);
+        envCardLayout.childControlWidth = true;
+        envCardLayout.childControlHeight = true;
+        envCardLayout.childForceExpandWidth = true;
+        envCardLayout.childForceExpandHeight = true;
+
+        LayoutElement envCardLayoutEl = envCardGo.AddComponent<LayoutElement>();
+        envCardLayoutEl.minHeight = 135f;
+        envCardLayoutEl.preferredHeight = 135f;
+
+        GameObject envStatsGo = new GameObject("EnvStatsLabel", typeof(RectTransform));
+        envStatsGo.transform.SetParent(envCardGo.transform, false);
+        envStatsText = envStatsGo.AddComponent<TextMeshProUGUI>();
+        envStatsText.fontSize = 13.5f;
+        envStatsText.lineSpacing = 3f;
+        envStatsText.color = new Color(0.92f, 0.94f, 0.96f, 1f);
+
+        // Card 2: Télémétrie de Population
+        GameObject popCardGo = new GameObject("PopStatsCard", typeof(RectTransform));
+        popCardGo.transform.SetParent(rightCol.transform, false);
+        Image popBg = popCardGo.AddComponent<Image>();
+        popBg.color = new Color(0.06f, 0.18f, 0.15f, 0.85f);
+
+        VerticalLayoutGroup popCardLayout = popCardGo.AddComponent<VerticalLayoutGroup>();
+        popCardLayout.padding = new RectOffset(14, 14, 10, 10);
+        popCardLayout.childControlWidth = true;
+        popCardLayout.childControlHeight = true;
+        popCardLayout.childForceExpandWidth = true;
+        popCardLayout.childForceExpandHeight = true;
+
+        LayoutElement popCardLayoutEl = popCardGo.AddComponent<LayoutElement>();
+        popCardLayoutEl.minHeight = 135f;
+        popCardLayoutEl.preferredHeight = 135f;
+
         GameObject popStatsGo = new GameObject("PopStatsLabel", typeof(RectTransform));
-        popStatsGo.transform.SetParent(rightCol.transform, false);
+        popStatsGo.transform.SetParent(popCardGo.transform, false);
         populationStatsText = popStatsGo.AddComponent<TextMeshProUGUI>();
-        populationStatsText.fontSize = 14f;
-        populationStatsText.lineSpacing = 4f;
+        populationStatsText.fontSize = 13.5f;
+        populationStatsText.lineSpacing = 3f;
         populationStatsText.color = new Color(0.35f, 0.92f, 0.65f, 1f);
-        ContentSizeFitter popFitter = popStatsGo.AddComponent<ContentSizeFitter>();
-        popFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-        popFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        // Control Section Header
+        GameObject ctrlHeaderGo = new GameObject("CtrlHeaderLabel", typeof(RectTransform));
+        ctrlHeaderGo.transform.SetParent(rightCol.transform, false);
+        TMP_Text ctrlHeaderTxt = ctrlHeaderGo.AddComponent<TextMeshProUGUI>();
+        ctrlHeaderTxt.text = "⚙️ CONTRÔLES DU MILIEU & INJECTION";
+        ctrlHeaderTxt.fontSize = 13.5f;
+        ctrlHeaderTxt.fontStyle = FontStyles.Bold;
+        ctrlHeaderTxt.color = new Color(0.85f, 0.9f, 0.95f, 1f);
+        ctrlHeaderTxt.alignment = TextAlignmentOptions.Left;
+
+        LayoutElement ctrlHeaderLayout = ctrlHeaderGo.AddComponent<LayoutElement>();
+        ctrlHeaderLayout.minHeight = 22f;
+        ctrlHeaderLayout.preferredHeight = 22f;
 
         // Env Control Buttons Grid
         GameObject ctrlGrid = new GameObject("ControlGrid", typeof(RectTransform));
         ctrlGrid.transform.SetParent(rightCol.transform, false);
 
         GridLayoutGroup grid = ctrlGrid.AddComponent<GridLayoutGroup>();
-        grid.cellSize = new Vector2(220f, 42f);
-        grid.spacing = new Vector2(10f, 10f);
+        grid.cellSize = new Vector2(285f, 40f);
+        grid.spacing = new Vector2(10f, 8f);
         grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         grid.constraintCount = 2;
+
+        LayoutElement gridLayout = ctrlGrid.AddComponent<LayoutElement>();
+        gridLayout.minHeight = 88f;
+        gridLayout.preferredHeight = 88f;
 
         tempPlusButton = CreateStyledButton(ctrlGrid.transform, "Temp. +5°C", () => ChangeEnv(5f, 0f), new Color(0.85f, 0.4f, 0.2f, 1f));
         tempMinusButton = CreateStyledButton(ctrlGrid.transform, "Temp. -5°C", () => ChangeEnv(-5f, 0f), new Color(0.2f, 0.5f, 0.85f, 1f));
@@ -359,19 +403,19 @@ public class ProtocellMicroViewUI : MonoBehaviour
 
         if (envStatsText != null)
         {
-            envStatsText.text = $"<b>[Conditions Locales - {zone.zoneType}]</b>\n" +
-                $" • Température : {zone.localTemperature:F1} °C | pH : {zone.localPh:F1}\n" +
-                $" • Concentration Lipides : {zone.lipidConcentration:F0}% ({zone.totalLipidMicelles:F0} micelles)\n" +
-                $" • Acides Aminés / Nutriments : {zone.aminoAcidConcentration:F0}%\n" +
-                $" • Gradient Chimique / Chimiosmose : {zone.chemicalGradientStrength * 100f:F0}%";
+            envStatsText.text = $"<color=#50E3C2><b>🌡️ CONDITIONS LOCALES — {zone.zoneType}</b></color>\n" +
+                $" • Température : <b>{zone.localTemperature:F1} °C</b>  |  pH : <b>{zone.localPh:F1}</b>\n" +
+                $" • Concentration Lipides : <b>{zone.lipidConcentration:F0}%</b> ({zone.totalLipidMicelles:F0} micelles)\n" +
+                $" • Acides Aminés / Nutriments : <b>{zone.aminoAcidConcentration:F0}%</b>\n" +
+                $" • Gradient Chimiosmotique : <b>{zone.chemicalGradientStrength * 100f:F0}%</b>";
         }
 
         if (populationStatsText != null)
         {
-            populationStatsText.text = $"<b>[Télémétrie de Population & Réplication ARN]</b>\n" +
-                $" • Nombre de Vésicules Bilipidiques : <b>{zone.protocells.Count}</b> / {zone.maxCapacity}\n" +
+            populationStatsText.text = $"<color=#4EFA8B><b>🧬 TÉLÉMÉTRIE & RÉPLICATION ARN</b></color>\n" +
+                $" • Vésicules Bilipidiques : <b>{zone.protocells.Count}</b> / {zone.maxCapacity}\n" +
                 $" • Diversité Génétique : <b>{zone.GeneticDiversity * 100f:F1}%</b>\n" +
-                $" • Perméabilité Moyenne : <b>{zone.MeanPermeability:F2}</b> (Cible: 0.40 - 0.60)\n" +
+                $" • Perméabilité Membranaire : <b>{zone.MeanPermeability:F2}</b> <color=#A0B0C0>(cible: 0.40-0.60)</color>\n" +
                 $" • Efficacité Métabolique : <b>{zone.MeanEnergyEfficiency:F2}</b>";
         }
     }
