@@ -74,6 +74,10 @@ public class PrebioticMiniGameController : MonoBehaviour
 
             GameManager.Instance.LogPlayerAction("Prebiotic Lightning", $"Décharge Miller-Urey déclenchée. Glycine: {glycine:F0}%, Alanine: {alanine:F0}%");
 
+            // Consumes reducing atmospheric gases (via ConsumeGases) and adds a minor thermal pulse
+            GameManager.Instance.ConsumeGases(0f, 0.05f, 0.15f);
+            GameManager.Instance.AddImpactThermalPulse(2.5f);
+
             if (AudioManager.Instance != null)
             {
                 AudioManager.Instance.PlayVolcanicExplosion(Vector3.zero, 0.6f, 1.4f); // Son d'impact/éclair
@@ -107,6 +111,10 @@ public class PrebioticMiniGameController : MonoBehaviour
             glutamicAcid = Mathf.Min(targetPerAcid, glutamicAcid + gain * 0.9f);
 
             GameManager.Instance.LogPlayerAction("Prebiotic Hydrothermal", $"Source hydrothermale activée. Aspartique: {asparticAcid:F0}%, Glutamique: {glutamicAcid:F0}%");
+
+            // Increases tectonicActivity and releases volcanic gases
+            GameManager.Instance.AddTectonicActivity(0.05f);
+            GameManager.Instance.AddVolcanicGases(0.1f, 0.2f, 0.05f);
 
             if (AudioManager.Instance != null)
             {
@@ -189,6 +197,10 @@ public class PrebioticMiniGameController : MonoBehaviour
             isoleucine = Mathf.Min(targetPerAcid, isoleucine + gain * 0.8f);
 
             GameManager.Instance.LogPlayerAction("Prebiotic UV Catalysis", $"Catalyse UV solaire activée. Leucine: {leucine:F0}%, Isoleucine: {isoleucine:F0}%");
+
+            // Consumes atmospheric gases (simulating photolysis) and adds a thermal pulse
+            GameManager.Instance.ConsumeGases(0.1f, 0f, 0.2f);
+            GameManager.Instance.AddImpactThermalPulse(5.0f);
 
             if (AudioManager.Instance != null)
             {

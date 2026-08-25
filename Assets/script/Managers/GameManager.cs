@@ -142,6 +142,12 @@ public class GameManager : MonoBehaviour
         QualitySettings.vSyncCount = 0;
         Application.targetFrameRate = 60;
 
+        // Initial gas state (approximation of Hadean earth initial state before drift simulation starts)
+        waterVaporPressure = 400f;
+        co2Pressure = 2f; // will increase through tectonics
+        nitrogenPressure = 8f;
+        otherGasesPressure = 0f;
+
         EnsureDefaultCurves();
         EnsureAudioManager();
         InitializeCsvLogger();
@@ -282,22 +288,43 @@ public class GameManager : MonoBehaviour
 
     private void SimulatePressure(float dt)
     {
-        // La pression atmosphérique globale est constituée d'une part de gaz volcaniques
-        // "secs" non-condensables (CO2, N2, etc.) et d'une part importante de vapeur d'eau (vapeur).
-        // À mesure que la planète se refroidit, la vapeur d'eau se condense sous forme d'océans liquides (waterRatio augmente),
-        // ce qui élimine (scrub) l'eau de la phase gazeuse et fait chuter drastiquement la pression totale de l'atmosphère.
+        // La pression atmosphérique globale évolue de manière dynamique.
 
-        // Décomposition physique des pressions partielles de l'atmosphère :
-        // Pour une atmosphère primitive pré-biotique, même après condensation maximale des océans (waterRatio = 1),
-        // une pression résiduelle de vapeur d'eau (environ 0.8 atm, ~2.5% de la pression totale de ~31 atm) subsiste
-        // pour maintenir une humidité atmosphérique primitive réaliste non-nulle.
-        waterVaporPressure = 0.8f + 399.2f * (1f - waterRatio);
-        co2Pressure = 2f + 80f * tectonicActivity;
-        nitrogenPressure = 8f; // azote stable d'arrière-plan
-        otherGasesPressure = 10f * tectonicActivity + meteorGasesPressure; // gaz d'apport volcanique (SO2, etc.) + gaz libérés par météores
+        // 1. Natural Outgassing (Volcanic/Tectonic contribution)
+        // Les volcans relâchent du CO2, de la vapeur d'eau, et d'autres gaz
+        if (tectonicActivity > 0f)
+        {
+            float outgassingRate = tectonicActivity * dt;
+            co2Pressure += 0.05f * outgassingRate;
+            waterVaporPressure += 0.1f * outgassingRate;
+            otherGasesPressure += 0.02f * outgassingRate;
+        }
+
+        // 2. Add temporary meteor gases (already handled in simulate core step via meteorGasesPressure decay)
+        // Meteor gases decaying logic is handled in Update, but its direct contribution to pressure is added here
+        float dynamicOtherGases = otherGasesPressure + meteorGasesPressure;
+
+        // 3. Environmental Sinks
+        // Les océans absorbent le CO2 (Carbonate-silicate cycle)
+        if (waterRatio > 0.05f)
+        {
+            float co2Absorption = (waterRatio * 0.005f) * dt;
+            co2Pressure = Mathf.Max(0f, co2Pressure - co2Absorption);
+        }
+
+        // Les autres gaz (SO2, NH3, CH4) se dégradent lentement par photolyse/réactions chimiques
+        if (otherGasesPressure > 0f)
+        {
+            otherGasesPressure = Mathf.Max(0f, otherGasesPressure - 0.001f * dt);
+        }
+
+        // La condensation massive de la vapeur d'eau est liée au waterRatio
+        // La vapeur diminue quand l'eau liquide augmente, mais on garde un plancher résiduel (0.8 atm)
+        float targetWaterVapor = 0.8f + 399.2f * (1f - waterRatio);
+        waterVaporPressure = Mathf.Lerp(waterVaporPressure, targetWaterVapor, 0.1f * dt);
 
         // La pression totale est la somme de toutes les pressions partielles.
-        pressure = waterVaporPressure + co2Pressure + nitrogenPressure + otherGasesPressure;
+        pressure = waterVaporPressure + co2Pressure + nitrogenPressure + dynamicOtherGases;
         pressure = Mathf.Clamp(pressure, 0.01f, 500f);
     }
 
@@ -545,11 +572,25 @@ public class GameManager : MonoBehaviour
         LogEvent("Impact Thermal Shock", $"Surface temperature spiked by +{amount:F1} K.");
     }
 
+    public void AddTectonicActivity(float amount)
+    {
+        tectonicActivity = Mathf.Clamp01(tectonicActivity + amount);
+        LogEvent("Tectonic Activity Spike", $"Tectonic activity surged by +{amount:F2}.");
+    }
+
     public void AddVolcanicGases(float co2Amount, float waterVaporAmount, float otherGasesAmount)
     {
         co2Pressure += co2Amount;
         waterVaporPressure += waterVaporAmount;
         otherGasesPressure += otherGasesAmount;
+    }
+
+    public void ConsumeGases(float co2Amount, float waterVaporAmount, float otherGasesAmount)
+    {
+        co2Pressure = Mathf.Max(0f, co2Pressure - co2Amount);
+        waterVaporPressure = Mathf.Max(0.8f, waterVaporPressure - waterVaporAmount);
+        otherGasesPressure = Mathf.Max(0f, otherGasesPressure - otherGasesAmount);
+        LogEvent("Gases Consumed", $"Atmosphere depleted by internal events.");
     }
 
     public void TriggerTsunami(float amount)
