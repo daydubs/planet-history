@@ -23,6 +23,9 @@ public class ProtocellMicroViewUI : MonoBehaviour
     [SerializeField] private Button phPlusButton;
     [SerializeField] private Button phMinusButton;
     [SerializeField] private Button feedNutrientsButton;
+    [SerializeField] private Button infoButton;
+    [SerializeField] private GameObject infoPanel;
+    [SerializeField] private Button closeInfoButton;
 
     // Viewport Texture & 2D Simulation Rendering
     private Texture2D viewportTexture;
@@ -89,6 +92,13 @@ public class ProtocellMicroViewUI : MonoBehaviour
         LayoutElement headerLayoutElem = headerGo.AddComponent<LayoutElement>();
         headerLayoutElem.minHeight = 32f;
         headerLayoutElem.preferredHeight = 32f;
+
+        infoButton = CreateStyledButton(headerGo.transform, "?", ToggleInfoPanel, new Color(0.2f, 0.4f, 0.8f, 1f));
+        LayoutElement infoBtnLayout = infoButton.gameObject.AddComponent<LayoutElement>();
+        infoBtnLayout.minWidth = 32f;
+        infoBtnLayout.preferredWidth = 32f;
+        infoBtnLayout.minHeight = 32f;
+        infoBtnLayout.preferredHeight = 32f;
 
         // Content Row
         GameObject contentRow = new GameObject("ContentRow", typeof(RectTransform));
@@ -260,8 +270,106 @@ public class ProtocellMicroViewUI : MonoBehaviour
         feedLayout.minHeight = 44f;
         feedLayout.preferredHeight = 44f;
 
+        // Explication / Info Card below controls
+        GameObject explCardGo = new GameObject("ExplicationCard", typeof(RectTransform));
+        explCardGo.transform.SetParent(rightCol.transform, false);
+        Image explBg = explCardGo.AddComponent<Image>();
+        explBg.color = new Color(0.12f, 0.12f, 0.16f, 0.85f);
+
+        VerticalLayoutGroup explCardLayout = explCardGo.AddComponent<VerticalLayoutGroup>();
+        explCardLayout.padding = new RectOffset(10, 10, 8, 8);
+        explCardLayout.childControlWidth = true;
+        explCardLayout.childControlHeight = true;
+        explCardLayout.childForceExpandWidth = true;
+        explCardLayout.childForceExpandHeight = true;
+
+        LayoutElement explLayout = explCardGo.AddComponent<LayoutElement>();
+        explLayout.minHeight = 65f;
+        explLayout.preferredHeight = 65f;
+
+        GameObject explStatsGo = new GameObject("ExplicationLabel", typeof(RectTransform));
+        explStatsGo.transform.SetParent(explCardGo.transform, false);
+        TextMeshProUGUI explStatsText = explStatsGo.AddComponent<TextMeshProUGUI>();
+        explStatsText.fontSize = 11.5f;
+        explStatsText.lineSpacing = 2f;
+        explStatsText.color = new Color(0.8f, 0.85f, 0.9f, 1f);
+        explStatsText.text = "<i><b>Effets environnementaux :</b></i>\n• <b>Chaleur:</b> Accélère les réactions, augmente la perméabilité membranaire (risque d'instabilité).\n• <b>pH:</b> Affecte la charge des lipides et le repliement de l'ARN.\n• <b>Injection Nutriments:</b> Fournit des blocs de construction pour la croissance.";
+
         InitializeViewportTexture();
+
+        CreateInfoPanel();
+
         microViewPanel.SetActive(false);
+    }
+
+    private void CreateInfoPanel()
+    {
+        infoPanel = new GameObject("HUD_ProtocellInfoPanel", typeof(RectTransform));
+        infoPanel.transform.SetParent(microViewPanel.transform, false);
+
+        RectTransform panelRect = infoPanel.GetComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(0.5f, 0.5f);
+        panelRect.anchorMax = new Vector2(0.5f, 0.5f);
+        panelRect.pivot = new Vector2(0.5f, 0.5f);
+        panelRect.anchoredPosition = Vector2.zero;
+        panelRect.sizeDelta = new Vector2(800f, 500f);
+
+        Image bg = infoPanel.AddComponent<Image>();
+        bg.color = new Color(0.08f, 0.12f, 0.18f, 0.98f); // Slightly lighter than main panel
+
+        VerticalLayoutGroup layout = infoPanel.AddComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(25, 25, 25, 25);
+        layout.spacing = 15f;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+
+        // Title
+        GameObject titleGo = new GameObject("Title", typeof(RectTransform));
+        titleGo.transform.SetParent(infoPanel.transform, false);
+        TextMeshProUGUI titleTxt = titleGo.AddComponent<TextMeshProUGUI>();
+        titleTxt.text = "ℹ️ PROCESSUS DE REPRODUCTION CELLULAIRE";
+        titleTxt.fontSize = 20;
+        titleTxt.fontStyle = FontStyles.Bold;
+        titleTxt.alignment = TextAlignmentOptions.Center;
+        titleTxt.color = new Color(0.4f, 0.85f, 0.95f, 1f);
+
+        LayoutElement titleLayout = titleGo.AddComponent<LayoutElement>();
+        titleLayout.minHeight = 35f;
+        titleLayout.preferredHeight = 35f;
+
+        // Content text
+        GameObject contentGo = new GameObject("Content", typeof(RectTransform));
+        contentGo.transform.SetParent(infoPanel.transform, false);
+        TextMeshProUGUI contentTxt = contentGo.AddComponent<TextMeshProUGUI>();
+        contentTxt.fontSize = 14f;
+        contentTxt.lineSpacing = 3f;
+        contentTxt.color = Color.white;
+        contentTxt.text =
+            "<b>1. Auto-assemblage (Micelles → Vésicules) :</b> Les lipides s'organisent spontanément en sphères creuses (vésicules) pour protéger leurs queues hydrophobes de l'eau.\n\n" +
+            "<b>2. Perméabilité Membranaire :</b> La membrane doit être assez stable pour ne pas éclater, mais assez perméable pour laisser entrer les nutriments (acides aminés, nucléotides).\n\n" +
+            "<b>3. Réplication ARN :</b> À l'intérieur, les brins d'ARN (ribozymes) utilisent les nutriments pour se copier. Ce processus est sensible aux variations de température et de pH.\n\n" +
+            "<b>4. Division Cellulaire :</b> Lorsque la vésicule grossit grâce à l'incorporation de nouveaux lipides et que l'ARN se réplique, l'instabilité physique provoque sa division en deux cellules filles.\n\n" +
+            "<i>Votre but :</i> Ajuster l'environnement (Température, pH) et fournir des nutriments pour optimiser ce cycle fragile avant que la vésicule ne se désintègre !";
+
+        // Close button
+        closeInfoButton = CreateStyledButton(infoPanel.transform, "Compris !", ToggleInfoPanel, new Color(0.2f, 0.6f, 0.4f, 1f));
+        LayoutElement closeLayout = closeInfoButton.gameObject.AddComponent<LayoutElement>();
+        closeLayout.minHeight = 45f;
+        closeLayout.preferredHeight = 45f;
+
+        infoPanel.SetActive(false);
+    }
+
+    private void ToggleInfoPanel()
+    {
+        if (infoPanel != null)
+        {
+            infoPanel.SetActive(!infoPanel.activeSelf);
+            if (infoPanel.activeSelf)
+            {
+                infoPanel.transform.SetAsLastSibling();
+            }
+        }
     }
 
     private Button CreateStyledButton(Transform parent, string label, UnityEngine.Events.UnityAction action, Color color)
