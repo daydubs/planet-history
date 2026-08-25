@@ -127,9 +127,9 @@ public class GameHudController : MonoBehaviour
 
     [Header("Minimap")]
     [SerializeField] private RawImage minimapRawImage;
-    [SerializeField] private int minimapWidth = 192;
-    [SerializeField] private int minimapHeight = 96;
-    [SerializeField, Min(0.1f)] private float minimapRefreshInterval = 0.75f;
+    [SerializeField] private int minimapWidth = 384;
+    [SerializeField] private int minimapHeight = 192;
+    [SerializeField, Min(0.1f)] private float minimapRefreshInterval = 5.0f;
     private float minimapRefreshTimer;
     private bool isMinimapDirty = true;
     private float lastMinimapSurfaceTemp = -1f;
@@ -303,7 +303,7 @@ public class GameHudController : MonoBehaviour
         panelRect.anchorMax = new Vector2(1f, 1f);
         panelRect.pivot = new Vector2(1f, 1f);
         panelRect.anchoredPosition = new Vector2(-20f, -70f);
-        panelRect.sizeDelta = new Vector2(380f, 230f);
+        panelRect.sizeDelta = new Vector2(760f, 410f);
 
         Image panelBg = minimapPanel.AddComponent<Image>();
         panelBg.color = new Color(0.08f, 0.12f, 0.16f, 0.92f); // Dark slate frame
@@ -335,7 +335,7 @@ public class GameHudController : MonoBehaviour
         titleRect.offsetMin = new Vector2(10f, 0f);
         titleRect.offsetMax = new Vector2(-120f, 0f);
 
-        // Header Buttons Container (Zoom +, Zoom -, Reset, Collapse)
+        // Header Buttons Container (Reset, Collapse)
         GameObject controlsGo = new GameObject("MinimapControls", typeof(RectTransform));
         controlsGo.transform.SetParent(headerGo.transform, false);
 
@@ -344,7 +344,7 @@ public class GameHudController : MonoBehaviour
         controlsRect.anchorMax = new Vector2(1f, 0.5f);
         controlsRect.pivot = new Vector2(1f, 0.5f);
         controlsRect.anchoredPosition = new Vector2(-5f, 0f);
-        controlsRect.sizeDelta = new Vector2(115f * 10f , 24f * 10f);  // minijeux grandeur
+        controlsRect.sizeDelta = new Vector2(60f, 24f);
 
         HorizontalLayoutGroup controlsLayout = controlsGo.AddComponent<HorizontalLayoutGroup>();
         controlsLayout.spacing = 4f;
@@ -352,8 +352,6 @@ public class GameHudController : MonoBehaviour
         controlsLayout.childControlWidth = false;
         controlsLayout.childControlHeight = false;
 
-        Button zoomInBtn = CreateMinimapHeaderButton(controlsGo.transform, "+", "Zoom Avant", () => ZoomMinimap(1.25f, new Vector2(0.5f, 0.5f)));
-        Button zoomOutBtn = CreateMinimapHeaderButton(controlsGo.transform, "-", "Zoom Arrière", () => ZoomMinimap(1f / 1.25f, new Vector2(0.5f, 0.5f)));
         Button resetBtn = CreateMinimapHeaderButton(controlsGo.transform, "⟲", "Réinitialiser Vue", ResetMinimapView);
 
         // Toggle Minimap Collapse Button
@@ -391,8 +389,8 @@ public class GameHudController : MonoBehaviour
         rawRect.anchorMin = new Vector2(0.5f, 0f);
         rawRect.anchorMax = new Vector2(0.5f, 0f);
         rawRect.pivot = new Vector2(0.5f, 0f);
-        rawRect.anchoredPosition = new Vector2(0f, 6f);
-        rawRect.sizeDelta = new Vector2(364f, 182f);
+        rawRect.anchoredPosition = new Vector2(0f, 8f);
+        rawRect.sizeDelta = new Vector2(728f, 364f);
 
         minimapRawImage = rawImageGo.AddComponent<RawImage>();
         minimapRawImage.color = Color.white;
@@ -401,12 +399,16 @@ public class GameHudController : MonoBehaviour
         MinimapInteractionHandler interactionHandler = rawImageGo.AddComponent<MinimapInteractionHandler>();
         interactionHandler.hudController = this;
 
+        // Overlay Zoom + and Zoom - buttons directly on the minimap
+        CreateMinimapOverlayButton(rawImageGo.transform, "+", new Vector2(1f, 1f), new Vector2(-46f, -10f), () => ZoomMinimap(1.25f, new Vector2(0.5f, 0.5f)));
+        CreateMinimapOverlayButton(rawImageGo.transform, "-", new Vector2(1f, 1f), new Vector2(-10f, -10f), () => ZoomMinimap(1f / 1.25f, new Vector2(0.5f, 0.5f)));
+
         // Toggle click handler
         toggleBtn.onClick.AddListener(() =>
         {
             minimapExpanded = !minimapExpanded;
             rawImageGo.SetActive(minimapExpanded);
-            panelRect.sizeDelta = new Vector2(380f, minimapExpanded ? 230f : 32f);
+            panelRect.sizeDelta = new Vector2(760f, minimapExpanded ? 410f : 32f);
             toggleText.text = minimapExpanded ? "▼" : "▲";
             if (minimapExpanded)
             {
@@ -478,6 +480,49 @@ public class GameHudController : MonoBehaviour
         {
             minimapPanOffset.y = Mathf.Clamp(minimapPanOffset.y, -maxOffsetV, maxOffsetV);
         }
+    }
+
+    private Button CreateMinimapOverlayButton(Transform parent, string symbol, Vector2 anchor, Vector2 anchoredPos, UnityEngine.Events.UnityAction action)
+    {
+        GameObject btnGo = new GameObject($"OverlayBtn_{symbol}", typeof(RectTransform));
+        btnGo.transform.SetParent(parent, false);
+
+        RectTransform rect = btnGo.GetComponent<RectTransform>();
+        rect.anchorMin = anchor;
+        rect.anchorMax = anchor;
+        rect.pivot = anchor;
+        rect.anchoredPosition = anchoredPos;
+        rect.sizeDelta = new Vector2(32f, 32f);
+
+        Image img = btnGo.AddComponent<Image>();
+        img.color = new Color(0.10f, 0.15f, 0.22f, 0.85f);
+
+        Button button = btnGo.AddComponent<Button>();
+        button.targetGraphic = img;
+
+        ColorBlock cb = button.colors;
+        cb.normalColor = new Color(0.10f, 0.15f, 0.22f, 0.85f);
+        cb.highlightedColor = new Color(0.25f, 0.38f, 0.55f, 0.95f);
+        cb.pressedColor = new Color(0.05f, 0.08f, 0.12f, 1.0f);
+        button.colors = cb;
+
+        GameObject textGo = new GameObject("Text", typeof(RectTransform));
+        textGo.transform.SetParent(btnGo.transform, false);
+
+        TextMeshProUGUI txt = textGo.AddComponent<TextMeshProUGUI>();
+        txt.text = symbol;
+        txt.fontSize = 20;
+        txt.fontStyle = FontStyles.Bold;
+        txt.color = Color.white;
+        txt.alignment = TextAlignmentOptions.Center;
+
+        RectTransform textRect = textGo.GetComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.sizeDelta = Vector2.zero;
+
+        button.onClick.AddListener(action);
+        return button;
     }
 
     private Button CreateMinimapHeaderButton(Transform parent, string symbol, string tooltipText, UnityEngine.Events.UnityAction action)
@@ -552,8 +597,8 @@ public class GameHudController : MonoBehaviour
         if (cachedTerrain == null || cachedTerrain.Field == null) return;
 
         PlanetHeightField field = cachedTerrain.Field;
-        int width = Mathf.Clamp(minimapWidth, 32, 256);
-        int height = Mathf.Clamp(minimapHeight, 16, 128);
+        int width = Mathf.Clamp(minimapWidth, 32, 512);
+        int height = Mathf.Clamp(minimapHeight, 16, 256);
 
         if (minimapTexture == null || minimapTexture.width != width || minimapTexture.height != height)
         {
