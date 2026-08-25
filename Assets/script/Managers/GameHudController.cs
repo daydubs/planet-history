@@ -177,11 +177,23 @@ public class GameHudController : MonoBehaviour
             volcanoManagerObj.AddComponent<VolcanoManager>();
         }
 
-        // Dynamically attach PrebioticMiniGameController to scene if missing
+        // Dynamically attach PrebioticMiniGameController & ProtocellSimulationManager to scene if missing
         if (FindAnyObjectByType<PrebioticMiniGameController>() == null)
         {
             GameObject prebioticObj = new GameObject("PrebioticMiniGameController");
             prebioticObj.AddComponent<PrebioticMiniGameController>();
+        }
+
+        if (FindAnyObjectByType<ProtocellSimulationManager>() == null)
+        {
+            GameObject simObj = new GameObject("ProtocellSimulationManager");
+            simObj.AddComponent<ProtocellSimulationManager>();
+        }
+
+        if (FindAnyObjectByType<ProtocellMicroViewUI>() == null)
+        {
+            GameObject microObj = new GameObject("ProtocellMicroViewUI");
+            microObj.AddComponent<ProtocellMicroViewUI>();
         }
 
         // Dynamically attach GameMenuController to scene if missing
@@ -593,6 +605,49 @@ public class GameHudController : MonoBehaviour
             }
         }
 
+        // Draw Prebiotic Hotspot Markers on Minimap
+        if (ProtocellSimulationManager.Instance != null && ProtocellSimulationManager.Instance.ActiveZones != null)
+        {
+            foreach (var zone in ProtocellSimulationManager.Instance.ActiveZones)
+            {
+                float uNorm = zone.longitudeDeg / 360f + 0.5f;
+                float vNorm = zone.latitudeDeg / 180f + 0.5f;
+
+                // Adjust for minimap zoom and pan offset
+                float uView = (uNorm - 0.5f - minimapPanOffset.x) * minimapZoom + 0.5f;
+                float vView = (vNorm - 0.5f - minimapPanOffset.y) * minimapZoom + 0.5f;
+
+                uView = Mathf.Repeat(uView, 1.0f);
+
+                if (vView >= 0f && vView <= 1f)
+                {
+                    int px = Mathf.RoundToInt(uView * (width - 1));
+                    int py = Mathf.RoundToInt(vView * (height - 1));
+
+                    Color32 markerColor = zone.zoneType == PrebioticZoneType.HydrothermalVent
+                        ? new Color32(0, 240, 255, 255)   // Bright Cyan
+                        : new Color32(255, 215, 0, 255);  // Bright Gold
+
+                    int markerRadius = 2;
+                    for (int dy = -markerRadius; dy <= markerRadius; dy++)
+                    {
+                        for (int dx = -markerRadius; dx <= markerRadius; dx++)
+                        {
+                            if (dx * dx + dy * dy <= markerRadius * markerRadius + 1)
+                            {
+                                int mx = px + dx;
+                                int my = py + dy;
+                                if (mx >= 0 && mx < width && my >= 0 && my < height)
+                                {
+                                    minimapPixels32[my * width + mx] = markerColor;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         minimapTexture.SetPixelData(minimapPixels32, 0);
         minimapTexture.Apply(false, false);
     }
@@ -937,6 +992,20 @@ public class GameHudController : MonoBehaviour
         btnLayout.childForceExpandWidth = true;
         btnLayout.childForceExpandHeight = false;
         btnLayout.spacing = 6f;
+
+        CreatePrebioticActionButton(
+            btnRowGo.transform,
+            "🔬 Vue Micro",
+            "Inspection Micro-Biotique",
+            "Ouvre la vue microscope interactive pour observer l'auto-assemblage des lipides, les vésicules bilipidiques, la réplication ARN et la sélection naturelle en temps réel.",
+            new Color(0.15f, 0.75f, 0.65f, 1f),
+            () =>
+            {
+                if (ProtocellMicroViewUI.Instance != null)
+                {
+                    ProtocellMicroViewUI.Instance.ToggleMicroView();
+                }
+            });
 
         CreatePrebioticActionButton(
             btnRowGo.transform,
