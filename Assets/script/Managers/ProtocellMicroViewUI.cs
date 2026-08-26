@@ -121,7 +121,7 @@ public class ProtocellMicroViewUI : MonoBehaviour
 
         LayoutElement contentRowLayout = contentRow.AddComponent<LayoutElement>();
         contentRowLayout.minHeight = 520f;
-        contentRowLayout.preferredHeight = 540f;
+        contentRowLayout.preferredHeight = 560f;
 
         // Left Container: Viewport RawImage (Vesicle 2D rendering)
         GameObject leftCol = new GameObject("LeftColumn", typeof(RectTransform));
@@ -208,8 +208,8 @@ public class ProtocellMicroViewUI : MonoBehaviour
         envCardLayout.childForceExpandHeight = true;
 
         LayoutElement envCardLayoutEl = envCardGo.AddComponent<LayoutElement>();
-        envCardLayoutEl.minHeight = 135f;
-        envCardLayoutEl.preferredHeight = 135f;
+        envCardLayoutEl.minHeight = 120f;
+        envCardLayoutEl.preferredHeight = 120f;
 
         GameObject envStatsGo = new GameObject("EnvStatsLabel", typeof(RectTransform));
         envStatsGo.transform.SetParent(envCardGo.transform, false);
@@ -232,8 +232,8 @@ public class ProtocellMicroViewUI : MonoBehaviour
         popCardLayout.childForceExpandHeight = true;
 
         LayoutElement popCardLayoutEl = popCardGo.AddComponent<LayoutElement>();
-        popCardLayoutEl.minHeight = 135f;
-        popCardLayoutEl.preferredHeight = 135f;
+        popCardLayoutEl.minHeight = 115f;
+        popCardLayoutEl.preferredHeight = 115f;
 
         GameObject popStatsGo = new GameObject("PopStatsLabel", typeof(RectTransform));
         popStatsGo.transform.SetParent(popCardGo.transform, false);
@@ -244,22 +244,25 @@ public class ProtocellMicroViewUI : MonoBehaviour
 
         // Evolution Progress Bar Container
         GameObject progContainer = new GameObject("EvolutionProgressContainer", typeof(RectTransform));
-        progContainer.transform.SetParent(popCardGo.transform, false);
+        progContainer.transform.SetParent(rightCol.transform, false);
 
         VerticalLayoutGroup progLayout = progContainer.AddComponent<VerticalLayoutGroup>();
-        progLayout.spacing = 2f;
+        progLayout.spacing = 4f;
         progLayout.childControlWidth = true;
         progLayout.childControlHeight = false;
+        progLayout.childAlignment = TextAnchor.MiddleCenter;
 
         LayoutElement progContainerLayout = progContainer.AddComponent<LayoutElement>();
-        progContainerLayout.minHeight = 25f;
-        progContainerLayout.preferredHeight = 25f;
+        progContainerLayout.minHeight = 45f;
+        progContainerLayout.preferredHeight = 45f;
 
         GameObject progHeader = new GameObject("ProgHeader", typeof(RectTransform));
         progHeader.transform.SetParent(progContainer.transform, false);
         progressText = progHeader.AddComponent<TextMeshProUGUI>();
         progressText.text = "Évolution vers Photosynthèse : 0%";
-        progressText.fontSize = 12f;
+        progressText.fontSize = 13f;
+        progressText.fontStyle = FontStyles.Bold;
+        progressText.alignment = TextAlignmentOptions.Center;
         progressText.color = new Color(0.8f, 0.85f, 0.9f, 1f);
 
         GameObject progBarBg = new GameObject("ProgBarBg", typeof(RectTransform));
@@ -268,8 +271,8 @@ public class ProtocellMicroViewUI : MonoBehaviour
         progBgImg.color = new Color(0.1f, 0.1f, 0.15f, 1f);
 
         LayoutElement progBarLayout = progBarBg.AddComponent<LayoutElement>();
-        progBarLayout.minHeight = 10f;
-        progBarLayout.preferredHeight = 10f;
+        progBarLayout.minHeight = 15f;
+        progBarLayout.preferredHeight = 15f;
 
         GameObject progBarFillGo = new GameObject("ProgBarFill", typeof(RectTransform));
         progBarFillGo.transform.SetParent(progBarBg.transform, false);
@@ -286,7 +289,7 @@ public class ProtocellMicroViewUI : MonoBehaviour
         GameObject ctrlHeaderGo = new GameObject("CtrlHeaderLabel", typeof(RectTransform));
         ctrlHeaderGo.transform.SetParent(rightCol.transform, false);
         TMP_Text ctrlHeaderTxt = ctrlHeaderGo.AddComponent<TextMeshProUGUI>();
-        ctrlHeaderTxt.text = "⚙️ CONTRÔLES DU MILIEU & INJECTION";
+        ctrlHeaderTxt.text = "⚙️ CONTRÔLES DU MILIEU";
         ctrlHeaderTxt.fontSize = 13.5f;
         ctrlHeaderTxt.fontStyle = FontStyles.Bold;
         ctrlHeaderTxt.color = new Color(0.85f, 0.9f, 0.95f, 1f);
@@ -737,9 +740,15 @@ public class ProtocellMicroViewUI : MonoBehaviour
 
             // Gentle brownian motion drift
             pos += vel * (10f * dt);
-            pos.x = Mathf.PingPong(pos.x, ViewportWidth - 30) + 15;
-            pos.y = Mathf.PingPong(pos.y, ViewportHeight - 30) + 15;
+
+            if (pos.x < 15f) { pos.x = 15f; vel.x = -vel.x; }
+            else if (pos.x > ViewportWidth - 15f) { pos.x = ViewportWidth - 15f; vel.x = -vel.x; }
+
+            if (pos.y < 15f) { pos.y = 15f; vel.y = -vel.y; }
+            else if (pos.y > ViewportHeight - 15f) { pos.y = ViewportHeight - 15f; vel.y = -vel.y; }
+
             bubblePositions[i] = pos;
+            bubbleVelocities[i] = vel;
 
             int radiusPx = Mathf.Clamp((int)(cell.radius * 14f), 6, 32);
             Color32 cellCol = cell.mutationColor;
