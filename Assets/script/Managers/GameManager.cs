@@ -353,9 +353,9 @@ public class GameManager : MonoBehaviour
 
         if (surfaceTemperature < condenseThreshold && pressure > 0.2f)
         {
-            // Taux de condensation réduit à 0.00000011111111f (~1/9 000 000) pour allonger la durée du rush initial
+            // Taux de condensation réduit à 0.000000037037037f (~1/27 000 000) pour allonger la durée du rush initial
             // de la dérive tectonique rapide (époque TectonicDrift) d'un facteur 3 supplémentaire avant le ralentissement prébiotique.
-            waterRatio += 0.00000011111111f * dt;
+            waterRatio += 0.000000037037037f * dt;
         }
         else
         {
