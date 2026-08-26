@@ -335,13 +335,13 @@ public class ProtocellSimulationManager : MonoBehaviour
 
             // Consommer les nutriments de la zone (Compétition)
             // On s'assure que la consommation est dépendante de dt pour ne pas être liée au framerate.
-            float consumedPercentage = nutrientAbsorption * 0.1f;
+            float consumedPercentage = nutrientAbsorption * 0.01f;
             zone.aminoAcidConcentration = Mathf.Max(0f, zone.aminoAcidConcentration - consumedPercentage);
 
             float energyLeak = Mathf.Max(0f, cell.permeability - 0.65f) * 18f * dt;
 
             // Primitive Chemiosmotic Metabolism (Gradient consumption vs passive diffusion)
-            float gradientHarvest = zone.chemicalGradientStrength * cell.energyEfficiency * 15f * dt;
+            float gradientHarvest = zone.chemicalGradientStrength * cell.energyEfficiency * 10f * dt;
 
             // Energy balance
             cell.energy += nutrientAbsorption + gradientHarvest - energyLeak - (8f * dt);
@@ -357,6 +357,7 @@ public class ProtocellSimulationManager : MonoBehaviour
             if (cell.energy > 20f)
             {
                 cell.rnaContent += cell.rnaReplicationRate * 2.5f * dt;
+                cell.energy -= cell.rnaReplicationRate * 2.0f * dt;
             }
 
             // Vesicle Division (Reproduction)
