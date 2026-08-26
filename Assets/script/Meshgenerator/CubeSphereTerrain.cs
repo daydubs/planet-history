@@ -192,6 +192,37 @@ public class CubeSphereTerrain : MonoBehaviour
                 {
                     instantiatedMaterial.SetFloat(WaterRatioId, GameManager.Instance.WaterRatio);
                 }
+
+                if (instantiatedMaterial.HasProperty("_OceanColor"))
+                {
+                    float ironRatio = GameManager.Instance.DissolvedIronRatio;
+                    float oxygen = GameManager.Instance.OxygenPressure;
+
+                    // Initial Hadean/Archean ocean (iron-rich): Greenish
+                    Color ironRichOcean = new Color(0.1f, 0.4f, 0.2f, 1f);
+
+                    // GOE - rusting oceans (Banded Iron Formations): Rust/Red
+                    Color rustOcean = new Color(0.6f, 0.2f, 0.1f, 1f);
+
+                    // Modern oxygenated ocean: Blue
+                    Color modernOcean = new Color(0.02f, 0.12f, 0.32f, 1f); // existing default
+
+                    Color currentOceanColor;
+
+                    // As iron dissipates (GOE), ocean turns red/rust
+                    if (ironRatio > 0.05f)
+                    {
+                        currentOceanColor = Color.Lerp(rustOcean, ironRichOcean, ironRatio);
+                    }
+                    else
+                    {
+                        // After iron is gone, ocean clears up to blue as oxygen rises
+                        float oxygenation = Mathf.Clamp01(oxygen / 0.5f); // 0.5 atm is plenty for clear blue
+                        currentOceanColor = Color.Lerp(rustOcean, modernOcean, oxygenation);
+                    }
+
+                    instantiatedMaterial.SetColor("_OceanColor", currentOceanColor);
+                }
             }
         }
     }

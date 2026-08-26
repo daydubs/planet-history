@@ -50,6 +50,22 @@ public class AtmosphereManager : MonoBehaviour
         float normalizedPressure = Mathf.Log10(Mathf.Max(1f, pressure));
         float density = Mathf.Clamp(0.5f + normalizedPressure, 0.1f, 5f);
 
+        // Calculate atmosphere color dynamically based on oxygen vs reduced gases (methane haze)
+        float oxygen = GameManager.Instance.OxygenPressure;
+        float otherGases = GameManager.Instance.OtherGasesPressure;
+
+        float totalGasesForColor = oxygen + otherGases;
+        float oxygenRatio = totalGasesForColor > 0 ? (oxygen / totalGasesForColor) : 0f;
+
+        // Hazy orange for methane/reduced gases, clear light blue for oxygen
+        Color methaneColor = new Color(0.8f, 0.4f, 0.1f, 1.0f);
+        Color oxygenColor = new Color(0.3f, 0.6f, 1.0f, 1.0f);
+        Color currentAtmColor = Color.Lerp(methaneColor, oxygenColor, oxygenRatio);
+
+        // Reduce density slightly as methane haze clears up and oxygen rises
+        density = Mathf.Lerp(density, density * 0.7f, oxygenRatio);
+
         atmosphereMaterial.SetFloat("_AtmosphereDensity", density);
+        atmosphereMaterial.SetColor("_AtmosphereColor", currentAtmColor);
     }
 }
