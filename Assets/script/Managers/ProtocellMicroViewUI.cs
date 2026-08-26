@@ -37,6 +37,7 @@ public class ProtocellMicroViewUI : MonoBehaviour
 
     // Logging
     private float logStartTime;
+    private float lastLogTime;
     private bool isLogging = false;
     private System.IO.StreamWriter logWriter;
     private const int ViewportWidth = 380;
@@ -659,8 +660,9 @@ public class ProtocellMicroViewUI : MonoBehaviour
             feedNutrientsButton.interactable = PrebioticMiniGameController.Instance.TotalProgress > 0f;
         }
 
-        if (isLogging && logWriter != null)
+        if (isLogging && logWriter != null && (Time.time - lastLogTime >= 0.1f))
         {
+            lastLogTime = Time.time;
             string logLine = string.Format(System.Globalization.CultureInfo.InvariantCulture,
                 "{0:F2},{1},{2:F2},{3:F2},{4:F2},{5:F0},{6:F2},{7:F2},{8},{9:F4},{10:F4},{11:F4},{12:F4}",
                 Time.time - logStartTime,
