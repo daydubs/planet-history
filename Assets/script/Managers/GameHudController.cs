@@ -1480,12 +1480,14 @@ public class GameHudController : MonoBehaviour
             float co2Pct = total > 0 ? (gameManager.Co2Pressure / total) * 100f : 0f;
             float n2Pct = total > 0 ? (gameManager.NitrogenPressure / total) * 100f : 0f;
             float otherPct = total > 0 ? (gameManager.OtherGasesPressure / total) * 100f : 0f;
+            float o2Pct = total > 0 ? (gameManager.OxygenPressure / total) * 100f : 0f;
 
             atmosphereCompositionText.text = $"Composition Atmosphérique ({GetEpochDisplayName(gameManager.CurrentEpoch)}) - Total: {total:0.00} atm :\n" +
                 $" • H2O (Vapeur d'eau) : {gameManager.WaterVaporPressure:0.00} atm ({h2oPct:0.1}%)\n" +
                 $" • CO2 (Dioxyde de carbone) : {gameManager.Co2Pressure:0.00} atm ({co2Pct:0.1}%)\n" +
                 $" • N2 (Azote) : {gameManager.NitrogenPressure:0.00} atm ({n2Pct:0.1}%)\n" +
-                $" • Gaz réduits (CH4, NH3, SO2) : {gameManager.OtherGasesPressure:0.00} atm ({otherPct:0.1}%)";
+                $" • Gaz réduits (CH4, NH3, SO2) : {gameManager.OtherGasesPressure:0.00} atm ({otherPct:0.1}%)\n" +
+                $" • O2 (Oxygène) : {gameManager.OxygenPressure:0.00} atm ({o2Pct:0.1}%)";
         }
 
         if (sessionSlider != null) sessionSlider.value = gameManager.SessionProgress;

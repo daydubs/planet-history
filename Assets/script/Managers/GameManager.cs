@@ -66,6 +66,10 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float co2Pressure;
     [SerializeField] private float nitrogenPressure = 8f;
     [SerializeField] private float otherGasesPressure;
+    [SerializeField] private float oxygenPressure;
+
+    [Header("Océan & Fer")]
+    [SerializeField] private float dissolvedIronRatio = 1.0f; // Commence à 1, se dissipe lors du GOE
 
     [Header("Evenements Meteor")]
     [SerializeField] private float meteorGasesPressure = 0f;
@@ -100,6 +104,8 @@ public class GameManager : MonoBehaviour
     public float TsunamiWaterRise => tsunamiWaterRise;
     public float ImpactThermalPulse => impactThermalPulse;
     public float GreenhouseDeltaTemp => greenhouseDeltaTemp;
+    public float OxygenPressure => oxygenPressure;
+    public float DissolvedIronRatio => dissolvedIronRatio;
     public PlanetEpoch CurrentEpoch => currentEpoch;
     public bool IsPhotosynthesisUnlocked => isPhotosynthesisUnlocked;
     public bool IsPaused => isPaused;
@@ -147,13 +153,16 @@ public class GameManager : MonoBehaviour
         co2Pressure = 50f;
         nitrogenPressure = 2f;
         otherGasesPressure = 0f;
+        oxygenPressure = 0f;
+        dissolvedIronRatio = 1.0f;
 
         // Ensure initial total pressure is set before first simulation update
-        pressure = waterVaporPressure + co2Pressure + nitrogenPressure + otherGasesPressure;
+        pressure = waterVaporPressure + co2Pressure + nitrogenPressure + otherGasesPressure + oxygenPressure;
 
         EnsureDefaultCurves();
         EnsureAudioManager();
         EnsureAtmosphereManager();
+        EnsureMicrobeManager();
         InitializeCsvLogger();
     }
 
@@ -198,6 +207,15 @@ public class GameManager : MonoBehaviour
         {
             GameObject atmosphereMgrObj = new GameObject("AtmosphereManager");
             atmosphereMgrObj.AddComponent<AtmosphereManager>();
+        }
+    }
+
+    private void EnsureMicrobeManager()
+    {
+        if (FindAnyObjectByType<MicrobeManager>() == null)
+        {
+            GameObject microbeMgrObj = new GameObject("MicrobeManager");
+            microbeMgrObj.AddComponent<MicrobeManager>();
         }
     }
 
@@ -342,7 +360,7 @@ public class GameManager : MonoBehaviour
         }
 
         // La pression totale est la somme de toutes les pressions partielles.
-        pressure = waterVaporPressure + co2Pressure + nitrogenPressure + dynamicOtherGases;
+        pressure = waterVaporPressure + co2Pressure + nitrogenPressure + dynamicOtherGases + oxygenPressure;
     }
 
     private void SimulateWater(float dt)
@@ -600,6 +618,33 @@ public class GameManager : MonoBehaviour
         co2Pressure += co2Amount;
         waterVaporPressure += waterVaporAmount;
         otherGasesPressure += otherGasesAmount;
+    }
+
+    public void AddOxygen(float amount)
+    {
+        float remainingOxygen = amount;
+
+        // 1. Oxydation du fer dans l'océan (Great Oxidation Event)
+        if (dissolvedIronRatio > 0f)
+        {
+            float ironConsumed = Mathf.Min(dissolvedIronRatio, remainingOxygen * 10f); // Le fer consomme beaucoup d'oxygène
+            dissolvedIronRatio -= ironConsumed;
+            remainingOxygen -= ironConsumed * 0.1f;
+        }
+
+        // 2. Oxydation des gaz réduits (Méthane, etc.)
+        if (remainingOxygen > 0f && otherGasesPressure > 0f)
+        {
+            float gasesConsumed = Mathf.Min(otherGasesPressure, remainingOxygen * 2f);
+            otherGasesPressure -= gasesConsumed;
+            remainingOxygen -= gasesConsumed * 0.5f;
+        }
+
+        // 3. Accumulation dans l'atmosphère
+        if (remainingOxygen > 0f)
+        {
+            oxygenPressure += remainingOxygen;
+        }
     }
 
     public void ConsumeGases(float co2Amount, float waterVaporAmount, float otherGasesAmount)
