@@ -34,6 +34,11 @@ public class ProtocellMicroViewUI : MonoBehaviour
     // Viewport Texture & 2D Simulation Rendering
     private Texture2D viewportTexture;
     private Color32[] viewportPixels;
+
+    // Logging
+    private float logStartTime;
+    private bool isLogging = false;
+    private System.IO.StreamWriter logWriter;
     private const int ViewportWidth = 380;
     private const int ViewportHeight = 380;
 
@@ -480,8 +485,61 @@ public class ProtocellMicroViewUI : MonoBehaviour
         }
     }
 
+    private void OnDestroy()
+    {
+        StopLogging();
+    }
+
+    private void StartLogging()
+    {
+        if (isLogging) return;
+
+        try
+        {
+            string logPath = System.IO.Path.Combine(Application.persistentDataPath, "micro_view_log.csv");
+            logWriter = new System.IO.StreamWriter(logPath, false);
+            logWriter.AutoFlush = true;
+            logWriter.WriteLine("Time,ZoneName,LocalTemp,LocalPh,LipidConc,MicellesCount,AminoAcidConc,ChemGradient,ProtocellsCount,GenDiversity,MeanPermeability,MeanEnergyEfficiency,EvolutionProgress");
+
+            logStartTime = Time.time;
+            isLogging = true;
+            Debug.Log($"[MicroViewUI] Started logging telemetry to {logPath}");
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[MicroViewUI] Failed to start logging: {e.Message}");
+            isLogging = false;
+        }
+    }
+
+    private void StopLogging()
+    {
+        if (!isLogging) return;
+
+        isLogging = false;
+        if (logWriter != null)
+        {
+            try
+            {
+                logWriter.Close();
+                logWriter.Dispose();
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[MicroViewUI] Error closing log writer: {e.Message}");
+            }
+            logWriter = null;
+            Debug.Log("[MicroViewUI] Stopped logging telemetry.");
+        }
+    }
+
     private void Update()
     {
+        if (isLogging && Time.time - logStartTime >= 120f)
+        {
+            StopLogging();
+        }
+
         if (microViewPanel != null && microViewPanel.activeInHierarchy)
         {
             RenderViewport2D();
@@ -495,6 +553,8 @@ public class ProtocellMicroViewUI : MonoBehaviour
         microViewPanel.SetActive(true);
         microViewPanel.transform.SetAsLastSibling();
         RefreshUI();
+
+        StartLogging();
     }
 
     public void HideMicroView()
@@ -597,6 +657,33 @@ public class ProtocellMicroViewUI : MonoBehaviour
         if (feedNutrientsButton != null && PrebioticMiniGameController.Instance != null)
         {
             feedNutrientsButton.interactable = PrebioticMiniGameController.Instance.TotalProgress > 0f;
+        }
+
+        if (isLogging && logWriter != null)
+        {
+            string logLine = string.Format(System.Globalization.CultureInfo.InvariantCulture,
+                "{0:F2},{1},{2:F2},{3:F2},{4:F2},{5:F0},{6:F2},{7:F2},{8},{9:F4},{10:F4},{11:F4},{12:F4}",
+                Time.time - logStartTime,
+                zone.zoneType.ToString(),
+                zone.localTemperature,
+                zone.localPh,
+                zone.lipidConcentration,
+                zone.totalLipidMicelles,
+                zone.aminoAcidConcentration,
+                zone.chemicalGradientStrength,
+                zone.protocells.Count,
+                zone.GeneticDiversity,
+                zone.MeanPermeability,
+                zone.MeanEnergyEfficiency,
+                prog);
+            try
+            {
+                logWriter.WriteLine(logLine);
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"[MicroViewUI] Error writing to log: {e.Message}");
+            }
         }
     }
 
