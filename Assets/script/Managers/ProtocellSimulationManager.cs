@@ -33,7 +33,7 @@ public class Protocell
             permeability = Mathf.Clamp01(permeability + UnityEngine.Random.Range(-mutationRate, mutationRate)),
             rnaReplicationRate = Mathf.Clamp(rnaReplicationRate + UnityEngine.Random.Range(-mutationRate * 0.5f, mutationRate * 0.5f), 0.1f, 2.5f),
             radiationResistance = Mathf.Clamp01(radiationResistance + UnityEngine.Random.Range(-mutationRate, mutationRate)),
-            energyEfficiency = Mathf.Clamp(energyEfficiency + UnityEngine.Random.Range(-mutationRate * 0.5f, mutationRate * 0.5f), 0.1f, 2.0f),
+            energyEfficiency = Mathf.Clamp(energyEfficiency + UnityEngine.Random.Range(-mutationRate, mutationRate), 0.1f, 2.0f),
             energy = energy * 0.45f,
             rnaContent = 10f,
             age = 0f
@@ -133,7 +133,7 @@ public class PrebioticZone
             float maxProgress = 0f;
             foreach (var c in protocells)
             {
-                float effProg = Mathf.Clamp01(c.energyEfficiency / 1.5f);
+                float effProg = Mathf.Clamp01(c.energyEfficiency / 1.4f);
                 float radProg = Mathf.Clamp01(c.radiationResistance / 0.5f);
                 float permProg = Mathf.Clamp01(c.permeability / 0.4f);
                 float cellProgress = (effProg + radProg + permProg) / 3f;
@@ -335,7 +335,7 @@ public class ProtocellSimulationManager : MonoBehaviour
 
             // Consommer les nutriments de la zone (Compétition)
             // On s'assure que la consommation est dépendante de dt pour ne pas être liée au framerate.
-            float consumedPercentage = nutrientAbsorption * 0.01f;
+            float consumedPercentage = nutrientAbsorption * 0.002f;
             zone.aminoAcidConcentration = Mathf.Max(0f, zone.aminoAcidConcentration - consumedPercentage);
 
             float energyLeak = Mathf.Max(0f, cell.permeability - 0.65f) * 18f * dt;
@@ -356,7 +356,8 @@ public class ProtocellSimulationManager : MonoBehaviour
             // RNA synthesis & replication cycle inside vesicle
             if (cell.energy > 20f)
             {
-                cell.rnaContent += cell.rnaReplicationRate * 2.5f * dt;
+                float energyBonus = 1f + Mathf.Max(0f, (cell.energy - 20f) * 0.02f);
+                cell.rnaContent += cell.rnaReplicationRate * 2.5f * dt * energyBonus;
                 cell.energy -= cell.rnaReplicationRate * 2.0f * dt;
             }
 
@@ -370,7 +371,7 @@ public class ProtocellSimulationManager : MonoBehaviour
             }
 
             // Natural Selection Death Conditions
-            if (cell.energy <= 0f || cell.membraneStability < 0.15f || (stabilityFactor < 0.2f && UnityEngine.Random.value < 0.25f) || cell.age > 40f + UnityEngine.Random.value * 20f)
+            if (cell.energy <= 0f || cell.membraneStability < 0.15f || (stabilityFactor < 0.2f && UnityEngine.Random.value < 0.25f) || cell.age > 25f + UnityEngine.Random.value * 15f)
             {
                 deadCells.Add(cell);
             }
@@ -380,7 +381,7 @@ public class ProtocellSimulationManager : MonoBehaviour
                 GameManager.Instance.CurrentEpoch == PlanetEpoch.Prebiotic &&
                 !GameManager.Instance.IsPhotosynthesisUnlocked)
             {
-                if (cell.energyEfficiency >= 1.5f && cell.radiationResistance >= 0.5f && cell.permeability >= 0.4f)
+                if (cell.energyEfficiency >= 1.4f && cell.radiationResistance >= 0.5f && cell.permeability >= 0.4f)
                 {
                     GameManager.Instance.UnlockPhotosynthesis();
                     GameManager.Instance.LogEvent("Photosynthesis Unlocked", "Une protocellule a atteint un niveau métabolique élevé !");
