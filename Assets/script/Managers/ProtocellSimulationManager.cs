@@ -351,7 +351,7 @@ public class ProtocellSimulationManager : MonoBehaviour
             }
 
             // Natural Selection Death Conditions
-            if (cell.energy <= 0f || cell.membraneStability < 0.15f || (stabilityFactor < 0.2f && UnityEngine.Random.value < 0.25f))
+            if (cell.energy <= 0f || cell.membraneStability < 0.15f || (stabilityFactor < 0.2f && UnityEngine.Random.value < 0.25f) || cell.age > 40f + UnityEngine.Random.value * 20f)
             {
                 deadCells.Add(cell);
             }
@@ -361,7 +361,7 @@ public class ProtocellSimulationManager : MonoBehaviour
                 GameManager.Instance.CurrentEpoch == PlanetEpoch.Prebiotic &&
                 !GameManager.Instance.IsPhotosynthesisUnlocked)
             {
-                if (cell.energyEfficiency >= 1.5f && cell.radiationResistance >= 0.7f && cell.permeability >= 0.5f)
+                if (cell.energyEfficiency >= 1.5f && cell.radiationResistance >= 0.5f && cell.permeability >= 0.4f)
                 {
                     GameManager.Instance.UnlockPhotosynthesis();
                     GameManager.Instance.LogEvent("Photosynthesis Unlocked", "Une protocellule a atteint un niveau métabolique élevé !");
