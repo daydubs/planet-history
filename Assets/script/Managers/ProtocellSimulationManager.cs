@@ -124,6 +124,24 @@ public class PrebioticZone
             return sum / protocells.Count;
         }
     }
+
+    public float EvolutionProgress
+    {
+        get
+        {
+            if (protocells.Count == 0) return 0f;
+            float maxProgress = 0f;
+            foreach (var c in protocells)
+            {
+                float effProg = Mathf.Clamp01(c.energyEfficiency / 1.5f);
+                float radProg = Mathf.Clamp01(c.radiationResistance / 0.5f);
+                float permProg = Mathf.Clamp01(c.permeability / 0.4f);
+                float cellProgress = (effProg + radProg + permProg) / 3f;
+                if (cellProgress > maxProgress) maxProgress = cellProgress;
+            }
+            return maxProgress;
+        }
+    }
 }
 
 public class ProtocellSimulationManager : MonoBehaviour

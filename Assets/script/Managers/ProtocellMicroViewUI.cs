@@ -27,6 +27,10 @@ public class ProtocellMicroViewUI : MonoBehaviour
     [SerializeField] private GameObject infoPanel;
     [SerializeField] private Button closeInfoButton;
 
+    // Evolution Progress Bar
+    private RectTransform progressBarFill;
+    private TextMeshProUGUI progressText;
+
     // Viewport Texture & 2D Simulation Rendering
     private Texture2D viewportTexture;
     private Color32[] viewportPixels;
@@ -231,6 +235,46 @@ public class ProtocellMicroViewUI : MonoBehaviour
         populationStatsText.fontSize = 13.5f;
         populationStatsText.lineSpacing = 3f;
         populationStatsText.color = new Color(0.35f, 0.92f, 0.65f, 1f);
+
+        // Evolution Progress Bar Container
+        GameObject progContainer = new GameObject("EvolutionProgressContainer", typeof(RectTransform));
+        progContainer.transform.SetParent(popCardGo.transform, false);
+
+        VerticalLayoutGroup progLayout = progContainer.AddComponent<VerticalLayoutGroup>();
+        progLayout.spacing = 2f;
+        progLayout.childControlWidth = true;
+        progLayout.childControlHeight = false;
+
+        LayoutElement progContainerLayout = progContainer.AddComponent<LayoutElement>();
+        progContainerLayout.minHeight = 25f;
+        progContainerLayout.preferredHeight = 25f;
+
+        GameObject progHeader = new GameObject("ProgHeader", typeof(RectTransform));
+        progHeader.transform.SetParent(progContainer.transform, false);
+        progressText = progHeader.AddComponent<TextMeshProUGUI>();
+        progressText.text = "Évolution vers Photosynthèse : 0%";
+        progressText.fontSize = 12f;
+        progressText.color = new Color(0.8f, 0.85f, 0.9f, 1f);
+
+        GameObject progBarBg = new GameObject("ProgBarBg", typeof(RectTransform));
+        progBarBg.transform.SetParent(progContainer.transform, false);
+        Image progBgImg = progBarBg.AddComponent<Image>();
+        progBgImg.color = new Color(0.1f, 0.1f, 0.15f, 1f);
+
+        LayoutElement progBarLayout = progBarBg.AddComponent<LayoutElement>();
+        progBarLayout.minHeight = 10f;
+        progBarLayout.preferredHeight = 10f;
+
+        GameObject progBarFillGo = new GameObject("ProgBarFill", typeof(RectTransform));
+        progBarFillGo.transform.SetParent(progBarBg.transform, false);
+        Image progFillImg = progBarFillGo.AddComponent<Image>();
+        progFillImg.color = new Color(0.95f, 0.75f, 0.2f, 1f); // Golden yellow
+
+        progressBarFill = progBarFillGo.GetComponent<RectTransform>();
+        progressBarFill.anchorMin = new Vector2(0f, 0f);
+        progressBarFill.anchorMax = new Vector2(0f, 1f); // Starts empty
+        progressBarFill.sizeDelta = new Vector2(0f, 0f);
+        progressBarFill.anchoredPosition = Vector2.zero;
 
         // Control Section Header
         GameObject ctrlHeaderGo = new GameObject("CtrlHeaderLabel", typeof(RectTransform));
@@ -525,6 +569,29 @@ public class ProtocellMicroViewUI : MonoBehaviour
                 $" • Diversité Génétique : <b>{zone.GeneticDiversity * 100f:F1}%</b>\n" +
                 $" • Perméabilité Membranaire : <b>{zone.MeanPermeability:F2}</b> <color=#A0B0C0>(cible: 0.40-0.60)</color>\n" +
                 $" • Efficacité Métabolique : <b>{zone.MeanEnergyEfficiency:F2}</b>";
+        }
+
+        if (progressBarFill != null && progressText != null)
+        {
+            float prog = zone.EvolutionProgress;
+            if (GameManager.Instance != null && GameManager.Instance.IsPhotosynthesisUnlocked)
+            {
+                prog = 1f;
+            }
+
+            progressBarFill.anchorMax = new Vector2(prog, 1f);
+            progressText.text = $"Évolution vers Photosynthèse : {prog * 100f:F0}%";
+
+            if (prog >= 1f)
+            {
+                progressText.color = new Color(0.35f, 0.92f, 0.65f, 1f); // Green when complete
+                progressBarFill.GetComponent<Image>().color = new Color(0.35f, 0.92f, 0.65f, 1f);
+            }
+            else
+            {
+                progressText.color = new Color(0.8f, 0.85f, 0.9f, 1f); // Default light blue/grey
+                progressBarFill.GetComponent<Image>().color = new Color(0.95f, 0.75f, 0.2f, 1f); // Golden yellow
+            }
         }
 
         if (feedNutrientsButton != null && PrebioticMiniGameController.Instance != null)
