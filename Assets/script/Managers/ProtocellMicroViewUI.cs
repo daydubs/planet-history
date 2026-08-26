@@ -607,7 +607,7 @@ public class ProtocellMicroViewUI : MonoBehaviour
         if (ProtocellSimulationManager.Instance == null) return;
         PrebioticZone zone = ProtocellSimulationManager.Instance.SelectedZone;
         if (zone == null) return;
-
+        float prog = zone.EvolutionProgress;
         if (zoneTitleText != null)
         {
             zoneTitleText.text = $"🔬 VUE MICRO-BIOTIQUE : {zone.name.ToUpper()}";
@@ -630,10 +630,10 @@ public class ProtocellMicroViewUI : MonoBehaviour
                 $" • Perméabilité Membranaire : <b>{zone.MeanPermeability:F2}</b> <color=#A0B0C0>(cible: 0.40-0.60)</color>\n" +
                 $" • Efficacité Métabolique : <b>{zone.MeanEnergyEfficiency:F2}</b>";
         }
-
+        
         if (progressBarFill != null && progressText != null)
         {
-            float prog = zone.EvolutionProgress;
+            
             if (GameManager.Instance != null && GameManager.Instance.IsPhotosynthesisUnlocked)
             {
                 prog = 1f;
