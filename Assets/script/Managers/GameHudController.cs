@@ -136,6 +136,11 @@ public class GameHudController : MonoBehaviour
     private float lastMinimapWaterRatio = -1f;
     private float lastMinimapZoom = -1f;
     private Vector2 lastMinimapPanOffset = new Vector2(-999f, -999f);
+    private Color lastMinimapOceanColor = Color.clear;
+    private Color lastMinimapShoreColor = Color.clear;
+    private Color lastMinimapLandColor = Color.clear;
+    private Color lastMinimapMountainColor = Color.clear;
+    private Color lastMinimapIceColor = Color.clear;
 
     [Header("Palette (Hex)")]
     [SerializeField] private string hadeanHex = "#D1495B";
@@ -273,11 +278,15 @@ public class GameHudController : MonoBehaviour
     private CubeSphereTerrain cachedTerrain;
     private bool minimapExpanded = true;
 
-    private static readonly float oceanR = 0.02f, oceanG = 0.12f, oceanB = 0.32f;
-    private static readonly float shoreR = 0.72f, shoreG = 0.68f, shoreB = 0.45f;
-    private static readonly float landR = 0.16f, landG = 0.35f, landB = 0.14f;
-    private static readonly float mtnR = 0.38f, mtnG = 0.33f, mtnB = 0.29f;
-    private static readonly float iceR = 0.92f, iceG = 0.95f, iceB = 1.0f;
+    public struct MinimapPalette
+    {
+        public Color Ocean;
+        public Color Shore;
+        public Color Land;
+        public Color Mountain;
+        public Color Ice;
+    }
+
     private static readonly float dryShoreR = 0.12f, dryShoreG = 0.12f, dryShoreB = 0.13f;
     private static readonly float dryLandR = 0.18f, dryLandG = 0.18f, dryLandB = 0.20f;
     private static readonly float dryMtnR = 0.35f, dryMtnG = 0.35f, dryMtnB = 0.35f;
@@ -577,25 +586,49 @@ public class GameHudController : MonoBehaviour
         float surfaceTemp = gameManager != null ? gameManager.SurfaceTemperature : 1800f;
         float waterRatio = gameManager != null ? gameManager.WaterRatio : 0f;
 
-        // Skip regeneration if parameters haven't changed and not forced
-        if (!force && !isMinimapDirty &&
-            Mathf.Approximately(surfaceTemp, lastMinimapSurfaceTemp) &&
-            Mathf.Approximately(waterRatio, lastMinimapWaterRatio) &&
-            Mathf.Approximately(minimapZoom, lastMinimapZoom) &&
-            Vector2.Distance(minimapPanOffset, lastMinimapPanOffset) < 1e-4f)
-        {
-            return;
-        }
-
-        minimapRefreshTimer = 0f;
-        isMinimapDirty = false;
-
         if (cachedTerrain == null)
         {
             cachedTerrain = FindAnyObjectByType<CubeSphereTerrain>();
         }
 
         if (cachedTerrain == null || cachedTerrain.Field == null) return;
+
+        MinimapPalette currentPalette = new MinimapPalette
+        {
+            Ocean = new Color(0.02f, 0.12f, 0.32f, 1f),
+            Shore = new Color(0.72f, 0.68f, 0.45f, 1f),
+            Land = new Color(0.16f, 0.35f, 0.14f, 1f),
+            Mountain = new Color(0.38f, 0.33f, 0.29f, 1f),
+            Ice = new Color(0.92f, 0.95f, 1.0f, 1f)
+        };
+
+        if (cachedTerrain.CurrentMaterial != null)
+        {
+            Material mat = cachedTerrain.CurrentMaterial;
+            if (mat.HasProperty("_OceanColor")) currentPalette.Ocean = mat.GetColor("_OceanColor");
+            if (mat.HasProperty("_ShoreColor")) currentPalette.Shore = mat.GetColor("_ShoreColor");
+            if (mat.HasProperty("_LandColor")) currentPalette.Land = mat.GetColor("_LandColor");
+            if (mat.HasProperty("_MountainColor")) currentPalette.Mountain = mat.GetColor("_MountainColor");
+            if (mat.HasProperty("_IceColor")) currentPalette.Ice = mat.GetColor("_IceColor");
+        }
+
+        // Skip regeneration if parameters haven't changed and not forced
+        if (!force && !isMinimapDirty &&
+            Mathf.Approximately(surfaceTemp, lastMinimapSurfaceTemp) &&
+            Mathf.Approximately(waterRatio, lastMinimapWaterRatio) &&
+            Mathf.Approximately(minimapZoom, lastMinimapZoom) &&
+            Vector2.Distance(minimapPanOffset, lastMinimapPanOffset) < 1e-4f &&
+            currentPalette.Ocean == lastMinimapOceanColor &&
+            currentPalette.Shore == lastMinimapShoreColor &&
+            currentPalette.Land == lastMinimapLandColor &&
+            currentPalette.Mountain == lastMinimapMountainColor &&
+            currentPalette.Ice == lastMinimapIceColor)
+        {
+            return;
+        }
+
+        minimapRefreshTimer = 0f;
+        isMinimapDirty = false;
 
         PlanetHeightField field = cachedTerrain.Field;
         int width = Mathf.Clamp(minimapWidth, 32, 512);
@@ -616,6 +649,11 @@ public class GameHudController : MonoBehaviour
         lastMinimapWaterRatio = waterRatio;
         lastMinimapZoom = minimapZoom;
         lastMinimapPanOffset = minimapPanOffset;
+        lastMinimapOceanColor = currentPalette.Ocean;
+        lastMinimapShoreColor = currentPalette.Shore;
+        lastMinimapLandColor = currentPalette.Land;
+        lastMinimapMountainColor = currentPalette.Mountain;
+        lastMinimapIceColor = currentPalette.Ice;
 
         float fieldWidth = field.Width;
         float fieldHeight = field.Height;
@@ -650,7 +688,7 @@ public class GameHudController : MonoBehaviour
                 int fieldX = Mathf.Clamp(Mathf.RoundToInt(u * maxFieldX), 0, (int)maxFieldX);
 
                 float h = field.GetCurrent(fieldX, fieldY);
-                minimapPixels32[x + rowOffset] = EvaluateHeightAlbedoFast(h, lat01, waterRatio, lavaMask, evaluateLava, evaluateWater, waterLevel);
+                minimapPixels32[x + rowOffset] = EvaluateHeightAlbedoFast(h, lat01, waterRatio, lavaMask, evaluateLava, evaluateWater, waterLevel, currentPalette);
             }
         }
 
@@ -701,18 +739,18 @@ public class GameHudController : MonoBehaviour
         minimapTexture.Apply(false, false);
     }
 
-    private static Color32 EvaluateHeightAlbedoFast(float height, float latitude01, float waterRatio, float lavaMask, bool evaluateLava, bool evaluateWater, float waterLevel)
+    private static Color32 EvaluateHeightAlbedoFast(float height, float latitude01, float waterRatio, float lavaMask, bool evaluateLava, bool evaluateWater, float waterLevel, MinimapPalette palette)
     {
         float tShoreLand = SmoothStep(0.08f, 0.35f, height);
         float tLandMtn = SmoothStep(0.35f, 0.70f, height);
 
-        float stdLandR = shoreR + (landR - shoreR) * tShoreLand;
-        float stdLandG = shoreG + (landG - shoreG) * tShoreLand;
-        float stdLandB = shoreB + (landB - shoreB) * tShoreLand;
+        float stdLandR = palette.Shore.r + (palette.Land.r - palette.Shore.r) * tShoreLand;
+        float stdLandG = palette.Shore.g + (palette.Land.g - palette.Shore.g) * tShoreLand;
+        float stdLandB = palette.Shore.b + (palette.Land.b - palette.Shore.b) * tShoreLand;
 
-        float stdMtnR = stdLandR + (mtnR - stdLandR) * tLandMtn;
-        float stdMtnG = stdLandG + (mtnG - stdLandG) * tLandMtn;
-        float stdMtnB = stdLandB + (mtnB - stdLandB) * tLandMtn;
+        float stdMtnR = stdLandR + (palette.Mountain.r - stdLandR) * tLandMtn;
+        float stdMtnG = stdLandG + (palette.Mountain.g - stdLandG) * tLandMtn;
+        float stdMtnB = stdLandB + (palette.Mountain.b - stdLandB) * tLandMtn;
 
         float volLandR = dryShoreR + (dryLandR - dryShoreR) * tShoreLand;
         float volLandG = dryShoreG + (dryLandG - dryShoreG) * tShoreLand;
@@ -731,9 +769,9 @@ public class GameHudController : MonoBehaviour
             float ice = SmoothStep(0.74f, 0.90f, latitude01) * waterRatio;
             if (ice > 0.001f)
             {
-                finalR += (iceR - finalR) * ice;
-                finalG += (iceG - finalG) * ice;
-                finalB += (iceB - finalB) * ice;
+                finalR += (palette.Ice.r - finalR) * ice;
+                finalG += (palette.Ice.g - finalG) * ice;
+                finalB += (palette.Ice.b - finalB) * ice;
             }
         }
 
@@ -756,9 +794,9 @@ public class GameHudController : MonoBehaviour
             if (depth > 0f)
             {
                 float waterBlend = Mathf.Clamp01(depth * 100f);
-                finalR += (oceanR - finalR) * waterBlend;
-                finalG += (oceanG - finalG) * waterBlend;
-                finalB += (oceanB - finalB) * waterBlend;
+                finalR += (palette.Ocean.r - finalR) * waterBlend;
+                finalG += (palette.Ocean.g - finalG) * waterBlend;
+                finalB += (palette.Ocean.b - finalB) * waterBlend;
             }
         }
 
