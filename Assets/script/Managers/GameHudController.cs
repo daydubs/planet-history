@@ -1439,17 +1439,28 @@ public class GameHudController : MonoBehaviour
         {
             sessionText.enableAutoSizing = false;
             sessionText.fontSize = 15f;
-            sessionText.text = $"Progression: {gameManager.SessionProgress * 100f:0.0}%";
+            float ageYears = gameManager.SimulatedYears;
+            if (ageYears >= 1_000_000_000f)
+                sessionText.text = $"Âge : {ageYears / 1_000_000_000f:0.00} Milliards d'années";
+            else if (ageYears >= 1_000_000f)
+                sessionText.text = $"Âge : {ageYears / 1_000_000f:0.0} Millions d'années";
+            else
+                sessionText.text = $"Âge : {ageYears:0} Années";
         }
 
-        float remainingHours = gameManager.SessionRemainingHoursAtCurrentSpeed;
         if (remainingTimeText != null)
         {
             remainingTimeText.enableAutoSizing = false;
             remainingTimeText.fontSize = 15f;
-            remainingTimeText.text = float.IsInfinity(remainingHours)
-                ? "Temps restant: infini (pause vitesse)"
-                : $"Temps restant: {remainingHours:0.00} h";
+            float yearsPerSec = gameManager.SimulatedYearsPerRealSecond;
+            if (yearsPerSec <= 0f || gameManager.IsPaused)
+                remainingTimeText.text = "Vitesse : En pause";
+            else if (yearsPerSec >= 1_000_000f)
+                remainingTimeText.text = $"Vitesse : {yearsPerSec / 1_000_000f:0.0} M années / sec";
+            else if (yearsPerSec >= 1_000f)
+                remainingTimeText.text = $"Vitesse : {yearsPerSec / 1_000f:0.0} k années / sec";
+            else
+                remainingTimeText.text = $"Vitesse : {yearsPerSec:0} années / sec";
         }
 
         if (internalTempText != null)
@@ -1528,7 +1539,7 @@ public class GameHudController : MonoBehaviour
                 $" • O2 (Oxygène) : {gameManager.OxygenPressure:0.00} atm ({o2Pct:0.1}%)";
         }
 
-        if (sessionSlider != null) sessionSlider.value = gameManager.SessionProgress;
+        if (sessionSlider != null) sessionSlider.value = Mathf.Clamp01(gameManager.SimulatedYears / 4_500_000_000f);
         if (waterSlider != null) waterSlider.value = gameManager.WaterRatio;
         if (tectonicSlider != null) tectonicSlider.value = gameManager.TectonicActivity;
 
