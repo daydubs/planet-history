@@ -150,6 +150,8 @@ public class CubeSphereTerrain : MonoBehaviour
     public float HeightScale => heightScale;
     public ContinentalPiece[] ContinentalPieces => continentalPieces;
 
+    public Material CurrentMaterial => instantiatedMaterial != null ? instantiatedMaterial : (meshRenderer != null ? meshRenderer.sharedMaterial : null);
+
     private void Start()
     {
         InitializeContinentalPieces();
