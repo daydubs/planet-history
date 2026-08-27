@@ -205,6 +205,12 @@ public class GameHudController : MonoBehaviour
             microObj.AddComponent<ProtocellMicroViewUI>();
         }
 
+        if (FindAnyObjectByType<LifeEvolutionWindowUI>() == null)
+        {
+            GameObject lifeWindowObj = new GameObject("LifeEvolutionWindowUI");
+            lifeWindowObj.AddComponent<LifeEvolutionWindowUI>();
+        }
+
         // Dynamically attach GameMenuController to scene if missing
         if (FindAnyObjectByType<GameMenuController>() == null && GameMenuController.Instance == null)
         {
