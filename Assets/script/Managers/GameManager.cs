@@ -116,6 +116,8 @@ public class GameManager : MonoBehaviour
     }
     public bool NoPlayerBaseline => noPlayerBaseline;
     public float SessionDurationHours => GetSessionDurationHours();
+    public float SimulatedYears => simulationTimeSeconds * 300f;
+    public float SimulatedYearsPerRealSecond => GetSimulationUnitsPerRealSecond() * 300f;
     public float SessionProgress => Mathf.Clamp01(simulationTimeSeconds / baselineSimulationUnits);
     public float SessionRemainingHoursAtCurrentSpeed
     {
@@ -236,7 +238,6 @@ public class GameManager : MonoBehaviour
 
         float dt = Time.deltaTime * GetSimulationUnitsPerRealSecond();
         simulationTimeSeconds += dt;
-        simulationTimeSeconds = Mathf.Min(simulationTimeSeconds, baselineSimulationUnits);
 
         SimulateTemperatures(dt);
         SimulatePressure(dt);
