@@ -165,6 +165,7 @@ public class GameManager : MonoBehaviour
         EnsureAudioManager();
         EnsureAtmosphereManager();
         EnsureMicrobeManager();
+        EnsureWindAndCurrentManager();
         InitializeCsvLogger();
     }
 
@@ -218,6 +219,14 @@ public class GameManager : MonoBehaviour
         {
             GameObject microbeMgrObj = new GameObject("MicrobeManager");
             microbeMgrObj.AddComponent<MicrobeManager>();
+        }
+    }
+
+    private void EnsureWindAndCurrentManager()
+    {
+        if (WindAndCurrentManager.Instance == null && GetComponent<WindAndCurrentManager>() == null)
+        {
+            gameObject.AddComponent<WindAndCurrentManager>();
         }
     }
 
