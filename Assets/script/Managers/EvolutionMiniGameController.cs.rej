@@ -1,0 +1,10 @@
+--- Assets/script/Managers/EvolutionMiniGameController.cs
++++ Assets/script/Managers/EvolutionMiniGameController.cs
+@@ -10,6 +10,7 @@
+     public static EvolutionMiniGameController Instance { get; private set; }
+
+     private GameObject mainPanel;
+     private RectTransform gameArea;
++    private RectTransform visualizerArea;
+     private TMP_Text instructionText;
+     private System.Action onWinCallback;
