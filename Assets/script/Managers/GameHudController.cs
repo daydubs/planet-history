@@ -1148,6 +1148,21 @@ public class GameHudController : MonoBehaviour
                     PrebioticMiniGameController.Instance.TriggerUvCatalysis();
             });
 
+        CreatePrebioticActionButton(
+            btnRowGo.transform,
+            "🧬 Évolution",
+            "Fenêtre d'Évolution",
+            "Ouvre la fenêtre détaillant les étapes de l'évolution de la vie et permet d'accéder aux mini-jeux de l'endosymbiose et de la multicellularité.",
+            new Color(0.6f, 0.2f, 0.6f, 1f),
+            () =>
+            {
+                var lifeWindow = FindAnyObjectByType<LifeEvolutionWindowUI>();
+                if (lifeWindow != null)
+                {
+                    lifeWindow.ToggleLifeWindow();
+                }
+            });
+
         Canvas.ForceUpdateCanvases();
         LayoutRebuilder.ForceRebuildLayoutImmediate(hudRoot);
     }
