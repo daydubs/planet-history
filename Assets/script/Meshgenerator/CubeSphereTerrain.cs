@@ -1031,7 +1031,7 @@ public class CubeSphereTerrain : MonoBehaviour
         // 2. Handle drift during TectonicDrift and subsequent epochs (e.g., Prebiotic)
         if (epoch >= PlanetEpoch.TectonicDrift && simDt > 0f)
         {
-            // Speed factor: full rush speed during TectonicDrift epoch (which spans waterRatio 0.10 to 1.00 for an extended 3x longer rapid drift duration before slowing down in Prebiotic epoch)
+            // Speed factor: full rush speed during TectonicDrift epoch (which spans waterRatio 0.10 to 1.00 for an extended rapid drift duration before slowing down in Prebiotic epoch)
             float tectonicFactor = GameManager.Instance != null ? Mathf.Clamp01(GameManager.Instance.TectonicActivity / 0.23f) : 1f;
             float speedFactor = (epoch == PlanetEpoch.TectonicDrift) ? 1.0f : (0.20f * tectonicFactor);
 
