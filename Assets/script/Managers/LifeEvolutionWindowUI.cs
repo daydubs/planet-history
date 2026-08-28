@@ -22,7 +22,8 @@ public class LifeEvolutionWindowUI : MonoBehaviour
         "<b>L'événement clé :</b> Une cellule hôte (probablement une archée) a englobé une bactérie aérobie (capable d'utiliser l'oxygène) par un processus de phagocytose, mais sans la digérer.",
         "<b>Symbiose :</b> Au lieu de mourir, la bactérie a survécu à l'intérieur. Elle fournissait à l'hôte une énergie bien plus efficace (grâce à la respiration cellulaire), tandis que l'hôte offrait protection et nutriments.",
         "<b>Évolution en organites :</b> Avec le temps, cette bactérie endosymbiotique est devenue la mitochondrie, le \"moteur\" de la cellule. Plus tard, certaines cellules ont intégré des cyanobactéries, donnant naissance aux chloroplastes chez les plantes et les algues.",
-        "<b>Formation du noyau :</b> Parallèlement, des invaginations de la membrane plasmique de la cellule hôte se seraient repliées vers l'intérieur, entourant le matériel génétique (ADN) pour former la membrane nucléaire. Cela a protégé l'ADN et permis une régulation plus fine de l'expression des gènes."
+        "<b>Formation du noyau :</b> Parallèlement, des invaginations de la membrane plasmique de la cellule hôte se seraient repliées vers l'intérieur, entourant le matériel génétique (ADN) pour former la membrane nucléaire. Cela a protégé l'ADN et permis une régulation plus fine de l'expression des gènes.",
+        "<b>Vers la Multicellularité :</b> La division cellulaire contrôlée (mitose), la communication via des jonctions, et la différenciation cellulaire ont permis de passer d'organismes unicellulaires à des entités multicellulaires plus complexes."
     };
 
     private void Start()
@@ -59,6 +60,15 @@ public class LifeEvolutionWindowUI : MonoBehaviour
         {
             GameObject go = new GameObject("EvolutionMiniGameController");
             go.AddComponent<EvolutionMiniGameController>();
+        }
+    }
+
+    private void EnsureMulticellularityMiniGameExists()
+    {
+        if (MulticellularityMiniGameController.Instance == null)
+        {
+            GameObject go = new GameObject("MulticellularityMiniGameController");
+            go.AddComponent<MulticellularityMiniGameController>();
         }
     }
 
@@ -191,7 +201,17 @@ public class LifeEvolutionWindowUI : MonoBehaviour
 
         if (tryEvolutionButton != null)
         {
-            tryEvolutionButton.gameObject.SetActive(currentStepIndex == 1 || currentStepIndex == 2);
+            bool showButton = (currentStepIndex == 1 || currentStepIndex == 2 || currentStepIndex == 5);
+            tryEvolutionButton.gameObject.SetActive(showButton);
+
+            TextMeshProUGUI btnText = tryEvolutionButton.GetComponentInChildren<TextMeshProUGUI>();
+            if (btnText != null)
+            {
+                if (currentStepIndex == 5)
+                    btnText.text = "Explorer la Multicellularité";
+                else
+                    btnText.text = "Essayer l'évolution (Mini-jeu)";
+            }
         }
 
         if (prevButton != null)
@@ -225,15 +245,27 @@ public class LifeEvolutionWindowUI : MonoBehaviour
 
     private void OnTryEvolution()
     {
-        EnsureMiniGameControllerExists();
         HideLifeWindow();
-        EvolutionMiniGameController.Instance.StartMiniGame(() => {
-            ShowLifeWindow();
-            if (currentStepIndex < evolutionSteps.Count - 1)
-            {
-                OnNextStep(); // advance to next step after success
-            }
-        });
+
+        if (currentStepIndex == 5)
+        {
+            EnsureMulticellularityMiniGameExists();
+            MulticellularityMiniGameController.Instance.StartMiniGame(() => {
+                ShowLifeWindow();
+                // Optionally advance or show a final message
+            });
+        }
+        else
+        {
+            EnsureMiniGameControllerExists();
+            EvolutionMiniGameController.Instance.StartMiniGame(() => {
+                ShowLifeWindow();
+                if (currentStepIndex < evolutionSteps.Count - 1)
+                {
+                    OnNextStep(); // advance to next step after success
+                }
+            });
+        }
     }
 
     public void ShowLifeWindow()
