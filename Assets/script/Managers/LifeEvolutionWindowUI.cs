@@ -11,6 +11,7 @@ public class LifeEvolutionWindowUI : MonoBehaviour
     private Button prevButton;
     private Button nextButton;
     private Button closeButton;
+    private Button tryEvolutionButton;
 
     private int currentStepIndex = 0;
     private bool hasOpenedOnce = false;
@@ -49,6 +50,15 @@ public class LifeEvolutionWindowUI : MonoBehaviour
         {
             ShowLifeWindow();
             hasOpenedOnce = true;
+        }
+    }
+
+    private void EnsureMiniGameControllerExists()
+    {
+        if (EvolutionMiniGameController.Instance == null)
+        {
+            GameObject go = new GameObject("EvolutionMiniGameController");
+            go.AddComponent<EvolutionMiniGameController>();
         }
     }
 
@@ -118,6 +128,12 @@ public class LifeEvolutionWindowUI : MonoBehaviour
         bodyElem.minHeight = 120f;
         bodyElem.flexibleHeight = 1f;
 
+        // Try Evolution Button
+        tryEvolutionButton = CreateButton(lifeWindowPanel.transform, "Essayer l'évolution (Mini-jeu)", OnTryEvolution, new Color(0.2f, 0.6f, 0.2f, 1f));
+        LayoutElement tryBtnElem = tryEvolutionButton.gameObject.AddComponent<LayoutElement>();
+        tryBtnElem.minHeight = 40f;
+        tryBtnElem.preferredHeight = 40f;
+
         // Controls Row
         GameObject controlsRow = new GameObject("ControlsRow", typeof(RectTransform));
         controlsRow.transform.SetParent(lifeWindowPanel.transform, false);
@@ -173,6 +189,11 @@ public class LifeEvolutionWindowUI : MonoBehaviour
             explanationText.text = evolutionSteps[currentStepIndex];
         }
 
+        if (tryEvolutionButton != null)
+        {
+            tryEvolutionButton.gameObject.SetActive(currentStepIndex == 1 || currentStepIndex == 2);
+        }
+
         if (prevButton != null)
         {
             prevButton.interactable = currentStepIndex > 0;
@@ -200,6 +221,19 @@ public class LifeEvolutionWindowUI : MonoBehaviour
             currentStepIndex--;
             UpdateStepUI();
         }
+    }
+
+    private void OnTryEvolution()
+    {
+        EnsureMiniGameControllerExists();
+        HideLifeWindow();
+        EvolutionMiniGameController.Instance.StartMiniGame(() => {
+            ShowLifeWindow();
+            if (currentStepIndex < evolutionSteps.Count - 1)
+            {
+                OnNextStep(); // advance to next step after success
+            }
+        });
     }
 
     public void ShowLifeWindow()
