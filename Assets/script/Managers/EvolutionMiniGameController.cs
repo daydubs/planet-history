@@ -8,6 +8,8 @@ public class EvolutionMiniGameController : MonoBehaviour
 {
     public static EvolutionMiniGameController Instance { get; private set; }
 
+    private Material cellMaterial;
+
     private GameObject mainPanel;
     private RectTransform gameArea;
     private TMP_Text instructionText;
@@ -69,7 +71,21 @@ public class EvolutionMiniGameController : MonoBehaviour
         if (Instance == null) Instance = this;
         else { Destroy(gameObject); return; }
 
+        LoadMaterials();
         CreateUI();
+    }
+
+    private void LoadMaterials()
+    {
+        Shader wobbleShader = Resources.Load<Shader>("Shaders/UIWobblyCell");
+        if (wobbleShader != null)
+        {
+            cellMaterial = new Material(wobbleShader);
+        }
+        else
+        {
+            Debug.LogError("Failed to load Shaders/UIWobblyCell shader!");
+        }
     }
 
     private void CreateUI()
@@ -218,7 +234,7 @@ public class EvolutionMiniGameController : MonoBehaviour
         atpParticles.Clear();
     }
 
-    private RectTransform CreateEntity(string name, Vector2 size, Color color)
+    private RectTransform CreateEntity(string name, Vector2 size, Color color, bool applyWobble = true)
     {
         GameObject go = new GameObject(name, typeof(RectTransform));
         go.transform.SetParent(gameArea, false);
@@ -228,6 +244,12 @@ public class EvolutionMiniGameController : MonoBehaviour
         rt.sizeDelta = size;
         Image img = go.AddComponent<Image>();
         img.color = color;
+
+        if (applyWobble && cellMaterial != null)
+        {
+            img.material = cellMaterial;
+        }
+
         return rt;
     }
 
@@ -284,6 +306,11 @@ public class EvolutionMiniGameController : MonoBehaviour
         cell.membrane = cellGo.AddComponent<Image>();
         cell.membrane.color = new Color(0.2f, 0.8f, 0.8f, 0.5f);
 
+        if (cellMaterial != null)
+        {
+            cell.membrane.material = cellMaterial;
+        }
+
         cell.glow = cellGo.AddComponent<UnityEngine.UI.Outline>();
         cell.glow.effectColor = new Color(1f, 1f, 0.5f, 0.8f);
         cell.glow.effectDistance = new Vector2(2, -2);
@@ -296,6 +323,10 @@ public class EvolutionMiniGameController : MonoBehaviour
         cell.nucleusRt.sizeDelta = new Vector2(10, 10);
         cell.nucleus = nucGo.AddComponent<Image>();
         cell.nucleus.color = new Color(0.2f, 0.2f, 0.8f, 0.8f);
+        if (cellMaterial != null)
+        {
+            cell.nucleus.material = cellMaterial;
+        }
         cell.nucleus.gameObject.SetActive(false);
 
         cell.velocity = Random.insideUnitCircle.normalized * Random.Range(20f, 40f);
@@ -323,6 +354,7 @@ public class EvolutionMiniGameController : MonoBehaviour
             bactRt.anchoredPosition = new Vector2(10, 10);
             Image bactImg = bactGo.AddComponent<Image>();
             bactImg.color = new Color(0.8f, 0.1f, 0.1f, 1f);
+            if (cellMaterial != null) bactImg.material = cellMaterial;
             cell.engulfedBacteria.Add(bactRt);
         }
         if (phaseLevel >= 3 && cell.connections.Count == 0)
@@ -478,7 +510,7 @@ public class EvolutionMiniGameController : MonoBehaviour
         if (atpSpawnTimer > 1f)
         {
             atpSpawnTimer = 0f;
-            RectTransform atp = CreateEntity("ATP", new Vector2(15, 15), Color.yellow);
+            RectTransform atp = CreateEntity("ATP", new Vector2(15, 15), Color.yellow, false); // No wobble for ATP particles
             atp.anchoredPosition = new Vector2(Random.Range(-280, 280), Random.Range(-280, 280));
             atpParticles.Add(atp);
             Destroy(atp.gameObject, 3f); // Disappear quickly
