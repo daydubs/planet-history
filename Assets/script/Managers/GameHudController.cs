@@ -1098,7 +1098,8 @@ public class GameHudController : MonoBehaviour
                 {
                     ProtocellMicroViewUI.Instance.ToggleMicroView();
                 }
-            });
+            },
+            false);
 
         CreatePrebioticActionButton(
             btnRowGo.transform,
@@ -1161,13 +1162,14 @@ public class GameHudController : MonoBehaviour
                 {
                     lifeWindow.ToggleLifeWindow();
                 }
-            });
+            },
+            false);
 
         Canvas.ForceUpdateCanvases();
         LayoutRebuilder.ForceRebuildLayoutImmediate(hudRoot);
     }
 
-    private void CreatePrebioticActionButton(Transform parent, string title, string tooltipTitle, string tooltipBody, Color btnColor, UnityEngine.Events.UnityAction action)
+    private void CreatePrebioticActionButton(Transform parent, string title, string tooltipTitle, string tooltipBody, Color btnColor, UnityEngine.Events.UnityAction action, bool disableOutsidePrebiotic = true)
     {
         GameObject buttonGo = new GameObject($"Btn_{title}", typeof(RectTransform));
         buttonGo.transform.SetParent(parent, false);
@@ -1177,7 +1179,10 @@ public class GameHudController : MonoBehaviour
 
         Button button = buttonGo.AddComponent<Button>();
         button.targetGraphic = buttonImage;
-        prebioticActionButtons.Add(button);
+        if (disableOutsidePrebiotic)
+        {
+            prebioticActionButtons.Add(button);
+        }
 
         UIHoverTooltipTrigger hoverTrigger = buttonGo.AddComponent<UIHoverTooltipTrigger>();
         hoverTrigger.title = tooltipTitle;
