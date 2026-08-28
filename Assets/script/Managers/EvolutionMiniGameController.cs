@@ -18,14 +18,19 @@ public class EvolutionMiniGameController : MonoBehaviour
         public Image membrane;
         public RectTransform nucleusRt;
         public Image nucleus;
+        public UnityEngine.UI.Outline glow;
         public System.Collections.Generic.List<RectTransform> engulfedBacteria = new System.Collections.Generic.List<RectTransform>();
         public System.Collections.Generic.List<RectTransform> connections = new System.Collections.Generic.List<RectTransform>();
+        public System.Collections.Generic.List<RectTransform> internalParticles = new System.Collections.Generic.List<RectTransform>();
         public Vector2 velocity;
         public float divisionTimer;
         public int phaseLevel;
+        public Vector2 targetSize = new Vector2(40, 40);
     }
     private System.Collections.Generic.List<VisualCell> visualCells = new System.Collections.Generic.List<VisualCell>();
     private System.Action onWinCallback;
+    public int highestCompletedPhase = 1;
+    private int highestActivePhase = 1;
 
     private enum MinigamePhase { None, Phase1_Pursuit, Phase2_Engulfment, Phase3_Symbiosis, Phase4_Success }
     private MinigamePhase currentPhase = MinigamePhase.None;
@@ -93,11 +98,11 @@ public class EvolutionMiniGameController : MonoBehaviour
         Image areaBg = gameArea.gameObject.AddComponent<Image>();
         areaBg.color = new Color(0.05f, 0.1f, 0.15f, 1f);
         visualizerArea = new GameObject("VisualizerArea", typeof(RectTransform)).GetComponent<RectTransform>();
-        visualizerArea.transform.SetParent(mainPanel.transform, false);
-        visualizerArea.anchorMin = new Vector2(1f, 0.5f);
-        visualizerArea.anchorMax = new Vector2(1f, 0.5f);
-        visualizerArea.sizeDelta = new Vector2(400, 600);
-        visualizerArea.anchoredPosition = new Vector2(-220, 0);
+        visualizerArea.transform.SetParent(canvas.transform, false);
+        visualizerArea.anchorMin = new Vector2(1f, 0f);
+        visualizerArea.anchorMax = new Vector2(1f, 0f);
+        visualizerArea.sizeDelta = new Vector2(350, 450);
+        visualizerArea.anchoredPosition = new Vector2(-185, 235);
         Image visBg = visualizerArea.gameObject.AddComponent<Image>();
         visBg.color = new Color(0.02f, 0.05f, 0.1f, 1f);
         GameObject visTextObj = new GameObject("VisTitle", typeof(RectTransform));
@@ -239,6 +244,16 @@ public class EvolutionMiniGameController : MonoBehaviour
 
     private void Update()
     {
+        int currentLevel = 1;
+        if (currentPhase == MinigamePhase.Phase2_Engulfment) currentLevel = 2;
+        else if (currentPhase == MinigamePhase.Phase3_Symbiosis) currentLevel = 3;
+        else if (currentPhase == MinigamePhase.Phase4_Success) currentLevel = 4;
+
+        highestActivePhase = UnityEngine.Mathf.Max(highestActivePhase, currentLevel);
+        int targetPhaseLevel = UnityEngine.Mathf.Max(highestCompletedPhase, highestActivePhase);
+
+        UpdateVisualCells(targetPhaseLevel);
+
         if (currentPhase == MinigamePhase.None) return;
 
         if (currentPhase == MinigamePhase.Phase1_Pursuit)
@@ -253,7 +268,6 @@ public class EvolutionMiniGameController : MonoBehaviour
         {
             UpdatePhase3();
         }
-        UpdateVisualCells();
     }
 
     private VisualCell CreateVisualCell(Vector2 pos, int phaseLevel)
@@ -268,7 +282,12 @@ public class EvolutionMiniGameController : MonoBehaviour
         cell.rt.sizeDelta = new Vector2(40, 40);
         cell.rt.anchoredPosition = pos;
         cell.membrane = cellGo.AddComponent<Image>();
-        cell.membrane.color = new Color(0, 0.8f, 0.8f, 0.5f);
+        cell.membrane.color = new Color(0.2f, 0.8f, 0.8f, 0.5f);
+
+        cell.glow = cellGo.AddComponent<UnityEngine.UI.Outline>();
+        cell.glow.effectColor = new Color(1f, 1f, 0.5f, 0.8f);
+        cell.glow.effectDistance = new Vector2(2, -2);
+
         GameObject nucGo = new GameObject("Nucleus", typeof(RectTransform));
         nucGo.transform.SetParent(cellGo.transform, false);
         cell.nucleusRt = nucGo.GetComponent<RectTransform>();
@@ -277,6 +296,8 @@ public class EvolutionMiniGameController : MonoBehaviour
         cell.nucleusRt.sizeDelta = new Vector2(10, 10);
         cell.nucleus = nucGo.AddComponent<Image>();
         cell.nucleus.color = new Color(0.2f, 0.2f, 0.8f, 0.8f);
+        cell.nucleus.gameObject.SetActive(false);
+
         cell.velocity = Random.insideUnitCircle.normalized * Random.Range(20f, 40f);
         cell.divisionTimer = Random.Range(3f, 5f);
         UpdateCellVisuals(cell, phaseLevel);
@@ -286,6 +307,11 @@ public class EvolutionMiniGameController : MonoBehaviour
     private void UpdateCellVisuals(VisualCell cell, int phaseLevel)
     {
         cell.phaseLevel = phaseLevel;
+        if (phaseLevel >= 1)
+        {
+             cell.membrane.color = new Color(0.2f, 0.8f, 0.8f, 0.5f);
+        }
+
         if (phaseLevel >= 2 && cell.engulfedBacteria.Count == 0)
         {
             GameObject bactGo = new GameObject("EngulfedBact", typeof(RectTransform));
@@ -296,7 +322,7 @@ public class EvolutionMiniGameController : MonoBehaviour
             bactRt.sizeDelta = new Vector2(10, 10);
             bactRt.anchoredPosition = new Vector2(10, 10);
             Image bactImg = bactGo.AddComponent<Image>();
-            bactImg.color = new Color(1, 0.2f, 0.2f, 0.8f);
+            bactImg.color = new Color(0.8f, 0.1f, 0.1f, 1f);
             cell.engulfedBacteria.Add(bactRt);
         }
         if (phaseLevel >= 3 && cell.connections.Count == 0)
@@ -320,43 +346,98 @@ public class EvolutionMiniGameController : MonoBehaviour
         }
         if (phaseLevel >= 4)
         {
+            cell.targetSize = new Vector2(60, 60);
+            cell.nucleus.gameObject.SetActive(true);
             cell.nucleusRt.sizeDelta = new Vector2(18, 18);
             cell.nucleus.color = new Color(0.4f, 0.2f, 0.9f, 0.9f);
             cell.membrane.color = new Color(0.2f, 0.9f, 0.5f, 0.6f);
-            foreach(var bact in cell.engulfedBacteria) { if (bact != null) bact.GetComponent<Image>().color = new Color(1, 0.5f, 0, 0.9f); }
+            cell.glow.effectColor = new Color(0.2f, 0.9f, 0.5f, 0.8f);
+
+            if (cell.internalParticles.Count == 0)
+            {
+                for (int i = 0; i < 4; i++)
+                {
+                    GameObject pGo = new GameObject("Particle", typeof(RectTransform));
+                    pGo.transform.SetParent(cell.rt, false);
+                    RectTransform pRt = pGo.GetComponent<RectTransform>();
+                    pRt.anchorMin = new Vector2(0.5f, 0.5f);
+                    pRt.anchorMax = new Vector2(0.5f, 0.5f);
+                    pRt.sizeDelta = new Vector2(4, 4);
+                    pRt.anchoredPosition = Random.insideUnitCircle * 15f;
+                    Image pImg = pGo.AddComponent<Image>();
+                    pImg.color = new Color(1f, 1f, 1f, 0.6f);
+                    cell.internalParticles.Add(pRt);
+                }
+            }
         }
     }
 
-    private void UpdateVisualCells()
+    private void UpdateVisualCells(int targetPhaseLevel)
     {
         if (visualizerArea == null || !visualizerArea.gameObject.activeInHierarchy) return;
-        int currentPhaseLevel = 1;
-        if (currentPhase == MinigamePhase.Phase2_Engulfment) currentPhaseLevel = 2;
-        else if (currentPhase == MinigamePhase.Phase3_Symbiosis) currentPhaseLevel = 3;
-        else if (currentPhase == MinigamePhase.Phase4_Success) currentPhaseLevel = 4;
+
         System.Collections.Generic.List<VisualCell> newCells = new System.Collections.Generic.List<VisualCell>();
         float dt = Time.deltaTime;
         foreach (var cell in visualCells)
         {
-            if (cell.phaseLevel < currentPhaseLevel) UpdateCellVisuals(cell, currentPhaseLevel);
+            if (cell.phaseLevel < targetPhaseLevel) UpdateCellVisuals(cell, targetPhaseLevel);
+
             cell.rt.anchoredPosition += cell.velocity * dt;
             if (cell.rt.anchoredPosition.x < -180) { cell.rt.anchoredPosition = new Vector2(-180, cell.rt.anchoredPosition.y); cell.velocity.x *= -1; }
             if (cell.rt.anchoredPosition.x > 180) { cell.rt.anchoredPosition = new Vector2(180, cell.rt.anchoredPosition.y); cell.velocity.x *= -1; }
             if (cell.rt.anchoredPosition.y < -280) { cell.rt.anchoredPosition = new Vector2(cell.rt.anchoredPosition.x, -280); cell.velocity.y *= -1; }
             if (cell.rt.anchoredPosition.y > 250) { cell.rt.anchoredPosition = new Vector2(cell.rt.anchoredPosition.x, 250); cell.velocity.y *= -1; }
-            float divisionSpeed = (currentPhaseLevel >= 4) ? 3f : 1f;
+
+            // Phase animations
+            if (cell.phaseLevel >= 2)
+            {
+                foreach (var bact in cell.engulfedBacteria)
+                {
+                    if (bact != null) {
+                        float scale = 1f + Mathf.Sin(Time.time * 5f) * 0.3f;
+                        bact.localScale = new Vector3(scale, scale, 1f);
+                        bact.GetComponent<Image>().color = Color.Lerp(Color.red, Color.magenta, Mathf.PingPong(Time.time * 2f, 1f));
+                    }
+                }
+            }
+            if (cell.phaseLevel >= 3)
+            {
+                foreach (var conn in cell.connections)
+                {
+                    if (conn != null) {
+                        conn.GetComponent<Image>().color = Color.Lerp(new Color(1,1,1,0.2f), new Color(1,1,1,0.8f), Mathf.PingPong(Time.time * 4f, 1f));
+                    }
+                }
+            }
+            if (cell.phaseLevel >= 4)
+            {
+                cell.rt.sizeDelta = Vector2.Lerp(cell.rt.sizeDelta, cell.targetSize, dt * 2f);
+                cell.rt.localScale = new Vector3(1f + Mathf.Sin(Time.time * 2f + cell.rt.GetInstanceID()) * 0.1f, 1f + Mathf.Cos(Time.time * 2.5f + cell.rt.GetInstanceID()) * 0.1f, 1f);
+                foreach (var p in cell.internalParticles)
+                {
+                    if (p != null) {
+                        p.anchoredPosition += Random.insideUnitCircle * 20f * dt;
+                        if (p.anchoredPosition.magnitude > 20f) p.anchoredPosition = Vector2.zero;
+                    }
+                }
+            }
+            else {
+                cell.rt.sizeDelta = Vector2.Lerp(cell.rt.sizeDelta, new Vector2(40, 40), dt * 2f);
+                cell.rt.localScale = Vector3.one;
+            }
+
+            float divisionSpeed = (targetPhaseLevel >= 4) ? 3f : 1f;
             cell.divisionTimer -= dt * divisionSpeed;
             if (cell.divisionTimer <= 0 && visualCells.Count + newCells.Count < 30)
             {
                 cell.divisionTimer = Random.Range(4f, 6f);
-                VisualCell child = CreateVisualCell(cell.rt.anchoredPosition + Random.insideUnitCircle * 10f, currentPhaseLevel);
+                VisualCell child = CreateVisualCell(cell.rt.anchoredPosition + Random.insideUnitCircle * 10f, targetPhaseLevel);
                 child.velocity = -cell.velocity + Random.insideUnitCircle * 10f;
                 newCells.Add(child);
             }
             else if (cell.divisionTimer <= 0) cell.divisionTimer = Random.Range(4f, 6f);
         }
         visualCells.AddRange(newCells);
-
     }
 
     private void UpdatePhase1()
@@ -591,6 +672,7 @@ public class EvolutionMiniGameController : MonoBehaviour
     {
         mainPanel.SetActive(false);
         currentPhase = MinigamePhase.None;
+        highestCompletedPhase = 4;
         onWinCallback?.Invoke();
     }
 }
