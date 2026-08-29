@@ -547,10 +547,11 @@ public class VolcanoManager : MonoBehaviour
             var main = ps.main;
             main.duration = 5f;
             main.loop = true;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.8f, 2.0f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(1.2f, 3.5f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.18f, 0.45f);
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.4f, 1.0f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.15f, 0.4f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.05f, 0.15f);
             main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.scalingMode = ParticleSystemScalingMode.Hierarchy;
 
             var emission = ps.emission;
             emission.rateOverTime = 25f;
@@ -558,7 +559,7 @@ public class VolcanoManager : MonoBehaviour
             var shape = ps.shape;
             shape.shapeType = ParticleSystemShapeType.Cone;
             shape.angle = 18f;
-            shape.radius = 0.15f;
+            shape.radius = 0.02f;
 
             var colorOverLifetime = ps.colorOverLifetime;
             colorOverLifetime.enabled = true;
