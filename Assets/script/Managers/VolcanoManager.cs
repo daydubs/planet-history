@@ -473,6 +473,8 @@ public class VolcanoManager : MonoBehaviour
             ParticleSystem[] pss = burstInst.GetComponentsInChildren<ParticleSystem>();
             foreach (var ps in pss)
             {
+                var mainModule = ps.main;
+                mainModule.scalingMode = ParticleSystemScalingMode.Hierarchy;
                 ps.Play(true);
             }
 
@@ -603,6 +605,14 @@ public class VolcanoManager : MonoBehaviour
         else
         {
             vol.particleSystemRef = pObj.GetComponentInChildren<ParticleSystem>();
+        }
+
+        // Force all particle systems to use Hierarchy scaling mode so they inherit parent scale properly
+        ParticleSystem[] allPs = pObj.GetComponentsInChildren<ParticleSystem>(true);
+        foreach (var ps in allPs)
+        {
+            var mainModule = ps.main;
+            mainModule.scalingMode = ParticleSystemScalingMode.Hierarchy;
         }
 
         vol.particleSystemObject = pObj;
