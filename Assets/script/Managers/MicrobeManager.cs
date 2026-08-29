@@ -30,7 +30,14 @@ public class MicrobeManager : MonoBehaviour
         if (gm.SurfaceTemperature > 273f && gm.SurfaceTemperature < 350f)
         {
             // Calculate a production rate. It could be scaled by temperature, water ratio, etc.
-            float productionRate = 0.0001f * gm.WaterRatio; // Scale with oceans
+            // On s'assure que la production de base de 0.0001 est balancée avec le puits biologique
+            // pour permettre une stabilisation organique autour de 0.21 atm
+            // (La consommation (respiration) est d'environ 0.00005 de base + scale,
+            // donc 0.0001 de production permet à l'O2 de monter et de se stabiliser avec le scale de respiration)
+            float dt = Time.deltaTime * gm.SimulatedYearsPerRealSecond / 300f; // Ensure production scales with simulation speed
+
+            // Note: AddOxygen in GameManager handles the per-step rate, but we need to supply the rate multiplied by dt
+            float productionRate = 0.0001f * gm.WaterRatio * dt; // Scale with oceans
 
             // Generate oxygen (O2)
             gm.AddOxygen(productionRate);
