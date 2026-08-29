@@ -618,21 +618,6 @@ public class GameHudController : MonoBehaviour
             if (mat.HasProperty("_IceColor")) currentPalette.Ice = mat.GetColor("_IceColor");
         }
 
-        // Skip regeneration if parameters haven't changed and not forced
-        if (!force && !isMinimapDirty &&
-            Mathf.Approximately(surfaceTemp, lastMinimapSurfaceTemp) &&
-            Mathf.Approximately(waterRatio, lastMinimapWaterRatio) &&
-            Mathf.Approximately(minimapZoom, lastMinimapZoom) &&
-            Vector2.Distance(minimapPanOffset, lastMinimapPanOffset) < 1e-4f &&
-            currentPalette.Ocean == lastMinimapOceanColor &&
-            currentPalette.Shore == lastMinimapShoreColor &&
-            currentPalette.Land == lastMinimapLandColor &&
-            currentPalette.Mountain == lastMinimapMountainColor &&
-            currentPalette.Ice == lastMinimapIceColor)
-        {
-            return;
-        }
-
         minimapRefreshTimer = 0f;
         isMinimapDirty = false;
 
