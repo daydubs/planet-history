@@ -179,6 +179,7 @@ public class AudioManager : MonoBehaviour
             PlanetEpoch.TectonicDrift => musicOceanClip,
             PlanetEpoch.Prebiotic => musicOceanClip,
             PlanetEpoch.Photosynthesis => musicOceanClip,
+            PlanetEpoch.CambrianExplosion => musicOceanClip,
             _ => musicHadeanClip
         };
 

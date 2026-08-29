@@ -23,7 +23,8 @@ public class LifeEvolutionWindowUI : MonoBehaviour
         "<b>Symbiose :</b> Au lieu de mourir, la bactérie a survécu à l'intérieur. Elle fournissait à l'hôte une énergie bien plus efficace (grâce à la respiration cellulaire), tandis que l'hôte offrait protection et nutriments.",
         "<b>Évolution en organites :</b> Avec le temps, cette bactérie endosymbiotique est devenue la mitochondrie, le \"moteur\" de la cellule. Plus tard, certaines cellules ont intégré des cyanobactéries, donnant naissance aux chloroplastes chez les plantes et les algues.",
         "<b>Formation du noyau :</b> Parallèlement, des invaginations de la membrane plasmique de la cellule hôte se seraient repliées vers l'intérieur, entourant le matériel génétique (ADN) pour former la membrane nucléaire. Cela a protégé l'ADN et permis une régulation plus fine de l'expression des gènes.",
-        "<b>Vers la Multicellularité :</b> La division cellulaire contrôlée (mitose), la communication via des jonctions, et la différenciation cellulaire ont permis de passer d'organismes unicellulaires à des entités multicellulaires plus complexes."
+        "<b>Vers la Multicellularité :</b> La division cellulaire contrôlée (mitose), la communication via des jonctions, et la différenciation cellulaire ont permis de passer d'organismes unicellulaires à des entités multicellulaires plus complexes.",
+        "<b>L'Explosion Cambrienne :</b> Juste après l'apparition de la vie multicellulaire, la biodiversité explose littéralement. Symbiose, compétition, chaînes alimentaires complexes et colonisation de nouveaux biomes marquent cette ère foisonnante."
     };
 
     private void Start()
@@ -69,6 +70,15 @@ public class LifeEvolutionWindowUI : MonoBehaviour
         {
             GameObject go = new GameObject("MulticellularityMiniGameController");
             go.AddComponent<MulticellularityMiniGameController>();
+        }
+    }
+
+    private void EnsureCambrianMiniGameExists()
+    {
+        if (CambrianMiniGameController.Instance == null)
+        {
+            GameObject go = new GameObject("CambrianMiniGameController");
+            go.AddComponent<CambrianMiniGameController>();
         }
     }
 
@@ -201,7 +211,7 @@ public class LifeEvolutionWindowUI : MonoBehaviour
 
         if (tryEvolutionButton != null)
         {
-            bool showButton = (currentStepIndex == 1 || currentStepIndex == 2 || currentStepIndex == 5);
+            bool showButton = (currentStepIndex == 1 || currentStepIndex == 2 || currentStepIndex == 5 || currentStepIndex == 6);
             tryEvolutionButton.gameObject.SetActive(showButton);
 
             TextMeshProUGUI btnText = tryEvolutionButton.GetComponentInChildren<TextMeshProUGUI>();
@@ -209,6 +219,8 @@ public class LifeEvolutionWindowUI : MonoBehaviour
             {
                 if (currentStepIndex == 5)
                     btnText.text = "Explorer la Multicellularité";
+                else if (currentStepIndex == 6)
+                    btnText.text = "Déclencher l'Explosion Cambrienne";
                 else
                     btnText.text = "Essayer l'évolution (Mini-jeu)";
             }
@@ -247,12 +259,26 @@ public class LifeEvolutionWindowUI : MonoBehaviour
     {
         HideLifeWindow();
 
-        if (currentStepIndex == 5)
+        if (currentStepIndex == 6)
+        {
+            EnsureCambrianMiniGameExists();
+            CambrianMiniGameController.Instance.StartMiniGame(() => {
+                ShowLifeWindow();
+                if (GameManager.Instance != null && !GameManager.Instance.IsCambrianExplosionUnlocked)
+                {
+                    GameManager.Instance.UnlockCambrianExplosion();
+                }
+            });
+        }
+        else if (currentStepIndex == 5)
         {
             EnsureMulticellularityMiniGameExists();
             MulticellularityMiniGameController.Instance.StartMiniGame(() => {
                 ShowLifeWindow();
-                // Optionally advance or show a final message
+                if (currentStepIndex < evolutionSteps.Count - 1)
+                {
+                    OnNextStep(); // advance to next step after success
+                }
             });
         }
         else

@@ -150,6 +150,7 @@ public class GameHudController : MonoBehaviour
     [SerializeField] private string tectonicDriftHex = "#4D96FF";
     [SerializeField] private string prebioticHex = "#2A9D8F";
     [SerializeField] private string photosynthesisHex = "#228B22";
+    [SerializeField] private string cambrianExplosionHex = "#20B2AA"; // Light Sea Green
     [SerializeField] private string fallbackHex = "#9AA0A6";
 
     private Button volcanoButton;
@@ -1369,6 +1370,112 @@ public class GameHudController : MonoBehaviour
         }
     }
 
+    private GameObject cambrianCompletionPanel;
+    public void ShowCambrianExplosionCompletionWindow()
+    {
+        if (cambrianCompletionPanel == null)
+        {
+            CreateCambrianCompletionWindowUI();
+        }
+
+        if (cambrianCompletionPanel != null)
+        {
+            cambrianCompletionPanel.SetActive(true);
+            cambrianCompletionPanel.transform.SetAsLastSibling();
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(cambrianCompletionPanel.GetComponent<RectTransform>());
+        }
+    }
+
+    private void HideCambrianCompletionWindow()
+    {
+        if (cambrianCompletionPanel != null)
+        {
+            cambrianCompletionPanel.SetActive(false);
+        }
+    }
+
+    private void CreateCambrianCompletionWindowUI()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null) canvas = FindAnyObjectByType<Canvas>();
+        if (canvas == null) return;
+
+        // Container anchored on Middle-Left (gauche centre)
+        cambrianCompletionPanel = new GameObject("CambrianCompletionPanel", typeof(RectTransform));
+        cambrianCompletionPanel.transform.SetParent(canvas.transform, false);
+
+        RectTransform panelRect = cambrianCompletionPanel.GetComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(0f, 0.5f);
+        panelRect.anchorMax = new Vector2(0f, 0.5f);
+        panelRect.pivot = new Vector2(0f, 0.5f);
+        panelRect.anchoredPosition = new Vector2(25f, 0f);
+        panelRect.sizeDelta = new Vector2(380f, 250f);
+
+        // Panel Background
+        Image bg = cambrianCompletionPanel.AddComponent<Image>();
+        bg.color = new Color(0.12f, 0.35f, 0.33f, 0.95f); // Light sea green tint
+
+        VerticalLayoutGroup vlg = cambrianCompletionPanel.AddComponent<VerticalLayoutGroup>();
+        vlg.padding = new RectOffset(20, 20, 30, 30);
+        vlg.spacing = 15f;
+        vlg.childAlignment = TextAnchor.UpperCenter;
+        vlg.childControlWidth = true;
+        vlg.childControlHeight = false;
+
+        // Title
+        GameObject titleObj = new GameObject("TitleText", typeof(RectTransform));
+        titleObj.transform.SetParent(cambrianCompletionPanel.transform, false);
+        TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
+        titleText.text = "L'Explosion Cambrienne";
+        titleText.fontSize = 24f;
+        titleText.fontStyle = FontStyles.Bold;
+        titleText.alignment = TextAlignmentOptions.Center;
+        titleText.color = new Color(0.9f, 1f, 0.9f, 1f); // Pale green
+
+        // Description
+        GameObject descObj = new GameObject("DescText", typeof(RectTransform));
+        descObj.transform.SetParent(cambrianCompletionPanel.transform, false);
+        TextMeshProUGUI descText = descObj.AddComponent<TextMeshProUGUI>();
+        descText.text = "La biodiversité s'épanouit de façon spectaculaire. Les premiers récifs coralliens et forêts de kelp apparaissent.";
+        descText.fontSize = 16f;
+        descText.alignment = TextAlignmentOptions.Center;
+        descText.color = Color.white;
+        descText.enableWordWrapping = true;
+        LayoutElement descLayout = descObj.AddComponent<LayoutElement>();
+        descLayout.minHeight = 80f;
+
+        // Close Button
+        GameObject btnObj = new GameObject("CloseBtn", typeof(RectTransform));
+        btnObj.transform.SetParent(cambrianCompletionPanel.transform, false);
+
+        Image btnImg = btnObj.AddComponent<Image>();
+        btnImg.color = new Color(0.2f, 0.6f, 0.5f, 1f);
+
+        Button closeBtn = btnObj.AddComponent<Button>();
+        closeBtn.targetGraphic = btnImg;
+        closeBtn.onClick.AddListener(HideCambrianCompletionWindow);
+
+        LayoutElement btnLayout = btnObj.AddComponent<LayoutElement>();
+        btnLayout.minHeight = 40f;
+        btnLayout.preferredHeight = 40f;
+
+        GameObject btnTextObj = new GameObject("BtnText", typeof(RectTransform));
+        btnTextObj.transform.SetParent(btnObj.transform, false);
+
+        RectTransform btnTextRect = btnTextObj.GetComponent<RectTransform>();
+        btnTextRect.anchorMin = Vector2.zero;
+        btnTextRect.anchorMax = Vector2.one;
+        btnTextRect.offsetMin = Vector2.zero;
+        btnTextRect.offsetMax = Vector2.zero;
+
+        TextMeshProUGUI btnText = btnTextObj.AddComponent<TextMeshProUGUI>();
+        btnText.text = "Continuer";
+        btnText.fontSize = 16f;
+        btnText.alignment = TextAlignmentOptions.Center;
+        btnText.color = Color.white;
+    }
+
     private void CheckPrebioticCompletion()
     {
         if (hasShownPrebioticCompletionWindow) return;
@@ -1423,11 +1530,16 @@ public class GameHudController : MonoBehaviour
         RefreshAll();
     }
 
-    private void HandleEpochChanged(PlanetEpoch _)
+    private void HandleEpochChanged(PlanetEpoch newEpoch)
     {
         RefreshAll();
         isMinimapDirty = true;
         UpdateMinimapTexture(force: true);
+
+        if (newEpoch == PlanetEpoch.CambrianExplosion)
+        {
+            ShowCambrianExplosionCompletionWindow();
+        }
     }
 
     private void RefreshAll()
@@ -1609,6 +1721,7 @@ public class GameHudController : MonoBehaviour
             PlanetEpoch.TectonicDrift => "Dérive Tectonique",
             PlanetEpoch.Prebiotic => "Prébiotique",
             PlanetEpoch.Photosynthesis => "Photosynthèse",
+            PlanetEpoch.CambrianExplosion => "Explosion Cambrienne",
             _ => epoch.ToString()
         };
     }
@@ -1624,6 +1737,7 @@ public class GameHudController : MonoBehaviour
             PlanetEpoch.TectonicDrift => tectonicDriftHex,
             PlanetEpoch.Prebiotic => prebioticHex,
             PlanetEpoch.Photosynthesis => photosynthesisHex,
+            PlanetEpoch.CambrianExplosion => cambrianExplosionHex,
             _ => fallbackHex
         };
     }
