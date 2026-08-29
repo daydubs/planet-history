@@ -22,7 +22,7 @@ public class AtmosphereManager : MonoBehaviour
 
         CubeSphereGenerator generator = atmosphereSphere.AddComponent<CubeSphereGenerator>();
         float baseRadius = terrain.BaseRadius;
-        generator.SetRadius(baseRadius * 1.05f); // 5% larger
+        generator.SetRadius(baseRadius * 1.10f); // 10% larger (moved further away)
 
         atmosphereRenderer = atmosphereSphere.GetComponent<MeshRenderer>();
 

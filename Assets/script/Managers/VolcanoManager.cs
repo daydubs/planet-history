@@ -465,7 +465,7 @@ public class VolcanoManager : MonoBehaviour
 
         if (prefabToUse != null)
         {
-            float scale = Mathf.Clamp(radiusDegrees / (supercontinentRadiusDegrees * 0.05f), 0.5f, 3f);
+            float scale = Mathf.Clamp(radiusDegrees / (supercontinentRadiusDegrees * 0.05f), 0.25f, 1.5f);
             GameObject burstInst = Instantiate(prefabToUse, position, Quaternion.LookRotation(normal));
             burstInst.name = "VolcanoEruptionBurst";
             burstInst.transform.localScale = Vector3.one * scale;
@@ -501,7 +501,7 @@ public class VolcanoManager : MonoBehaviour
             vol.particleSystemObject.transform.position = worldPos;
             vol.particleSystemObject.transform.rotation = Quaternion.LookRotation(worldNormal);
 
-            float scale = Mathf.Clamp(vol.currentRadiusDegrees / (supercontinentRadiusDegrees * 0.05f), 0.4f, 2.5f);
+            float scale = Mathf.Clamp(vol.currentRadiusDegrees / (supercontinentRadiusDegrees * 0.05f), 0.2f, 1.25f);
             vol.particleSystemObject.transform.localScale = Vector3.one * scale;
         }
     }
@@ -509,7 +509,7 @@ public class VolcanoManager : MonoBehaviour
     private void CreateVolcanoParticleSystem(VolcanoInstance vol)
     {
         GameObject pObj = new GameObject($"VolcanoEruption_{vol.id}");
-        float scale = Mathf.Clamp(vol.currentRadiusDegrees / (supercontinentRadiusDegrees * 0.05f), 0.4f, 2.5f);
+        float scale = Mathf.Clamp(vol.currentRadiusDegrees / (supercontinentRadiusDegrees * 0.05f), 0.2f, 1.25f);
         pObj.transform.localScale = Vector3.one * scale;
 
         // Try loading ParticlePack Flame Stream and Smoke prefabs
