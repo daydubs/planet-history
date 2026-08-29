@@ -347,17 +347,40 @@ public class GameManager : MonoBehaviour
         float dynamicOtherGases = otherGasesPressure + meteorGasesPressure;
 
         // 3. Environmental Sinks
-        // Les océans absorbent le CO2 (Carbonate-silicate cycle)
-        if (waterRatio > 0.01f && co2Pressure > 0.5f)
+        // Les océans absorbent le CO2 (Carbonate-silicate cycle et altération des roches)
+        // La séquestration du carbone augmente avec le niveau d'eau. On veut cibler une quantité
+        // de trace pour éviter la disparition totale de la vie (target de ~0.01 à 0.1 atm au final)
+        float targetCo2 = 0.01f;
+        if (waterRatio > 0.01f && co2Pressure > targetCo2)
         {
-            float co2Absorption = (waterRatio * 0.00005f) * dt;
-            co2Pressure = Mathf.Max(0.5f, co2Pressure - co2Absorption);
+            float co2Excess = co2Pressure - targetCo2;
+            // Une absorption qui s'accélère si la pression est très élevée,
+            // mais ralentit lorsqu'on s'approche de la cible
+            float co2Absorption = (waterRatio * 0.00005f + co2Excess * 0.00001f) * dt;
+            co2Pressure = Mathf.Max(targetCo2, co2Pressure - co2Absorption);
         }
 
         // Les autres gaz (SO2, NH3, CH4) se dégradent lentement par photolyse/réactions chimiques
         if (otherGasesPressure > 0f)
         {
             otherGasesPressure = Mathf.Max(0f, otherGasesPressure - 0.001f * dt);
+        }
+
+        // Puits d'Azote (Fixation dans les sols / Océans / Echappement)
+        // La cible naturelle pour l'azote est ~0.78 atm.
+        float targetNitrogen = 0.78f;
+        if (nitrogenPressure > targetNitrogen)
+        {
+            // Plus on s'éloigne de la cible, plus le puits est fort.
+            float nitrogenExcess = nitrogenPressure - targetNitrogen;
+            // Un taux de perte léger qui stabilise N2 contre le dégazage tectonique
+            float nitrogenSink = nitrogenExcess * 0.00005f * dt;
+            nitrogenPressure = Mathf.Max(targetNitrogen, nitrogenPressure - nitrogenSink);
+        }
+        else if (nitrogenPressure < targetNitrogen && tectonicActivity == 0f)
+        {
+            // Si la pression d'azote est trop basse on tend doucement vers l'équilibre
+            nitrogenPressure = Mathf.MoveTowards(nitrogenPressure, targetNitrogen, 0.00001f * dt);
         }
 
         // La condensation massive de la vapeur d'eau est liée au waterRatio
@@ -367,6 +390,32 @@ public class GameManager : MonoBehaviour
         {
             float targetWaterVapor = 0.8f;
             waterVaporPressure = Mathf.MoveTowards(waterVaporPressure, targetWaterVapor, 0.01f * dt);
+        }
+
+        // 4. Puits d'Oxygène (Oxydation des roches & Respiration Biologique)
+        // La respiration (et oxydation) consomme de l'O2 et rejette un peu de CO2
+        if (oxygenPressure > 0f)
+        {
+            // Cible d'équilibre pour O2
+            float targetOxygen = 0.21f;
+
+            // Perte de base par oxydation des roches (faible)
+            float rockOxidation = 0.00001f * dt;
+
+            // Respiration biologique (active une fois que la vie produit de l'O2)
+            float biologicalRespiration = 0f;
+            if (currentEpoch >= PlanetEpoch.Photosynthesis)
+            {
+                // La respiration augmente si on dépasse la cible, créant un puits d'équilibre
+                float oxygenExcess = Mathf.Max(0f, oxygenPressure - targetOxygen);
+                biologicalRespiration = (0.00005f + oxygenExcess * 0.0001f) * dt;
+
+                // Le cycle du carbone : la respiration rejette du CO2
+                co2Pressure += biologicalRespiration * 0.5f; // On ne rejette qu'une partie pour garder l'équilibre
+            }
+
+            float totalOxygenSink = rockOxidation + biologicalRespiration;
+            oxygenPressure = Mathf.Max(0f, oxygenPressure - totalOxygenSink);
         }
 
         // La pression totale est la somme de toutes les pressions partielles.
