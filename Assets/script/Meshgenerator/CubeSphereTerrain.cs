@@ -210,6 +210,9 @@ public class CubeSphereTerrain : MonoBehaviour
                     // Modern oxygenated ocean: Blue
                     Color modernOcean = new Color(0.02f, 0.12f, 0.32f, 1f); // existing default
 
+                    // Cambrian Explosion reef/kelp rich oceans: Cyan/Greenish tint
+                    Color cambrianOcean = new Color(0.1f, 0.5f, 0.4f, 1f);
+
                     Color currentOceanColor;
 
                     // As iron dissipates (GOE), ocean turns red/rust
@@ -222,6 +225,12 @@ public class CubeSphereTerrain : MonoBehaviour
                         // After iron is gone, ocean clears up to blue as oxygen rises
                         float oxygenation = Mathf.Clamp01(oxygen / 0.5f); // 0.5 atm is plenty for clear blue
                         currentOceanColor = Color.Lerp(rustOcean, modernOcean, oxygenation);
+
+                        // Transition to Cambrian rich green/cyan waters
+                        if (GameManager.Instance.CurrentEpoch >= PlanetEpoch.CambrianExplosion)
+                        {
+                            currentOceanColor = Color.Lerp(currentOceanColor, cambrianOcean, 0.5f);
+                        }
                     }
 
                     instantiatedMaterial.SetColor("_OceanColor", currentOceanColor);
