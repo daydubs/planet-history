@@ -1414,11 +1414,7 @@ public class GameHudController : MonoBehaviour
         float dt = Time.deltaTime;
 
         minimapRefreshTimer += dt;
-        if (minimapRefreshTimer >= minimapRefreshInterval)
-        {
-            minimapRefreshTimer = 0f;
-            UpdateMinimapTexture(force: false);
-        }
+        UpdateMinimapTexture(force: false);
 
         refreshTimer += dt;
         if (refreshTimer < refreshIntervalSeconds) return;
