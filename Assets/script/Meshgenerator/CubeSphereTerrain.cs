@@ -9,6 +9,7 @@ using UnityEngine.Rendering;
 [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class CubeSphereTerrain : MonoBehaviour
 {
+    public static CubeSphereTerrain Instance { get; private set; }
     [System.Serializable]
     public class ContinentalPiece
     {
