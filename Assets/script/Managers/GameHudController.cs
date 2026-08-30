@@ -151,6 +151,7 @@ public class GameHudController : MonoBehaviour
     [SerializeField] private string prebioticHex = "#2A9D8F";
     [SerializeField] private string photosynthesisHex = "#228B22";
     [SerializeField] private string cambrianExplosionHex = "#20B2AA"; // Light Sea Green
+    [SerializeField] private string landColonizationHex = "#2E8B57"; // Sea Green / Forest
     [SerializeField] private string fallbackHex = "#9AA0A6";
 
     private Button volcanoButton;
@@ -1387,6 +1388,109 @@ public class GameHudController : MonoBehaviour
         }
     }
 
+    private GameObject landColonizationCompletionPanel;
+    public void ShowLandColonizationCompletionWindow()
+    {
+        if (landColonizationCompletionPanel == null)
+        {
+            CreateLandColonizationCompletionWindowUI();
+        }
+
+        if (landColonizationCompletionPanel != null)
+        {
+            landColonizationCompletionPanel.SetActive(true);
+            landColonizationCompletionPanel.transform.SetAsLastSibling();
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(landColonizationCompletionPanel.GetComponent<RectTransform>());
+        }
+    }
+
+    private void HideLandColonizationCompletionWindow()
+    {
+        if (landColonizationCompletionPanel != null)
+        {
+            landColonizationCompletionPanel.SetActive(false);
+        }
+    }
+
+    private void CreateLandColonizationCompletionWindowUI()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null) canvas = FindAnyObjectByType<Canvas>();
+        if (canvas == null) return;
+
+        landColonizationCompletionPanel = new GameObject("LandColonizationCompletionPanel", typeof(RectTransform));
+        landColonizationCompletionPanel.transform.SetParent(canvas.transform, false);
+
+        RectTransform panelRect = landColonizationCompletionPanel.GetComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(0f, 0.5f);
+        panelRect.anchorMax = new Vector2(0f, 0.5f);
+        panelRect.pivot = new Vector2(0f, 0.5f);
+        panelRect.anchoredPosition = new Vector2(25f, 0f);
+        panelRect.sizeDelta = new Vector2(380f, 250f);
+
+        Image bg = landColonizationCompletionPanel.AddComponent<Image>();
+        bg.color = new Color(0.18f, 0.45f, 0.25f, 0.95f); // Forest green tint
+
+        VerticalLayoutGroup vlg = landColonizationCompletionPanel.AddComponent<VerticalLayoutGroup>();
+        vlg.padding = new RectOffset(20, 20, 30, 30);
+        vlg.spacing = 15f;
+        vlg.childAlignment = TextAnchor.UpperCenter;
+        vlg.childControlWidth = true;
+        vlg.childControlHeight = false;
+
+        GameObject titleObj = new GameObject("TitleText", typeof(RectTransform));
+        titleObj.transform.SetParent(landColonizationCompletionPanel.transform, false);
+        TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
+        titleText.text = "Colonisation des Terres Fermes";
+        titleText.fontSize = 22f;
+        titleText.fontStyle = FontStyles.Bold;
+        titleText.alignment = TextAlignmentOptions.Center;
+        titleText.color = new Color(0.9f, 1f, 0.9f, 1f);
+
+        GameObject descObj = new GameObject("DescText", typeof(RectTransform));
+        descObj.transform.SetParent(landColonizationCompletionPanel.transform, false);
+        TextMeshProUGUI descText = descObj.AddComponent<TextMeshProUGUI>();
+        descText.text = "La vie conquiert la terre ! Structures de soutien, reproduction terrestre et écosystèmes végétaux transforment les continents.";
+        descText.fontSize = 16f;
+        descText.alignment = TextAlignmentOptions.Center;
+        descText.color = Color.white;
+        descText.enableWordWrapping = true;
+        LayoutElement descLayout = descObj.AddComponent<LayoutElement>();
+        descLayout.minHeight = 80f;
+
+        GameObject btnObj = new GameObject("CloseBtn", typeof(RectTransform));
+        btnObj.transform.SetParent(landColonizationCompletionPanel.transform, false);
+
+        Image btnImg = btnObj.AddComponent<Image>();
+        btnImg.color = new Color(0.3f, 0.7f, 0.3f, 1f);
+
+        Button closeBtn = btnObj.AddComponent<Button>();
+        closeBtn.targetGraphic = btnImg;
+        closeBtn.onClick.AddListener(HideLandColonizationCompletionWindow);
+
+        LayoutElement btnLayout = btnObj.AddComponent<LayoutElement>();
+        btnLayout.minHeight = 40f;
+        btnLayout.preferredHeight = 40f;
+
+        GameObject btnTextObj = new GameObject("BtnText", typeof(RectTransform));
+        btnTextObj.transform.SetParent(btnObj.transform, false);
+
+        RectTransform btnTextRect = btnTextObj.GetComponent<RectTransform>();
+        btnTextRect.anchorMin = Vector2.zero;
+        btnTextRect.anchorMax = Vector2.one;
+        btnTextRect.offsetMin = Vector2.zero;
+        btnTextRect.offsetMax = Vector2.zero;
+
+        TextMeshProUGUI btnText = btnTextObj.AddComponent<TextMeshProUGUI>();
+        btnText.text = "Continuer";
+        btnText.fontSize = 16f;
+        btnText.alignment = TextAlignmentOptions.Center;
+        btnText.color = Color.white;
+
+        landColonizationCompletionPanel.SetActive(false);
+    }
+
     private void HideCambrianCompletionWindow()
     {
         if (cambrianCompletionPanel != null)
@@ -1539,6 +1643,10 @@ public class GameHudController : MonoBehaviour
         if (newEpoch == PlanetEpoch.CambrianExplosion)
         {
             ShowCambrianExplosionCompletionWindow();
+        }
+        else if (newEpoch == PlanetEpoch.LandColonization)
+        {
+            ShowLandColonizationCompletionWindow();
         }
     }
 
@@ -1722,6 +1830,7 @@ public class GameHudController : MonoBehaviour
             PlanetEpoch.Prebiotic => "Prébiotique",
             PlanetEpoch.Photosynthesis => "Photosynthèse",
             PlanetEpoch.CambrianExplosion => "Explosion Cambrienne",
+            PlanetEpoch.LandColonization => "Colonisation des Terres",
             _ => epoch.ToString()
         };
     }
@@ -1738,6 +1847,7 @@ public class GameHudController : MonoBehaviour
             PlanetEpoch.Prebiotic => prebioticHex,
             PlanetEpoch.Photosynthesis => photosynthesisHex,
             PlanetEpoch.CambrianExplosion => cambrianExplosionHex,
+            PlanetEpoch.LandColonization => landColonizationHex,
             _ => fallbackHex
         };
     }
