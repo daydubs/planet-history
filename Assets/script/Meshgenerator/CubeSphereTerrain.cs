@@ -235,6 +235,23 @@ public class CubeSphereTerrain : MonoBehaviour
 
                     instantiatedMaterial.SetColor("_OceanColor", currentOceanColor);
                 }
+
+                if (instantiatedMaterial.HasProperty("_LandColor"))
+                {
+                    Color defaultLandColor = new Color(0.16f, 0.35f, 0.14f, 1f); // the default _LandColor from shader
+
+                    if (GameManager.Instance.CurrentEpoch >= PlanetEpoch.LandColonization)
+                    {
+                        // Turn land more forest green to represent terrestrial plants
+                        Color vegetationLandColor = new Color(0.13f, 0.55f, 0.13f, 1f);
+                        instantiatedMaterial.SetColor("_LandColor", Color.Lerp(defaultLandColor, vegetationLandColor, 0.5f));
+                    }
+                    else
+                    {
+                        // Hadean/early earth might have different colors but keeping it default if before land colonization for now
+                        instantiatedMaterial.SetColor("_LandColor", defaultLandColor);
+                    }
+                }
             }
         }
     }

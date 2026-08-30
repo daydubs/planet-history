@@ -13,7 +13,8 @@ public enum PlanetEpoch
     TectonicDrift,  // Dérive continentale active
     Prebiotic,      // Phase pré-biotique: synthèse des acides aminés
     Photosynthesis, // Emergence de la photosynthèse, nouvelle époque
-    CambrianExplosion // Explosion Cambrienne, diversification de la vie multicellulaire
+    CambrianExplosion, // Explosion Cambrienne, diversification de la vie multicellulaire
+    LandColonization // Colonisation des terres fermes
 }
 
 public enum SessionLengthPreset
@@ -80,6 +81,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private PlanetEpoch currentEpoch = PlanetEpoch.Hadean;
     [SerializeField] private bool isPhotosynthesisUnlocked = false;
     [SerializeField] private bool isCambrianExplosionUnlocked = false;
+    [SerializeField] private bool isLandColonizationUnlocked = false;
 
     [Header("Baseline CSV Logger")]
     [SerializeField] private bool enableCsvLogger = true;
@@ -111,6 +113,7 @@ public class GameManager : MonoBehaviour
     public PlanetEpoch CurrentEpoch => currentEpoch;
     public bool IsPhotosynthesisUnlocked => isPhotosynthesisUnlocked;
     public bool IsCambrianExplosionUnlocked => isCambrianExplosionUnlocked;
+    public bool IsLandColonizationUnlocked => isLandColonizationUnlocked;
     public bool IsPaused => isPaused;
 
     public void UnlockPhotosynthesis()
@@ -121,6 +124,11 @@ public class GameManager : MonoBehaviour
     public void UnlockCambrianExplosion()
     {
         isCambrianExplosionUnlocked = true;
+    }
+
+    public void UnlockLandColonization()
+    {
+        isLandColonizationUnlocked = true;
     }
     public bool NoPlayerBaseline => noPlayerBaseline;
     public float SessionDurationHours => GetSessionDurationHours();
@@ -475,6 +483,8 @@ public class GameManager : MonoBehaviour
             newEpoch = PlanetEpoch.ProtoOcean;
         else if (waterRatio < 1.00f)
             newEpoch = PlanetEpoch.TectonicDrift;
+        else if (isLandColonizationUnlocked)
+            newEpoch = PlanetEpoch.LandColonization;
         else if (isCambrianExplosionUnlocked)
             newEpoch = PlanetEpoch.CambrianExplosion;
         else if (isPhotosynthesisUnlocked)

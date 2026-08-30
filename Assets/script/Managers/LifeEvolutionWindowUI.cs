@@ -24,7 +24,8 @@ public class LifeEvolutionWindowUI : MonoBehaviour
         "<b>Évolution en organites :</b> Avec le temps, cette bactérie endosymbiotique est devenue la mitochondrie, le \"moteur\" de la cellule. Plus tard, certaines cellules ont intégré des cyanobactéries, donnant naissance aux chloroplastes chez les plantes et les algues.",
         "<b>Formation du noyau :</b> Parallèlement, des invaginations de la membrane plasmique de la cellule hôte se seraient repliées vers l'intérieur, entourant le matériel génétique (ADN) pour former la membrane nucléaire. Cela a protégé l'ADN et permis une régulation plus fine de l'expression des gènes.",
         "<b>Vers la Multicellularité :</b> La division cellulaire contrôlée (mitose), la communication via des jonctions, et la différenciation cellulaire ont permis de passer d'organismes unicellulaires à des entités multicellulaires plus complexes.",
-        "<b>L'Explosion Cambrienne :</b> Juste après l'apparition de la vie multicellulaire, la biodiversité explose littéralement. Symbiose, compétition, chaînes alimentaires complexes et colonisation de nouveaux biomes marquent cette ère foisonnante."
+        "<b>L'Explosion Cambrienne :</b> Juste après l'apparition de la vie multicellulaire, la biodiversité explose littéralement. Symbiose, compétition, chaînes alimentaires complexes et colonisation de nouveaux biomes marquent cette ère foisonnante.",
+        "<b>La Colonisation des Terres Fermes :</b> La vie passe de l'eau à la terre, ce qui est l'aventure la plus risquée mais la plus gratifiante. La gravité, la dessiccation (séchage) et les UV deviennent des facteurs de survie."
     };
 
     private void Start()
@@ -79,6 +80,15 @@ public class LifeEvolutionWindowUI : MonoBehaviour
         {
             GameObject go = new GameObject("CambrianMiniGameController");
             go.AddComponent<CambrianMiniGameController>();
+        }
+    }
+
+    private void EnsureLandColonizationMiniGameExists()
+    {
+        if (LandColonizationMiniGameController.Instance == null)
+        {
+            GameObject go = new GameObject("LandColonizationMiniGameController");
+            go.AddComponent<LandColonizationMiniGameController>();
         }
     }
 
@@ -211,7 +221,7 @@ public class LifeEvolutionWindowUI : MonoBehaviour
 
         if (tryEvolutionButton != null)
         {
-            bool showButton = (currentStepIndex == 1 || currentStepIndex == 2 || currentStepIndex == 5 || currentStepIndex == 6);
+            bool showButton = (currentStepIndex == 1 || currentStepIndex == 2 || currentStepIndex == 5 || currentStepIndex == 6 || currentStepIndex == 7);
             tryEvolutionButton.gameObject.SetActive(showButton);
 
             TextMeshProUGUI btnText = tryEvolutionButton.GetComponentInChildren<TextMeshProUGUI>();
@@ -221,6 +231,8 @@ public class LifeEvolutionWindowUI : MonoBehaviour
                     btnText.text = "Explorer la Multicellularité";
                 else if (currentStepIndex == 6)
                     btnText.text = "Déclencher l'Explosion Cambrienne";
+                else if (currentStepIndex == 7)
+                    btnText.text = "Coloniser les Terres";
                 else
                     btnText.text = "Essayer l'évolution (Mini-jeu)";
             }
@@ -259,7 +271,18 @@ public class LifeEvolutionWindowUI : MonoBehaviour
     {
         HideLifeWindow();
 
-        if (currentStepIndex == 6)
+        if (currentStepIndex == 7)
+        {
+            EnsureLandColonizationMiniGameExists();
+            LandColonizationMiniGameController.Instance.StartMiniGame(() => {
+                ShowLifeWindow();
+                if (GameManager.Instance != null && !GameManager.Instance.IsLandColonizationUnlocked)
+                {
+                    GameManager.Instance.UnlockLandColonization();
+                }
+            });
+        }
+        else if (currentStepIndex == 6)
         {
             EnsureCambrianMiniGameExists();
             CambrianMiniGameController.Instance.StartMiniGame(() => {
@@ -267,6 +290,10 @@ public class LifeEvolutionWindowUI : MonoBehaviour
                 if (GameManager.Instance != null && !GameManager.Instance.IsCambrianExplosionUnlocked)
                 {
                     GameManager.Instance.UnlockCambrianExplosion();
+                }
+                if (currentStepIndex < evolutionSteps.Count - 1)
+                {
+                    OnNextStep(); // advance to next step after success
                 }
             });
         }
