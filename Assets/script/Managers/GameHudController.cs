@@ -1371,6 +1371,137 @@ public class GameHudController : MonoBehaviour
         }
     }
 
+    private GameObject epochRegressionWarningPanel;
+    private TextMeshProUGUI regressionReasonText;
+    private TextMeshProUGUI regressionAdviceText;
+
+    private void CreateEpochRegressionWarningUI()
+    {
+        Canvas canvas = GetComponentInParent<Canvas>();
+        if (canvas == null) canvas = FindAnyObjectByType<Canvas>();
+        if (canvas == null) return;
+
+        // Container anchored on Middle-Left (gauche centre), matching completion panels
+        epochRegressionWarningPanel = new GameObject("EpochRegressionWarningPanel", typeof(RectTransform));
+        epochRegressionWarningPanel.transform.SetParent(canvas.transform, false);
+
+        RectTransform panelRect = epochRegressionWarningPanel.GetComponent<RectTransform>();
+        panelRect.anchorMin = new Vector2(0f, 0.5f);
+        panelRect.anchorMax = new Vector2(0f, 0.5f);
+        panelRect.pivot = new Vector2(0f, 0.5f);
+        panelRect.anchoredPosition = new Vector2(25f, 0f);
+        panelRect.sizeDelta = new Vector2(380f, 320f);
+
+        // Panel Background (Red/Orange tint for warning)
+        Image bg = epochRegressionWarningPanel.AddComponent<Image>();
+        bg.color = new Color(0.25f, 0.05f, 0.05f, 0.95f); // Dark red tint
+
+        VerticalLayoutGroup vlg = epochRegressionWarningPanel.AddComponent<VerticalLayoutGroup>();
+        vlg.padding = new RectOffset(20, 20, 30, 30);
+        vlg.spacing = 15f;
+        vlg.childAlignment = TextAnchor.UpperCenter;
+        vlg.childControlWidth = true;
+        vlg.childControlHeight = false;
+
+        ContentSizeFitter fitter = epochRegressionWarningPanel.AddComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        // Title
+        GameObject titleObj = new GameObject("TitleText", typeof(RectTransform));
+        titleObj.transform.SetParent(epochRegressionWarningPanel.transform, false);
+        TextMeshProUGUI titleText = titleObj.AddComponent<TextMeshProUGUI>();
+        titleText.text = "ATTENTION - RÉGRESSION !";
+        titleText.fontSize = 24f;
+        titleText.fontStyle = FontStyles.Bold;
+        titleText.alignment = TextAlignmentOptions.Center;
+        titleText.color = new Color(1f, 0.3f, 0.3f, 1f); // Bright red
+
+        // Description / Reason
+        GameObject descObj = new GameObject("ReasonText", typeof(RectTransform));
+        descObj.transform.SetParent(epochRegressionWarningPanel.transform, false);
+        regressionReasonText = descObj.AddComponent<TextMeshProUGUI>();
+        regressionReasonText.text = "Raison...";
+        regressionReasonText.fontSize = 16f;
+        regressionReasonText.alignment = TextAlignmentOptions.Center;
+        regressionReasonText.color = Color.white;
+        regressionReasonText.enableWordWrapping = true;
+        LayoutElement descLayout = descObj.AddComponent<LayoutElement>();
+        descLayout.minHeight = 60f;
+
+        // Advice
+        GameObject adviceObj = new GameObject("AdviceText", typeof(RectTransform));
+        adviceObj.transform.SetParent(epochRegressionWarningPanel.transform, false);
+        regressionAdviceText = adviceObj.AddComponent<TextMeshProUGUI>();
+        regressionAdviceText.text = "Conseil...";
+        regressionAdviceText.fontSize = 14f;
+        regressionAdviceText.fontStyle = FontStyles.Italic;
+        regressionAdviceText.alignment = TextAlignmentOptions.Center;
+        regressionAdviceText.color = new Color(0.9f, 0.9f, 0.6f, 1f); // Yellowish
+        regressionAdviceText.enableWordWrapping = true;
+        LayoutElement adviceLayout = adviceObj.AddComponent<LayoutElement>();
+        adviceLayout.minHeight = 60f;
+
+        // Close Button
+        GameObject btnObj = new GameObject("CloseBtn", typeof(RectTransform));
+        btnObj.transform.SetParent(epochRegressionWarningPanel.transform, false);
+
+        Image btnImg = btnObj.AddComponent<Image>();
+        btnImg.color = new Color(0.6f, 0.2f, 0.2f, 1f); // Reddish button
+
+        Button closeBtn = btnObj.AddComponent<Button>();
+        closeBtn.targetGraphic = btnImg;
+        closeBtn.onClick.AddListener(HideEpochRegressionWarning);
+
+        LayoutElement btnLayout = btnObj.AddComponent<LayoutElement>();
+        btnLayout.minHeight = 40f;
+        btnLayout.preferredHeight = 40f;
+
+        GameObject btnTextObj = new GameObject("BtnText", typeof(RectTransform));
+        btnTextObj.transform.SetParent(btnObj.transform, false);
+
+        RectTransform btnTextRect = btnTextObj.GetComponent<RectTransform>();
+        btnTextRect.anchorMin = Vector2.zero;
+        btnTextRect.anchorMax = Vector2.one;
+        btnTextRect.offsetMin = Vector2.zero;
+        btnTextRect.offsetMax = Vector2.zero;
+
+        TextMeshProUGUI btnText = btnTextObj.AddComponent<TextMeshProUGUI>();
+        btnText.text = "Compris";
+        btnText.fontSize = 16f;
+        btnText.alignment = TextAlignmentOptions.Center;
+        btnText.color = Color.white;
+
+        epochRegressionWarningPanel.SetActive(false);
+    }
+
+    private void HideEpochRegressionWarning()
+    {
+        if (epochRegressionWarningPanel != null)
+        {
+            epochRegressionWarningPanel.SetActive(false);
+        }
+    }
+
+    public void ShowEpochRegressionWarning(string reason, string advice)
+    {
+        if (epochRegressionWarningPanel == null)
+        {
+            CreateEpochRegressionWarningUI();
+        }
+
+        if (epochRegressionWarningPanel != null)
+        {
+            if (regressionReasonText != null) regressionReasonText.text = reason;
+            if (regressionAdviceText != null) regressionAdviceText.text = advice;
+
+            epochRegressionWarningPanel.SetActive(true);
+            epochRegressionWarningPanel.transform.SetAsLastSibling();
+            Canvas.ForceUpdateCanvases();
+            LayoutRebuilder.ForceRebuildLayoutImmediate(epochRegressionWarningPanel.GetComponent<RectTransform>());
+        }
+    }
+
     private GameObject cambrianCompletionPanel;
     public void ShowCambrianExplosionCompletionWindow()
     {
@@ -1595,6 +1726,7 @@ public class GameHudController : MonoBehaviour
         if (gameManager != null)
         {
             gameManager.OnEpochChanged += HandleEpochChanged;
+            gameManager.OnEpochRegression += ShowEpochRegressionWarning;
         }
 
         if (PrebioticMiniGameController.Instance != null)
@@ -1610,6 +1742,7 @@ public class GameHudController : MonoBehaviour
         if (gameManager != null)
         {
             gameManager.OnEpochChanged -= HandleEpochChanged;
+            gameManager.OnEpochRegression -= ShowEpochRegressionWarning;
         }
 
         if (PrebioticMiniGameController.Instance != null)
