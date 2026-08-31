@@ -23,8 +23,8 @@ public class MicrobeManager : MonoBehaviour
         GameManager gm = GameManager.Instance;
         if (gm == null) return;
 
-        // Photosynthesis only happens in the Photosynthesis epoch
-        if (gm.CurrentEpoch != PlanetEpoch.Photosynthesis) return;
+        // Photosynthesis only happens in the Photosynthesis epoch and onwards
+        if (gm.CurrentEpoch < PlanetEpoch.Photosynthesis) return;
 
         // Life thrives in a habitable temperature range
         if (gm.SurfaceTemperature > 273f && gm.SurfaceTemperature < 350f)

@@ -415,8 +415,10 @@ public class GameManager : MonoBehaviour
             if (currentEpoch >= PlanetEpoch.Photosynthesis)
             {
                 // La respiration augmente si on dépasse la cible, créant un puits d'équilibre
+                // On s'assure de l'équilibrer par rapport à la taille de l'océan (waterRatio)
+                // pour que la production (0.0001f * waterRatio) puisse dépasser la respiration de base.
                 float oxygenExcess = Mathf.Max(0f, oxygenPressure - targetOxygen);
-                biologicalRespiration = (0.00005f + oxygenExcess * 0.0001f) * dt;
+                biologicalRespiration = (0.00005f * waterRatio + oxygenExcess * 0.0001f) * dt;
 
                 // Le cycle du carbone : la respiration rejette du CO2
                 co2Pressure += biologicalRespiration * 0.5f; // On ne rejette qu'une partie pour garder l'équilibre
