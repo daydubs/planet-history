@@ -284,11 +284,10 @@ public class GameManager : MonoBehaviour
             tsunamiWaterRise = Mathf.Max(0f, tsunamiWaterRise);
         }
 
-        if (impactThermalPulse > 0f)
+        if (impactThermalPulse != 0f)
         {
-            // Dissipation progressive du choc thermique de météore
-            impactThermalPulse -= 0.02f * dt;
-            impactThermalPulse = Mathf.Max(0f, impactThermalPulse);
+            // Dissipation progressive du refroidissement de météore (hiver nucléaire)
+            impactThermalPulse = Mathf.MoveTowards(impactThermalPulse, 0f, 0.02f * dt);
         }
 
         UpdateEpochFromState();
@@ -339,7 +338,9 @@ public class GameManager : MonoBehaviour
         // 4. Température de surface dynamique globale = Baseline + Effet de Serre + Choc Thermique d'impact
         float targetSurface = baselineSurface + greenhouseDeltaTemp + impactThermalPulse;
 
-        surfaceTemperature = Mathf.MoveTowards(surfaceTemperature, targetSurface, 0.05f * dt);
+        // On ralentit énormément la force de rappel vers la baseline, pour que les déséquilibres persistent longtemps.
+        // On permet aussi à la température de dévier beaucoup plus fortement sans être bridée par le MoveTowards de base.
+        surfaceTemperature = Mathf.MoveTowards(surfaceTemperature, targetSurface, 0.005f * dt);
         surfaceTemperature = Mathf.Max(surfaceTemperature, 100f);
     }
 
@@ -363,16 +364,14 @@ public class GameManager : MonoBehaviour
         float dynamicOtherGases = otherGasesPressure + meteorGasesPressure;
 
         // 3. Environmental Sinks
-        // Les océans absorbent le CO2 (Carbonate-silicate cycle et altération des roches)
-        // La séquestration du carbone augmente avec le niveau d'eau. On veut cibler une quantité
-        // de trace pour éviter la disparition totale de la vie (target de ~0.01 à 0.1 atm au final)
+        // L'absorption automatique du CO2 est drastiquement réduite.
+        // Le joueur devra gérer lui-même l'emballement thermique.
         float targetCo2 = 0.01f;
         if (waterRatio > 0.01f && co2Pressure > targetCo2)
         {
             float co2Excess = co2Pressure - targetCo2;
-            // Une absorption qui s'accélère si la pression est très élevée,
-            // mais ralentit lorsqu'on s'approche de la cible
-            float co2Absorption = (waterRatio * 0.00005f + co2Excess * 0.00001f) * dt;
+            // Absorption quasi nulle (divisée par 10) : l'équilibre ne se fait plus "tout seul"
+            float co2Absorption = (waterRatio * 0.000005f + co2Excess * 0.000001f) * dt;
             co2Pressure = Mathf.Max(targetCo2, co2Pressure - co2Absorption);
         }
 
@@ -382,21 +381,13 @@ public class GameManager : MonoBehaviour
             otherGasesPressure = Mathf.Max(0f, otherGasesPressure - 0.001f * dt);
         }
 
-        // Puits d'Azote (Fixation dans les sols / Océans / Echappement)
-        // La cible naturelle pour l'azote est ~0.78 atm.
+        // Puits d'Azote affaibli
         float targetNitrogen = 0.78f;
         if (nitrogenPressure > targetNitrogen)
         {
-            // Plus on s'éloigne de la cible, plus le puits est fort.
             float nitrogenExcess = nitrogenPressure - targetNitrogen;
-            // Un taux de perte léger qui stabilise N2 contre le dégazage tectonique
-            float nitrogenSink = nitrogenExcess * 0.00005f * dt;
+            float nitrogenSink = nitrogenExcess * 0.000005f * dt; // Réduit par 10
             nitrogenPressure = Mathf.Max(targetNitrogen, nitrogenPressure - nitrogenSink);
-        }
-        else if (nitrogenPressure < targetNitrogen && tectonicActivity == 0f)
-        {
-            // Si la pression d'azote est trop basse on tend doucement vers l'équilibre
-            nitrogenPressure = Mathf.MoveTowards(nitrogenPressure, targetNitrogen, 0.00001f * dt);
         }
 
         // La condensation massive de la vapeur d'eau est liée au waterRatio
@@ -446,13 +437,21 @@ public class GameManager : MonoBehaviour
 
         if (surfaceTemperature < condenseThreshold && pressure > 0.2f)
         {
-            // Taux de condensation réduit à (0.0000005f / 3f) pour allonger 3x la durée du rush initial
-            // de la dérive tectonique rapide (époque TectonicDrift) tout en garantissant d'atteindre l'époque Prebiotic.
+            // Taux de condensation
             waterRatio += (0.0000005f / 3f) * dt;
         }
         else
         {
-            waterRatio -= 0.000005f * dt;
+            // Si la température de surface est au dessus du point d'ébullition,
+            // l'eau s'évapore massivement et rapidement. Le joueur doit refroidir la planète.
+            if (waterRatio > 0f)
+            {
+                float evaporationSpeed = 0.0005f;
+                waterRatio -= evaporationSpeed * dt;
+
+                // L'évaporation recrée de la pression de vapeur d'eau (effet de serre embalé)
+                waterVaporPressure += (evaporationSpeed * 10f) * dt;
+            }
         }
 
         waterRatio = Mathf.Clamp01(waterRatio);
@@ -473,29 +472,63 @@ public class GameManager : MonoBehaviour
     {
         PlanetEpoch newEpoch = currentEpoch;
 
+        // Logique de régression : Si les conditions deviennent extrêmes, la vie meurt et les époques régressent.
+        bool hasExtremeHeat = surfaceTemperature > 400f; // Trop chaud pour la vie complexe / océans liquides
+        bool hasExtremeCold = surfaceTemperature < 273.15f; // Trop froid (gèle) pour la vie
+        bool hasNoWater = waterRatio < 0.05f;
+
         if (surfaceTemperature > 1400f)
             newEpoch = PlanetEpoch.Hadean;
         else if (surfaceTemperature > 1000f)
             newEpoch = PlanetEpoch.CrustFormation;
-        else if (waterRatio < 0.05f)
+        else if (hasNoWater)
+        {
+            // Régression sévère si toute l'eau s'évapore
             newEpoch = PlanetEpoch.VolcanicAge;
+            ResetEvolutionUnlocks();
+        }
         else if (waterRatio < 0.10f)
             newEpoch = PlanetEpoch.ProtoOcean;
-        else if (waterRatio < 1.00f)
+        else if (hasExtremeHeat || hasExtremeCold)
+        {
+            // Régression due à l'effet de serre embalé ou froid extrême
+            newEpoch = PlanetEpoch.ProtoOcean;
+            ResetEvolutionUnlocks();
+        }
+        else if (waterRatio < 1.00f && currentEpoch < PlanetEpoch.Prebiotic)
             newEpoch = PlanetEpoch.TectonicDrift;
-        else if (isLandColonizationUnlocked)
+        else if (isLandColonizationUnlocked && !hasExtremeHeat && !hasExtremeCold)
             newEpoch = PlanetEpoch.LandColonization;
-        else if (isCambrianExplosionUnlocked)
+        else if (isCambrianExplosionUnlocked && !hasExtremeHeat && !hasExtremeCold)
             newEpoch = PlanetEpoch.CambrianExplosion;
-        else if (isPhotosynthesisUnlocked)
+        else if (isPhotosynthesisUnlocked && !hasExtremeHeat && !hasExtremeCold)
             newEpoch = PlanetEpoch.Photosynthesis;
-        else
+        else if (!hasExtremeHeat && !hasExtremeCold && !hasNoWater && waterRatio >= 0.10f) // La phase Prebiotic nécessite au moins 10% d'eau et des temp acceptables
             newEpoch = PlanetEpoch.Prebiotic;
+        else
+            newEpoch = PlanetEpoch.TectonicDrift; // Fallback
+
 
         if (newEpoch != currentEpoch)
         {
             currentEpoch = newEpoch;
             OnEpochChanged?.Invoke(currentEpoch);
+        }
+    }
+
+    private void ResetEvolutionUnlocks()
+    {
+        if (isPhotosynthesisUnlocked || isCambrianExplosionUnlocked || isLandColonizationUnlocked)
+        {
+            LogEvent("Planetary Collapse", "Extreme conditions wiped out life. Evolution progress reset.");
+        }
+        isPhotosynthesisUnlocked = false;
+        isCambrianExplosionUnlocked = false;
+        isLandColonizationUnlocked = false;
+
+        if (PrebioticMiniGameController.Instance != null && PrebioticMiniGameController.Instance.TotalProgress > 0)
+        {
+            PrebioticMiniGameController.Instance.ResetProgress();
         }
     }
 
@@ -683,7 +716,7 @@ public class GameManager : MonoBehaviour
     public void AddImpactThermalPulse(float amount)
     {
         impactThermalPulse += amount;
-        LogEvent("Impact Thermal Shock", $"Surface temperature spiked by +{amount:F1} K.");
+        LogEvent("Meteor Nuclear Winter", $"Surface temperature dropped by {amount:F1} K.");
     }
 
     public void AddTectonicActivity(float amount)
@@ -738,6 +771,11 @@ public class GameManager : MonoBehaviour
     {
         tsunamiWaterRise += amount;
         tsunamiWaterRise = Mathf.Clamp(tsunamiWaterRise, 0f, 0.5f); // limit max rise to prevent complete overflow above 100%
+
+        // Un météore apporte aussi de l'eau durablement à la planète
+        waterRatio += amount * 0.1f;
+        waterRatio = Mathf.Clamp01(waterRatio);
+
         LogEvent("Tsunami Triggered", $"Water level temporarily rose by {amount * 100f:F1}%.");
     }
 

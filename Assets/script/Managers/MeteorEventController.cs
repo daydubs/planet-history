@@ -204,7 +204,7 @@ public class MeteorEventController : MonoBehaviour
                 data.depth = Random.Range(0.08f, 0.15f);
                 data.rimHeight = Random.Range(0.04f, 0.08f);
                 data.gasRelease = Random.Range(2.5f, 5.5f);
-                data.tsunamiRise = Random.Range(0.04f, 0.09f);
+                data.tsunamiRise = Random.Range(0.1f, 0.15f); // Increased water delivery
                 break;
 
             case MeteorSizeTier.Medium:
@@ -214,7 +214,7 @@ public class MeteorEventController : MonoBehaviour
                 data.depth = Random.Range(0.20f, 0.35f);
                 data.rimHeight = Random.Range(0.12f, 0.22f);
                 data.gasRelease = Random.Range(8.0f, 15.0f);
-                data.tsunamiRise = Random.Range(0.12f, 0.22f);
+                data.tsunamiRise = Random.Range(0.2f, 0.35f); // Increased water delivery
                 break;
 
             case MeteorSizeTier.Large:
@@ -224,7 +224,7 @@ public class MeteorEventController : MonoBehaviour
                 data.depth = Random.Range(0.42f, 0.60f);
                 data.rimHeight = Random.Range(0.25f, 0.38f);
                 data.gasRelease = Random.Range(20.0f, 32.0f);
-                data.tsunamiRise = Random.Range(0.25f, 0.38f);
+                data.tsunamiRise = Random.Range(0.4f, 0.6f); // Increased water delivery
                 break;
 
             case MeteorSizeTier.Massive:
@@ -234,7 +234,7 @@ public class MeteorEventController : MonoBehaviour
                 data.depth = Random.Range(0.70f, 0.95f);
                 data.rimHeight = Random.Range(0.45f, 0.65f);
                 data.gasRelease = Random.Range(45.0f, 75.0f);
-                data.tsunamiRise = Random.Range(0.40f, 0.50f);
+                data.tsunamiRise = Random.Range(0.7f, 1.0f); // Massive water delivery
                 break;
         }
 
@@ -483,13 +483,15 @@ public class MeteorEventController : MonoBehaviour
             GameManager.Instance?.AddMeteorGases(sizeData.gasRelease);
         }
 
+        // Dans ce nouveau modèle, les météores soulèvent tellement de poussière qu'ils refroidissent l'atmosphère globale (Nuclear Winter)
+        // C'est l'arme principale du joueur pour refroidir la planète si l'effet de serre (volcans) s'emballe.
         float thermalPulse = sizeData.tier switch
         {
-            MeteorSizeTier.Small => Random.Range(12f, 18f),
-            MeteorSizeTier.Medium => Random.Range(30f, 45f),
-            MeteorSizeTier.Large => Random.Range(65f, 90f),
-            MeteorSizeTier.Massive => Random.Range(130f, 180f),
-            _ => 20f
+            MeteorSizeTier.Small => Random.Range(-10f, -25f),
+            MeteorSizeTier.Medium => Random.Range(-30f, -65f),
+            MeteorSizeTier.Large => Random.Range(-85f, -120f),
+            MeteorSizeTier.Massive => Random.Range(-180f, -250f),
+            _ => -20f
         };
         GameManager.Instance?.AddImpactThermalPulse(thermalPulse);
 
