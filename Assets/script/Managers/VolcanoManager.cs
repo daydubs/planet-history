@@ -262,9 +262,11 @@ public class VolcanoManager : MonoBehaviour
             currentPhaseDuration = UnityEngine.Random.Range(100f, 300f), // simulation units
 
             // Atmospheric emission rates scale with volcano size
-            co2EmissionRate = UnityEngine.Random.Range(0.0001f, 0.0005f) * (targetRadius / 2f),
-            waterVaporEmissionRate = UnityEngine.Random.Range(0.0002f, 0.0008f) * (targetRadius / 2f),
-            otherGasesEmissionRate = UnityEngine.Random.Range(0.0001f, 0.0003f) * (targetRadius / 2f),
+            // On augmente fortement les émissions pour que les volcans soient un outil puissant
+            // de réchauffement pour le joueur (qui combat la baisse de température de fond).
+            co2EmissionRate = UnityEngine.Random.Range(0.001f, 0.005f) * (targetRadius / 2f),
+            waterVaporEmissionRate = UnityEngine.Random.Range(0.002f, 0.008f) * (targetRadius / 2f),
+            otherGasesEmissionRate = UnityEngine.Random.Range(0.001f, 0.003f) * (targetRadius / 2f),
 
             parentPiece = parentPiece,
             offsetLonFromParent = parentPiece != null ? CubeSphereTerrain.DeltaLongitudeDegrees(lonDeg, parentPiece.currentLongitude) : 0f,

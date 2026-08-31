@@ -31,6 +31,19 @@ public class PrebioticMiniGameController : MonoBehaviour
     public float Leucine => leucine;
     public float Isoleucine => isoleucine;
 
+    public void ResetProgress()
+    {
+        glycine = 0f;
+        alanine = 0f;
+        asparticAcid = 0f;
+        glutamicAcid = 0f;
+        serine = 0f;
+        valine = 0f;
+        leucine = 0f;
+        isoleucine = 0f;
+        OnPrebioticProgressUpdated?.Invoke();
+    }
+
     public float TotalProgress
     {
         get
