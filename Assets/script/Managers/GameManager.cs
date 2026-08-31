@@ -90,6 +90,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private bool logOnlyWhenNoPlayerBaseline = true;
 
     public event Action<PlanetEpoch> OnEpochChanged;
+    public event Action<string, string> OnEpochRegression;
     public event Action OnSimulationStep;
 
     // Accès en lecture (les autres systèmes lisent ces valeurs)
@@ -471,6 +472,8 @@ public class GameManager : MonoBehaviour
     private void UpdateEpochFromState()
     {
         PlanetEpoch newEpoch = currentEpoch;
+        string regressionReason = "";
+        string regressionAdvice = "";
 
         // Logique de régression : Si les conditions deviennent extrêmes, la vie meurt et les époques régressent.
         bool hasExtremeHeat = surfaceTemperature > 400f; // Trop chaud pour la vie complexe / océans liquides
@@ -478,21 +481,45 @@ public class GameManager : MonoBehaviour
         bool hasNoWater = waterRatio < 0.05f;
 
         if (surfaceTemperature > 1400f)
+        {
             newEpoch = PlanetEpoch.Hadean;
+            regressionReason = "La température de surface a dépassé 1400K, provoquant une fonte totale de la surface.";
+            regressionAdvice = "Laissez la planète se refroidir naturellement ou réduisez l'effet de serre en limitant les gaz.";
+        }
         else if (surfaceTemperature > 1000f)
+        {
             newEpoch = PlanetEpoch.CrustFormation;
+            regressionReason = "La température de surface a dépassé 1000K, détruisant toute croûte stable.";
+            regressionAdvice = "Attendez le refroidissement. L'activité volcanique devra diminuer.";
+        }
         else if (hasNoWater)
         {
             // Régression sévère si toute l'eau s'évapore
             newEpoch = PlanetEpoch.VolcanicAge;
+            regressionReason = "Toute l'eau de la planète s'est évaporée en raison de températures extrêmement élevées ou d'un manque d'apport.";
+            regressionAdvice = "Faites tomber des météorites (glace) pour ramener de l'eau, et gérez l'effet de serre pour qu'elle puisse se condenser.";
             ResetEvolutionUnlocks();
         }
         else if (waterRatio < 0.10f)
+        {
             newEpoch = PlanetEpoch.ProtoOcean;
+            regressionReason = "Le niveau d'eau est descendu en dessous de 10%, asséchant la planète.";
+            regressionAdvice = "Ajoutez de l'eau via des impacts de météorites de taille moyenne ou grande.";
+        }
         else if (hasExtremeHeat || hasExtremeCold)
         {
             // Régression due à l'effet de serre embalé ou froid extrême
             newEpoch = PlanetEpoch.ProtoOcean;
+            if (hasExtremeHeat)
+            {
+                regressionReason = "Réchauffement climatique extrême : effet de serre incontrôlable (> 400K) ! Les océans se mettent à bouillir.";
+                regressionAdvice = "Créez un hiver nucléaire en faisant s'écraser des météorites pour masquer le soleil et refroidir l'atmosphère.";
+            }
+            else
+            {
+                regressionReason = "Ère glaciaire totale : la température a chuté sous le point de congélation (< 273K).";
+                regressionAdvice = "Déclenchez des volcans pour libérer du CO2 et des gaz à effet de serre afin de réchauffer la planète.";
+            }
             ResetEvolutionUnlocks();
         }
         else if (waterRatio < 1.00f && currentEpoch < PlanetEpoch.Prebiotic)
@@ -511,6 +538,11 @@ public class GameManager : MonoBehaviour
 
         if (newEpoch != currentEpoch)
         {
+            if (newEpoch < currentEpoch)
+            {
+                OnEpochRegression?.Invoke(regressionReason, regressionAdvice);
+            }
+
             currentEpoch = newEpoch;
             OnEpochChanged?.Invoke(currentEpoch);
         }
