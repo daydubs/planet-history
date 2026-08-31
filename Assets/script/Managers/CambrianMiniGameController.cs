@@ -270,7 +270,8 @@ public class CambrianMiniGameController : MonoBehaviour
     {
         pointsText.text = $"Points d'Évolution: {Mathf.FloorToInt(evolutionPoints)}";
         biodiversityText.text = $"Biodiversité: {(biodiversityLevel / targetBiodiversity * 100f):F1}%";
-        biodiversityBarFill.anchorMax = new Vector2(Mathf.Clamp01(biodiversityLevel / targetBiodiversity), 1f);
+        // Utiliser le RectTransform de l'Image pour modifier les ancres
+        biodiversityBarFill.rectTransform.anchorMax = new Vector2(Mathf.Clamp01(biodiversityLevel / targetBiodiversity), 1f);
 
         preyText.text = Mathf.RoundToInt(exactPreyCount).ToString();
         predatorText.text = Mathf.RoundToInt(exactPredatorCount).ToString();

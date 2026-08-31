@@ -87,6 +87,7 @@
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\VertexShakeA.cs" />
     <Compile Include="Assets\script\Managers\EvolutionMiniGameController.cs" />
     <Compile Include="Assets\script\Managers\GameHudLayoutPreset.cs" />
+    <Compile Include="Assets\script\Managers\CambrianMiniGameController.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\Benchmark01_UGUI.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\SimpleScript.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\Benchmark04.cs" />
@@ -102,6 +103,7 @@
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\Benchmark01.cs" />
     <Compile Include="Assets\TextMesh Pro\Examples &amp; Extras\Scripts\TextMeshSpawner.cs" />
     <Compile Include="Assets\script\Meshgenerator\PlanetHeightField.cs" />
+    <Compile Include="Assets\script\Managers\LandColonizationMiniGameController.cs" />
     <Compile Include="Assets\script\Managers\GameManager.cs" />
     <Compile Include="Assets\script\Managers\MicrobeManager.cs" />
     <Compile Include="Assets\script\Managers\PrebioticMiniGameController.cs" />
