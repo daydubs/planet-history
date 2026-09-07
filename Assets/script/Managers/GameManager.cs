@@ -439,7 +439,7 @@ public class GameManager : MonoBehaviour
         if (surfaceTemperature < condenseThreshold && pressure > 0.2f)
         {
             // Taux de condensation
-            waterRatio += (0.0000005f / 3f) * dt;
+            waterRatio += (0.0000005f / 9f) * dt;
         }
         else
         {
