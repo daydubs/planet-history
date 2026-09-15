@@ -118,6 +118,7 @@ public class CubeSphereTerrain : MonoBehaviour
 
     [Header("Supercontinent Configuration")]
     [SerializeField] private ContinentalPiece[] continentalPieces;
+    [SerializeField, Min(0f)] private float tectonicRushDuration = 16200000f; // 3x extended rapid rush duration in simulation units (default ~16.2M units = 3x 5.4M)
 
     [Header("Randomization Configuration")]
     [SerializeField] private bool randomizeOnStart = true;
@@ -134,6 +135,7 @@ public class CubeSphereTerrain : MonoBehaviour
     private bool pendingRebuild;
     private Vector3 activeNoiseOffset = Vector3.zero;
     private bool hasRandomized = false;
+    private float tectonicRushElapsed = 0f;
 
     private Mesh mesh;
     private PlanetHeightField field;
@@ -847,6 +849,7 @@ public class CubeSphereTerrain : MonoBehaviour
 
     public void ResetContinentalPieces()
     {
+        tectonicRushElapsed = 0f;
         if (continentalPieces == null) return;
         foreach (var piece in continentalPieces)
         {
@@ -1058,9 +1061,11 @@ public class CubeSphereTerrain : MonoBehaviour
         // 2. Handle drift during TectonicDrift and subsequent epochs (e.g., Prebiotic)
         if (epoch >= PlanetEpoch.TectonicDrift && simDt > 0f)
         {
-            // Speed factor: full rush speed during TectonicDrift epoch (which spans waterRatio 0.10 to 1.00 for an extended 3x longer rapid drift duration before slowing down in Prebiotic epoch)
+            tectonicRushElapsed += simDt;
+
+            // Speed factor: full rush speed during initial rapid drift rush duration (3x longer extended time: 16.2M simulation units) or TectonicDrift epoch before slowing down to 20% speed
             float tectonicFactor = GameManager.Instance != null ? Mathf.Clamp01(GameManager.Instance.TectonicActivity / 0.23f) : 1f;
-            float speedFactor = (epoch == PlanetEpoch.TectonicDrift) ? 1.0f : (0.20f * tectonicFactor);
+            float speedFactor = (epoch == PlanetEpoch.TectonicDrift || tectonicRushElapsed < tectonicRushDuration) ? 1.0f : (0.20f * tectonicFactor);
 
             // First perform continental piece collision detection
             if (continentalPieces != null && continentalPieces.Length > 1)
