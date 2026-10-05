@@ -123,6 +123,10 @@ public class CubeSphereTerrain : MonoBehaviour
     [SerializeField] private bool randomizeOnStart = true;
     [SerializeField] private int seed = 0;
 
+    [Header("Tectonic Drift Rush")]
+    [SerializeField] private float tectonicRushDuration = 16200000f; // Simulation time units for rapid initial drift rush (3x extended)
+    private float tectonicRushElapsed = 0f;
+
     [Header("Performance Optimization")]
     [SerializeField, Range(0.01f, 0.2f)] private float rebuildInterval = 0.066f;
 
@@ -847,6 +851,7 @@ public class CubeSphereTerrain : MonoBehaviour
 
     public void ResetContinentalPieces()
     {
+        tectonicRushElapsed = 0f;
         if (continentalPieces == null) return;
         foreach (var piece in continentalPieces)
         {
@@ -1058,9 +1063,14 @@ public class CubeSphereTerrain : MonoBehaviour
         // 2. Handle drift during TectonicDrift and subsequent epochs (e.g., Prebiotic)
         if (epoch >= PlanetEpoch.TectonicDrift && simDt > 0f)
         {
-            // Speed factor: full rush speed during TectonicDrift epoch (which spans waterRatio 0.10 to 1.00 for an extended 3x longer rapid drift duration before slowing down in Prebiotic epoch)
+            if (tectonicRushElapsed < tectonicRushDuration)
+            {
+                tectonicRushElapsed += simDt;
+            }
+
+            // Speed factor: full rush speed during initial tectonic rush duration or TectonicDrift epoch before slowing down in subsequent epochs
             float tectonicFactor = GameManager.Instance != null ? Mathf.Clamp01(GameManager.Instance.TectonicActivity / 0.23f) : 1f;
-            float speedFactor = (epoch == PlanetEpoch.TectonicDrift) ? 1.0f : (0.20f * tectonicFactor);
+            float speedFactor = (tectonicRushElapsed < tectonicRushDuration || epoch == PlanetEpoch.TectonicDrift) ? 1.0f : (0.20f * tectonicFactor);
 
             // First perform continental piece collision detection
             if (continentalPieces != null && continentalPieces.Length > 1)
