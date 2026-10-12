@@ -119,6 +119,9 @@ public class CubeSphereTerrain : MonoBehaviour
     [Header("Supercontinent Configuration")]
     [SerializeField] private ContinentalPiece[] continentalPieces;
 
+    [Header("Tectonic Rush Configuration")]
+    [SerializeField] private float tectonicRushDuration = 16200000f; // Extended 3x (from 5.4M to 16.2M sim units)
+
     [Header("Randomization Configuration")]
     [SerializeField] private bool randomizeOnStart = true;
     [SerializeField] private int seed = 0;
@@ -134,6 +137,7 @@ public class CubeSphereTerrain : MonoBehaviour
     private bool pendingRebuild;
     private Vector3 activeNoiseOffset = Vector3.zero;
     private bool hasRandomized = false;
+    private float tectonicRushElapsed = 0f;
 
     private Mesh mesh;
     private PlanetHeightField field;
@@ -847,6 +851,7 @@ public class CubeSphereTerrain : MonoBehaviour
 
     public void ResetContinentalPieces()
     {
+        tectonicRushElapsed = 0f;
         if (continentalPieces == null) return;
         foreach (var piece in continentalPieces)
         {
@@ -1058,9 +1063,12 @@ public class CubeSphereTerrain : MonoBehaviour
         // 2. Handle drift during TectonicDrift and subsequent epochs (e.g., Prebiotic)
         if (epoch >= PlanetEpoch.TectonicDrift && simDt > 0f)
         {
-            // Speed factor: full rush speed during TectonicDrift epoch (which spans waterRatio 0.10 to 1.00 for an extended 3x longer rapid drift duration before slowing down in Prebiotic epoch)
+            tectonicRushElapsed += simDt;
+
+            // Speed factor: full rush speed during initial rush duration or TectonicDrift epoch (which spans waterRatio 0.10 to 1.00 for an extended 3x longer rapid drift duration before slowing down in Prebiotic epoch)
             float tectonicFactor = GameManager.Instance != null ? Mathf.Clamp01(GameManager.Instance.TectonicActivity / 0.23f) : 1f;
-            float speedFactor = (epoch == PlanetEpoch.TectonicDrift) ? 1.0f : (0.20f * tectonicFactor);
+            bool isInRush = (epoch == PlanetEpoch.TectonicDrift) || (tectonicRushElapsed < tectonicRushDuration);
+            float speedFactor = isInRush ? 1.0f : (0.20f * tectonicFactor);
 
             // First perform continental piece collision detection
             if (continentalPieces != null && continentalPieces.Length > 1)
